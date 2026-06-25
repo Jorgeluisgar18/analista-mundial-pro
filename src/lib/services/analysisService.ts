@@ -109,6 +109,47 @@ async function persistAnalysis(
       source: dataset.match.dataOrigin,
     },
   });
+  await database.evidenceRecord.deleteMany({
+    where: { snapshotId: snapshot.id },
+  });
+  if (dataset.sources.length) {
+    await database.evidenceRecord.createMany({
+      data: dataset.sources.map((source) => ({
+        snapshotId: snapshot.id,
+        field: source.id,
+        value: source.detail,
+        status: source.status,
+        sourceType: source.type,
+        source: source.label,
+        url: source.url,
+        observedAt: new Date(source.observedAt),
+      })),
+    });
+  }
+  await Promise.all(
+    dataset.odds.map((odd) =>
+      database.oddsSnapshot.upsert({
+        where: {
+          matchId_bookmaker_market_outcome_observedAt: {
+            matchId: dbMatch.id,
+            bookmaker: odd.bookmaker,
+            market: odd.market,
+            outcome: odd.outcome,
+            observedAt: new Date(odd.observedAt),
+          },
+        },
+        update: { odd: odd.odd },
+        create: {
+          matchId: dbMatch.id,
+          bookmaker: odd.bookmaker,
+          market: odd.market,
+          outcome: odd.outcome,
+          odd: odd.odd,
+          observedAt: new Date(odd.observedAt),
+        },
+      }),
+    ),
+  );
   const modelVersion = await database.modelVersion.upsert({
     where: {
       name_version: {

@@ -89,7 +89,10 @@ describe("analysis persistence", () => {
         competition: true,
         homeTeam: true,
         awayTeam: true,
-        snapshots: true,
+        odds: true,
+        snapshots: {
+          include: { evidence: true },
+        },
         analyses: {
           include: { predictions: true },
         },
@@ -101,6 +104,10 @@ describe("analysis persistence", () => {
     expect(persisted?.homeTeam.externalId).toBe(externalIds.homeTeam);
     expect(persisted?.awayTeam.externalId).toBe(externalIds.awayTeam);
     expect(persisted?.snapshots).toHaveLength(1);
+    expect(persisted?.snapshots[0].evidence).toHaveLength(
+      dataset.sources.length,
+    );
+    expect(persisted?.odds).toHaveLength(dataset.odds.length);
     expect(persisted?.analyses).toHaveLength(1);
     expect(persisted?.analyses[0].predictions.length).toBeGreaterThan(20);
   });

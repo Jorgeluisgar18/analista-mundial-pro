@@ -177,6 +177,7 @@ model ManualOverride {
 model ApiUsage {
   id        String   @id @default(cuid())
   provider  String
+  period    String   @default("day")
   periodKey String
   used      Int      @default(0)
   limit     Int

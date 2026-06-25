@@ -82,3 +82,31 @@ análisis con el mismo `inputHash`.
   `mingw64_nt-10.0-26200`.
 - El escaneo profundo de Codex Security requiere agentes paralelos no
   disponibles en este hilo, por lo que no se afirmó cobertura exhaustiva.
+
+## Estado de remediación al 25 de junio de 2026
+
+Resuelto y verificado:
+
+- Corrección del mercado visitante +1.5 y recálculo efectivo de bajas manuales.
+- Persistencia de partidos externos, snapshots, evidencia y cuotas.
+- Normalización de mercados, value betting y arbitraje aritmético dinámico.
+- Protección de rutas mutables con mismo origen, rate limiting y cabeceras HTTP.
+- Diálogo manual accesible con foco atrapado, Escape y restauración del foco.
+- Catálogo único para Mundial, Premier League, Champions League, Europa League,
+  La Liga, Bundesliga, Serie A y Ligue 1.
+- Traducción de filtros para Football-Data.org y filtrado seguro de resultados
+  de API-Football sin enviar slugs incompatibles.
+- Integración de Open-Meteo mediante geocodificación de la ciudad y consulta
+  horaria en UTC.
+- Registro real de consumo de API por minuto, día, mes o fair-use.
+
+Pendiente para una siguiente fase:
+
+- Sustituir los priors fijos de corners, tarjetas, faltas, tiros y offsides por
+  modelos entrenables y calibrados por competición.
+- Hacer que todos los tipos de cambio manual, no solo las bajas estructuradas,
+  modifiquen explícitamente las variables del modelo.
+- Añadir política de caché y vencimiento por recurso para reservar llamadas
+  cerca de la publicación de alineaciones.
+- Preparar una base de datos con mayor concurrencia antes de un despliegue
+  multiusuario y dividir los componentes de interfaz más grandes.

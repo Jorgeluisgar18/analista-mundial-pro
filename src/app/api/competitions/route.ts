@@ -1,13 +1,14 @@
-import { demoMatches } from "@/data/demo";
+import { supportedCompetitions } from "@/lib/providers/competitionCatalog";
 
 export async function GET() {
-  const competitions = Array.from(
-    new Map(
-      demoMatches.map((match) => [match.competition.id, match.competition]),
-    ).values(),
-  );
   return Response.json({
-    competitions,
+    competitions: supportedCompetitions.map((competition) => ({
+      id: competition.slug,
+      slug: competition.slug,
+      name: competition.name,
+      kind: competition.kind,
+      footballDataCode: competition.footballDataCode,
+    })),
     mode: process.env.FOOTBALL_API_KEY ? "api-ready" : "demo",
   });
 }

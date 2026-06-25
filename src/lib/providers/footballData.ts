@@ -2,7 +2,10 @@ import type {
   Fetcher,
   FootballProvider,
   ProviderResult,
+  UsageReporter,
 } from "@/lib/providers/types";
+import { emitUsage } from "@/lib/providers/types";
+import { resolveFootballDataCompetition } from "@/lib/providers/competitionCatalog";
 import type { MatchDataset, NormalizedMatch } from "@/types/domain";
 
 export class FootballDataProvider implements FootballProvider {
@@ -11,16 +14,29 @@ export class FootballDataProvider implements FootballProvider {
   constructor(
     private readonly apiKey: string,
     private readonly fetcher: Fetcher = fetch,
+    private readonly usageReporter?: UsageReporter,
   ) {}
 
-  async listMatches(date: string): Promise<ProviderResult<NormalizedMatch[]>> {
+  async listMatches(
+    date: string,
+    competition?: string,
+  ): Promise<ProviderResult<NormalizedMatch[]>> {
     const url = new URL("https://api.football-data.org/v4/matches");
     url.searchParams.set("dateFrom", date);
     url.searchParams.set("dateTo", date);
+    const competitionCode = resolveFootballDataCompetition(competition);
+    if (competitionCode) {
+      url.searchParams.set("competitions", competitionCode);
+    }
     const response = await this.fetcher(url, {
       headers: { "X-Auth-Token": this.apiKey },
       signal: AbortSignal.timeout(8_000),
       cache: "no-store",
+    });
+    await emitUsage(this.usageReporter, {
+      provider: "Football-Data.org",
+      period: "minute",
+      limit: 10,
     });
     if (!response.ok) {
       throw new Error(`Football-Data.org respondió ${response.status}`);

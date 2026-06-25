@@ -1,0 +1,1 @@
+ALTER TABLE "ApiUsage" ADD COLUMN "period" TEXT NOT NULL DEFAULT 'day';

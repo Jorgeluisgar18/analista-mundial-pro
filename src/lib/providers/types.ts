@@ -1,4 +1,5 @@
 import type {
+  Evidence,
   MatchDataset,
   NormalizedMatch,
   NormalizedOdds,
@@ -33,6 +34,42 @@ export interface FootballProvider {
 export interface OddsProvider {
   readonly id: string;
   getOdds(match: NormalizedMatch): Promise<ProviderResult<NormalizedOdds[]>>;
+}
+
+export interface WeatherProvider {
+  readonly id: string;
+  getWeatherForLocation(
+    city: string,
+    country: string,
+    kickoff: string,
+  ): Promise<ProviderResult<Evidence<string>>>;
+}
+
+export type UsagePeriod = "minute" | "day" | "month" | "fair-use";
+
+export interface ProviderUsageEvent {
+  provider: string;
+  period: UsagePeriod;
+  limit: number;
+  used?: number;
+  remaining?: number;
+  occurredAt?: Date;
+}
+
+export type UsageReporter = (
+  event: ProviderUsageEvent,
+) => Promise<void> | void;
+
+export async function emitUsage(
+  reporter: UsageReporter | undefined,
+  event: ProviderUsageEvent,
+) {
+  if (!reporter) return;
+  try {
+    await reporter(event);
+  } catch {
+    // La telemetría nunca debe interrumpir el dato deportivo solicitado.
+  }
 }
 
 export type Fetcher = typeof fetch;

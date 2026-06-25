@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { supportedCompetitions } from "@/lib/providers/competitionCatalog";
 import type { NormalizedMatch } from "@/types/domain";
 
 interface MatchSearchResponse {
@@ -66,9 +67,11 @@ export function DateMatchFinder({ initialDate }: { initialDate: string }) {
             onChange={(event) => setCompetition(event.target.value)}
           >
             <option value="all">Todas las competiciones</option>
-            <option value="wc-2026">FIFA World Cup</option>
-            <option value="premier-league">Premier League</option>
-            <option value="champions-league">Champions League</option>
+            {supportedCompetitions.map((item) => (
+              <option key={item.slug} value={item.slug}>
+                {item.name}
+              </option>
+            ))}
           </select>
         </label>
         <button

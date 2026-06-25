@@ -3,14 +3,25 @@ import {
   createProviderRegistry,
   type ProviderEnvironment,
 } from "@/lib/providers/providerRegistry";
+import type {
+  FootballProvider,
+  OddsProvider,
+  WeatherProvider,
+} from "@/lib/providers/types";
 import type { MatchDataset } from "@/types/domain";
 
 export function createMatchService({
   env,
+  providers: injectedProviders,
 }: {
   env?: ProviderEnvironment;
+  providers?: {
+    football: FootballProvider[];
+    odds?: OddsProvider;
+    weather?: WeatherProvider;
+  };
 } = {}) {
-  const providers = createProviderRegistry(env);
+  const providers = injectedProviders ?? createProviderRegistry(env);
 
   return {
     async listByDate(date: string, competition?: string) {
@@ -60,6 +71,36 @@ export function createMatchService({
         try {
           const result = await provider.getMatch(id);
           if (result.data) {
+            if (
+              providers.weather &&
+              result.data.match.city !== "Dato no disponible"
+            ) {
+              try {
+                const weather = await providers.weather.getWeatherForLocation(
+                  result.data.match.city,
+                  result.data.match.country,
+                  result.data.match.kickoff,
+                );
+                result.data.weather = weather.data;
+                result.data.sources.push({
+                  id: "weather-provider",
+                  label: weather.meta.source,
+                  type: "provider",
+                  status: weather.data.status,
+                  observedAt: weather.meta.fetchedAt,
+                  detail: weather.data.value,
+                });
+              } catch {
+                result.data.sources.push({
+                  id: "weather-provider-error",
+                  label: "Open-Meteo",
+                  type: "provider",
+                  status: "unavailable",
+                  observedAt: new Date().toISOString(),
+                  detail: "No fue posible consultar el clima en este momento.",
+                });
+              }
+            }
             if (providers.odds) {
               try {
                 const odds = await providers.odds.getOdds(result.data.match);

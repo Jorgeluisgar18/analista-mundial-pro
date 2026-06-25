@@ -1,29 +1,15 @@
+import { getApiUsageSnapshot } from "@/lib/services/apiUsageService";
+
 export async function GET() {
-  const now = new Date();
+  const usage = await getApiUsageSnapshot();
   return Response.json({
-    usage: [
-      {
-        provider: "API-Football",
-        configured: Boolean(process.env.FOOTBALL_API_KEY),
-        limit: 100,
-        period: "day",
-        note: "Presupuesto conservado mediante consultas bajo demanda.",
-      },
-      {
-        provider: "The Odds API",
-        configured: Boolean(process.env.ODDS_API_KEY),
-        limit: 500,
-        period: "month",
-        note: "Cuotas consultadas solo al abrir o actualizar un partido.",
-      },
-      {
-        provider: "Open-Meteo",
-        configured: true,
-        limit: null,
-        period: "fair-use",
-        note: "Sin clave para uso personal no comercial.",
-      },
-    ],
-    checkedAt: now.toISOString(),
+    usage,
+    configured: {
+      "API-Football": Boolean(process.env.FOOTBALL_API_KEY),
+      "Football-Data.org": Boolean(process.env.FOOTBALL_DATA_API_KEY),
+      "The Odds API": Boolean(process.env.ODDS_API_KEY),
+      "Open-Meteo": true,
+    },
+    checkedAt: new Date().toISOString(),
   });
 }

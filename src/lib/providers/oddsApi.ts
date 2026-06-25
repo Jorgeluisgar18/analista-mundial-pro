@@ -2,7 +2,9 @@ import type {
   Fetcher,
   OddsProvider,
   ProviderResult,
+  UsageReporter,
 } from "@/lib/providers/types";
+import { emitUsage } from "@/lib/providers/types";
 import { normalizeOddOutcome } from "@/lib/models/odds";
 import type { NormalizedMatch, NormalizedOdds } from "@/types/domain";
 
@@ -42,6 +44,7 @@ export class TheOddsApiProvider implements OddsProvider {
   constructor(
     private readonly apiKey: string,
     private readonly fetcher: Fetcher = fetch,
+    private readonly usageReporter?: UsageReporter,
   ) {}
 
   async getOdds(
@@ -63,6 +66,26 @@ export class TheOddsApiProvider implements OddsProvider {
     const response = await this.fetcher(url, {
       signal: AbortSignal.timeout(8_000),
       cache: "no-store",
+    });
+    const usedHeader = response.headers.get("x-requests-used");
+    const remainingHeader = response.headers.get("x-requests-remaining");
+    const used = usedHeader ? Number(usedHeader) : undefined;
+    const remaining = remainingHeader ? Number(remainingHeader) : undefined;
+    await emitUsage(this.usageReporter, {
+      provider: "The Odds API",
+      period: "month",
+      limit:
+        used !== undefined &&
+        remaining !== undefined &&
+        Number.isFinite(used) &&
+        Number.isFinite(remaining)
+          ? used + remaining
+          : 500,
+      used: used !== undefined && Number.isFinite(used) ? used : undefined,
+      remaining:
+        remaining !== undefined && Number.isFinite(remaining)
+          ? remaining
+          : undefined,
     });
     if (!response.ok) {
       throw new Error(`The Odds API respondió ${response.status}`);

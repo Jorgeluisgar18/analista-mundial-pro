@@ -241,7 +241,7 @@ export interface ApiUsageSummary {
   provider: string;
   used: number;
   limit: number;
-  period: "day" | "month";
+  period: "minute" | "day" | "month" | "fair-use";
   resetsAt: string;
 }
 

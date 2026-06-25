@@ -2,7 +2,10 @@ import type {
   Fetcher,
   FootballProvider,
   ProviderResult,
+  UsageReporter,
 } from "@/lib/providers/types";
+import { emitUsage } from "@/lib/providers/types";
+import { matchesCompetition } from "@/lib/providers/competitionCatalog";
 import type { MatchDataset, NormalizedMatch } from "@/types/domain";
 
 interface ApiFootballFixture {
@@ -39,7 +42,26 @@ export class ApiFootballProvider implements FootballProvider {
   constructor(
     private readonly apiKey: string,
     private readonly fetcher: Fetcher = fetch,
+    private readonly usageReporter?: UsageReporter,
   ) {}
+
+  private async reportUsage(response: Response) {
+    const limitHeader = response.headers.get("x-ratelimit-requests-limit");
+    const remainingHeader = response.headers.get(
+      "x-ratelimit-requests-remaining",
+    );
+    const limit = limitHeader ? Number(limitHeader) : 100;
+    const remaining = remainingHeader ? Number(remainingHeader) : undefined;
+    await emitUsage(this.usageReporter, {
+      provider: "API-Football",
+      period: "day",
+      limit: Number.isFinite(limit) ? limit : 100,
+      remaining:
+        remaining !== undefined && Number.isFinite(remaining)
+          ? remaining
+          : undefined,
+    });
+  }
 
   private async request<T>(
     path: string,
@@ -54,6 +76,7 @@ export class ApiFootballProvider implements FootballProvider {
       signal: AbortSignal.timeout(8_000),
       cache: "no-store",
     });
+    await this.reportUsage(response);
     if (!response.ok) {
       throw new Error(`API-Football respondió ${response.status} en ${path}`);
     }
@@ -73,12 +96,15 @@ export class ApiFootballProvider implements FootballProvider {
   ): Promise<ProviderResult<NormalizedMatch[]>> {
     const url = new URL("https://v3.football.api-sports.io/fixtures");
     url.searchParams.set("date", date);
-    if (competition) url.searchParams.set("league", competition);
+    if (competition && /^\d+$/.test(competition)) {
+      url.searchParams.set("league", competition);
+    }
     const response = await this.fetcher(url, {
       headers: { "x-apisports-key": this.apiKey },
       signal: AbortSignal.timeout(8_000),
       cache: "no-store",
     });
+    await this.reportUsage(response);
     if (!response.ok) {
       throw new Error(`API-Football respondió ${response.status}`);
     }
@@ -86,7 +112,12 @@ export class ApiFootballProvider implements FootballProvider {
       response?: ApiFootballFixture[];
       errors?: Record<string, string>;
     };
-    const fixtures = body.response ?? [];
+    const fixtures = (body.response ?? []).filter((item) =>
+      matchesCompetition(competition, {
+        id: String(item.league.id),
+        name: item.league.name,
+      }),
+    );
     const matches = fixtures.map<NormalizedMatch>((item) => {
       const kickoff = new Date(item.fixture.date);
       return {

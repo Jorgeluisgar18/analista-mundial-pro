@@ -607,10 +607,36 @@ function SectionContent({
           <div className="surebet-panel">
             <span className="section-kicker">Comprobación aritmética</span>
             <h3>Σ (1 / mejor cuotaᵢ) &lt; 1</h3>
-            <strong>No hay oportunidad aritmética en el snapshot demo.</strong>
+            {analysis.arbitrage.length ? (
+              analysis.arbitrage.map((opportunity) => (
+                <article key={opportunity.id}>
+                  <strong>
+                    {opportunity.market} · margen teórico{" "}
+                    {(opportunity.margin * 100).toFixed(2)}%
+                  </strong>
+                  <ul>
+                    {opportunity.outcomes.map((outcome) => (
+                      <li key={outcome.outcome}>
+                        {outcome.outcome}: {outcome.odd.toFixed(2)} en{" "}
+                        {outcome.bookmaker} · asignación{" "}
+                        {outcome.stake.toFixed(2)}
+                      </li>
+                    ))}
+                  </ul>
+                  <p>
+                    Beneficio teórico sobre {opportunity.bankroll.toFixed(2)}:{" "}
+                    {opportunity.theoreticalProfit.toFixed(2)}.
+                  </p>
+                </article>
+              ))
+            ) : (
+              <strong>
+                No hay oportunidad aritmética en el snapshot actual.
+              </strong>
+            )}
             <p>
-              Incluso si aparece una discrepancia, la latencia, límites,
-              comisiones, reglas y anulaciones pueden eliminar el margen.
+              La latencia, límites, comisiones, reglas y anulaciones pueden
+              eliminar el margen observado.
             </p>
           </div>
         ) : rows.length ? (

@@ -3,6 +3,21 @@ export function impliedProbability(decimalOdd: number): number {
   return 1 / decimalOdd;
 }
 
+export function normalizeOddOutcome(outcome: string): string {
+  const trimmed = outcome.trim();
+  if (/^draw$/i.test(trimmed)) return "Empate";
+
+  const total = trimmed.match(
+    /^(over|under|más de|menos de)\s+(\d+(?:\.\d+)?)$/i,
+  );
+  if (!total) return trimmed;
+
+  const [, direction, line] = total;
+  return /^(over|más de)$/i.test(direction)
+    ? `Más de ${line}`
+    : `Menos de ${line}`;
+}
+
 export function removeOverround(decimalOdds: number[]): number[] {
   const implied = decimalOdds.map(impliedProbability);
   const total = implied.reduce((sum, value) => sum + value, 0);

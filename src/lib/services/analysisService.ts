@@ -152,6 +152,8 @@ async function persistAnalysis(
           minimumOdd: prediction.minimumOddForValue,
           availableOdd: prediction.availableOdd,
           expectedValue: prediction.expectedValue,
+          marketProbability: prediction.marketProbability,
+          modelEdge: prediction.modelEdge,
           evidenceStatus: prediction.evidenceStatus,
         })),
       },

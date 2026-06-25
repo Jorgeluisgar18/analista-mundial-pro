@@ -147,6 +147,8 @@ model Prediction {
   minimumOdd     Float?
   availableOdd   Float?
   expectedValue  Float?
+  marketProbability Float?
+  modelEdge      Float?
   evidenceStatus String
   analysisRun    AnalysisRun @relation(fields: [analysisRunId], references: [id], onDelete: Cascade)
 

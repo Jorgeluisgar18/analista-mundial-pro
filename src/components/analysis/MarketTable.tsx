@@ -50,6 +50,12 @@ export function MarketTable({
                 {prediction.expectedValue === undefined
                   ? prediction.valueTier
                   : `${prediction.expectedValue > 0 ? "+" : ""}${prediction.expectedValue.toFixed(1)}%`}
+                {prediction.modelEdge !== undefined ? (
+                  <small>
+                    Ventaja: {prediction.modelEdge > 0 ? "+" : ""}
+                    {prediction.modelEdge.toFixed(1)} pp
+                  </small>
+                ) : null}
               </td>
               <td>{prediction.confidence.toFixed(1)}/10</td>
               <td>

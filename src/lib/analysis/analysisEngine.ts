@@ -4,11 +4,15 @@ import { dixonColesMatrix } from "@/lib/models/dixonColes";
 import { logisticProbability } from "@/lib/models/logistic";
 import { simulateGoals } from "@/lib/models/monteCarlo";
 import {
+  detectArbitrage,
   expectedValue,
   minimumValueOdd,
+  normalizeOddOutcome,
+  removeOverround,
 } from "@/lib/models/odds";
 import type {
   AnalysisResult,
+  ArbitrageOpportunity,
   EvidenceStatus,
   MatchDataset,
   Prediction,
@@ -46,6 +50,7 @@ function makePrediction({
   evidenceStatus = "inferred",
   line,
   availableOdd,
+  marketProbability,
 }: {
   id: string;
   category: Prediction["category"];
@@ -58,6 +63,7 @@ function makePrediction({
   evidenceStatus?: EvidenceStatus;
   line?: string;
   availableOdd?: number;
+  marketProbability?: number;
 }): Prediction {
   if (probability === undefined) {
     return {
@@ -93,10 +99,121 @@ function makePrediction({
     minimumOddForValue: Math.round(minimumOdd * 100) / 100,
     availableOdd,
     expectedValue: ev === undefined ? undefined : Math.round(ev * 1000) / 10,
+    marketProbability:
+      marketProbability === undefined ? undefined : pct(marketProbability),
+    modelEdge:
+      marketProbability === undefined
+        ? undefined
+        : pct(probability - marketProbability),
     valueTier: tierFor(probability, ev),
     evidenceStatus,
     sourceIds,
   };
+}
+
+function isH2HMarket(market: string) {
+  return ["h2h", "1x2"].includes(market.toLowerCase());
+}
+
+function isTotalsMarket(market: string) {
+  return ["totals", "goles"].includes(market.toLowerCase());
+}
+
+function bestOddFor(
+  odds: MatchDataset["odds"],
+  outcome: string,
+  market: "h2h" | "totals",
+) {
+  return odds
+    .filter(
+      (odd) =>
+        odd.outcome === outcome &&
+        (market === "h2h"
+          ? isH2HMarket(odd.market)
+          : isTotalsMarket(odd.market)),
+    )
+    .sort((a, b) => b.odd - a.odd)[0];
+}
+
+function fairH2HProbabilities(
+  odds: MatchDataset["odds"],
+  outcomes: [string, string, string],
+) {
+  const bookmakerNames = [...new Set(odds.map((odd) => odd.bookmaker))];
+  const completeBooks = bookmakerNames
+    .map((bookmaker) => {
+      const bookOdds = odds.filter(
+        (odd) => odd.bookmaker === bookmaker && isH2HMarket(odd.market),
+      );
+      const prices = outcomes.map(
+        (outcome) => bookOdds.find((odd) => odd.outcome === outcome)?.odd,
+      );
+      const observedAt = bookOdds.reduce(
+        (latest, odd) =>
+          odd.observedAt > latest ? odd.observedAt : latest,
+        "",
+      );
+      return prices.every((price): price is number => price !== undefined)
+        ? { prices, observedAt }
+        : null;
+    })
+    .filter(
+      (
+        book,
+      ): book is {
+        prices: [number, number, number];
+        observedAt: string;
+      } => book !== null,
+    )
+    .sort((a, b) => b.observedAt.localeCompare(a.observedAt));
+
+  return completeBooks.length
+    ? removeOverround(completeBooks[0].prices)
+    : undefined;
+}
+
+function findArbitrage(
+  odds: MatchDataset["odds"],
+  match: MatchDataset["match"],
+): ArbitrageOpportunity[] {
+  const outcomes = [
+    match.homeTeam.name,
+    "Empate",
+    match.awayTeam.name,
+  ] as const;
+  const best = outcomes.map((outcome) => bestOddFor(odds, outcome, "h2h"));
+  if (best.some((odd) => odd === undefined)) return [];
+
+  const complete = best as [
+    NonNullable<(typeof best)[number]>,
+    NonNullable<(typeof best)[number]>,
+    NonNullable<(typeof best)[number]>,
+  ];
+  const bankroll = 100;
+  const calculation = detectArbitrage(
+    complete.map((odd) => odd.odd),
+    bankroll,
+  );
+  if (!calculation.isOpportunity) return [];
+
+  return [
+    {
+      id: "arbitrage-1x2",
+      market: "1X2",
+      isOpportunity: true,
+      inverseSum: calculation.inverseSum,
+      margin: calculation.margin,
+      returnAmount: calculation.returnAmount,
+      theoreticalProfit: calculation.theoreticalProfit,
+      bankroll,
+      outcomes: complete.map((odd, index) => ({
+        outcome: outcomes[index],
+        bookmaker: odd.bookmaker,
+        odd: odd.odd,
+        stake: calculation.stakes[index],
+      })),
+    },
+  ];
 }
 
 function topScores(matrix: number[][]) {
@@ -176,10 +293,20 @@ export function analyzeMatch(
     hasBaseStats: Boolean(dataset.home.shots && dataset.away.shots),
   });
   const sourceIds = dataset.sources.map((source) => source.id);
-  const homeOdd = dataset.odds.find((odd) => odd.outcome === dataset.match.homeTeam.name)?.odd;
-  const drawOdd = dataset.odds.find((odd) => odd.outcome === "Empate")?.odd;
-  const awayOdd = dataset.odds.find((odd) => odd.outcome === dataset.match.awayTeam.name)?.odd;
-  const over25Odd = dataset.odds.find((odd) => odd.outcome === "Más de 2.5")?.odd;
+  const normalizedOdds = dataset.odds.map((odd) => ({
+    ...odd,
+    outcome: normalizeOddOutcome(odd.outcome),
+  }));
+  const h2hOutcomes = [
+    dataset.match.homeTeam.name,
+    "Empate",
+    dataset.match.awayTeam.name,
+  ] as [string, string, string];
+  const fairH2H = fairH2HProbabilities(normalizedOdds, h2hOutcomes);
+  const homeOdd = bestOddFor(normalizedOdds, h2hOutcomes[0], "h2h")?.odd;
+  const drawOdd = bestOddFor(normalizedOdds, h2hOutcomes[1], "h2h")?.odd;
+  const awayOdd = bestOddFor(normalizedOdds, h2hOutcomes[2], "h2h")?.odd;
+  const over25Odd = bestOddFor(normalizedOdds, "Más de 2.5", "totals")?.odd;
   const predictions: Prediction[] = [];
 
   [
@@ -197,6 +324,7 @@ export function analyzeMatch(
         probability: Number(probability),
         confidence,
         availableOdd: typeof odd === "number" ? odd : undefined,
+        marketProbability: index < 3 ? fairH2H?.[index] : undefined,
         reason:
           "Combina fuerza Elo, intensidades de gol y contexto de sede neutral.",
         risk: "La alineación oficial puede cambiar el balance de fuerza.",
@@ -411,6 +539,7 @@ export function analyzeMatch(
       confidence,
     },
     predictions,
+    arbitrage: findArbitrage(normalizedOdds, dataset.match),
     scenarios: [
       {
         title: "Brasil controla territorio",

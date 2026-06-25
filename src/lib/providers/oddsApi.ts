@@ -3,7 +3,38 @@ import type {
   OddsProvider,
   ProviderResult,
 } from "@/lib/providers/types";
+import { normalizeOddOutcome } from "@/lib/models/odds";
 import type { NormalizedMatch, NormalizedOdds } from "@/types/domain";
+
+export function oddsSportKey(match: NormalizedMatch) {
+  const competition =
+    `${match.competition.id} ${match.competition.name}`.toLowerCase();
+  if (competition.includes("premier") || competition.includes("epl")) {
+    return "soccer_epl";
+  }
+  if (competition.includes("champions")) {
+    return "soccer_uefa_champs_league";
+  }
+  if (competition.includes("europa league")) {
+    return "soccer_uefa_europa_league";
+  }
+  if (competition.includes("la liga") || competition.includes("laliga")) {
+    return "soccer_spain_la_liga";
+  }
+  if (competition.includes("bundesliga")) {
+    return "soccer_germany_bundesliga";
+  }
+  if (competition.includes("serie a")) {
+    return "soccer_italy_serie_a";
+  }
+  if (competition.includes("ligue 1")) {
+    return "soccer_france_ligue_one";
+  }
+  if (competition.includes("world cup") || competition.includes("mundial")) {
+    return "soccer_fifa_world_cup";
+  }
+  return undefined;
+}
 
 export class TheOddsApiProvider implements OddsProvider {
   readonly id = "the-odds-api";
@@ -16,8 +47,14 @@ export class TheOddsApiProvider implements OddsProvider {
   async getOdds(
     match: NormalizedMatch,
   ): Promise<ProviderResult<NormalizedOdds[]>> {
+    const sportKey = oddsSportKey(match);
+    if (!sportKey) {
+      throw new Error(
+        `Competición no soportada por The Odds API: ${match.competition.name}`,
+      );
+    }
     const url = new URL(
-      "https://api.the-odds-api.com/v4/sports/soccer_fifa_world_cup/odds",
+      `https://api.the-odds-api.com/v4/sports/${sportKey}/odds`,
     );
     url.searchParams.set("apiKey", this.apiKey);
     url.searchParams.set("regions", "eu");
@@ -54,9 +91,11 @@ export class TheOddsApiProvider implements OddsProvider {
             bookmaker: bookmaker.title,
             market: market.key,
             outcome:
-              outcome.point === undefined
-                ? outcome.name
-                : `${outcome.name} ${outcome.point}`,
+              normalizeOddOutcome(
+                outcome.point === undefined
+                  ? outcome.name
+                  : `${outcome.name} ${outcome.point}`,
+              ),
             odd: outcome.price,
             observedAt: bookmaker.last_update,
           })),

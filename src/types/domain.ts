@@ -171,9 +171,28 @@ export interface Prediction {
   minimumOddForValue?: number;
   availableOdd?: number;
   expectedValue?: number;
+  marketProbability?: number;
+  modelEdge?: number;
   valueTier: ValueTier;
   evidenceStatus: EvidenceStatus;
   sourceIds: string[];
+}
+
+export interface ArbitrageOpportunity {
+  id: string;
+  market: string;
+  isOpportunity: boolean;
+  inverseSum: number;
+  margin: number;
+  returnAmount: number;
+  theoreticalProfit: number;
+  bankroll: number;
+  outcomes: Array<{
+    outcome: string;
+    bookmaker: string;
+    odd: number;
+    stake: number;
+  }>;
 }
 
 export interface AnalysisResult {
@@ -197,6 +216,7 @@ export interface AnalysisResult {
     confidence: number;
   };
   predictions: Prediction[];
+  arbitrage: ArbitrageOpportunity[];
   scenarios: Array<{
     title: string;
     probability: number;

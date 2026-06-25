@@ -1,0 +1,179 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model Competition {
+  id         String   @id @default(cuid())
+  externalId String   @unique
+  name       String
+  kind       String
+  matches    Match[]
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model Team {
+  id          String   @id @default(cuid())
+  externalId  String   @unique
+  name        String
+  code        String?
+  kind        String
+  homeMatches Match[]  @relation("HomeTeam")
+  awayMatches Match[]  @relation("AwayTeam")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Match {
+  id            String           @id @default(cuid())
+  externalId    String           @unique
+  kickoff       DateTime
+  status        String
+  stage         String?
+  venue         String?
+  city          String?
+  country       String?
+  timezone      String           @default("UTC")
+  dataOrigin    String           @default("DEMO")
+  competitionId String
+  homeTeamId    String
+  awayTeamId    String
+  competition   Competition      @relation(fields: [competitionId], references: [id])
+  homeTeam      Team             @relation("HomeTeam", fields: [homeTeamId], references: [id])
+  awayTeam      Team             @relation("AwayTeam", fields: [awayTeamId], references: [id])
+  snapshots     MatchSnapshot[]
+  overrides     ManualOverride[]
+  odds          OddsSnapshot[]
+  analyses      AnalysisRun[]
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+
+  @@index([kickoff])
+  @@index([competitionId, kickoff])
+}
+
+model MatchSnapshot {
+  id        String           @id @default(cuid())
+  matchId   String
+  hash      String
+  payload   String
+  fetchedAt DateTime
+  source    String
+  isStale   Boolean          @default(false)
+  match     Match            @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  evidence  EvidenceRecord[]
+  analyses  AnalysisRun[]
+  createdAt DateTime         @default(now())
+
+  @@unique([matchId, hash])
+  @@index([matchId, fetchedAt])
+}
+
+model EvidenceRecord {
+  id         String        @id @default(cuid())
+  snapshotId String
+  field      String
+  value      String
+  status     String
+  sourceType String
+  source     String
+  url        String?
+  observedAt DateTime
+  note       String?
+  snapshot   MatchSnapshot @relation(fields: [snapshotId], references: [id], onDelete: Cascade)
+
+  @@index([snapshotId, field])
+}
+
+model OddsSnapshot {
+  id         String   @id @default(cuid())
+  matchId    String
+  bookmaker  String
+  market     String
+  outcome    String
+  odd        Float
+  observedAt DateTime
+  match      Match    @relation(fields: [matchId], references: [id], onDelete: Cascade)
+
+  @@index([matchId, market, observedAt])
+}
+
+model ModelVersion {
+  id        String        @id @default(cuid())
+  name      String
+  version   String
+  config    String
+  metrics   String?
+  analyses  AnalysisRun[]
+  createdAt DateTime      @default(now())
+
+  @@unique([name, version])
+}
+
+model AnalysisRun {
+  id              String        @id @default(cuid())
+  matchId         String
+  snapshotId      String
+  modelVersionId  String
+  inputHash       String
+  result          String
+  manuallyUpdated Boolean       @default(false)
+  match           Match         @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  snapshot        MatchSnapshot @relation(fields: [snapshotId], references: [id], onDelete: Cascade)
+  modelVersion    ModelVersion  @relation(fields: [modelVersionId], references: [id])
+  predictions     Prediction[]
+  createdAt       DateTime      @default(now())
+
+  @@index([matchId, createdAt])
+  @@index([inputHash])
+}
+
+model Prediction {
+  id             String      @id @default(cuid())
+  analysisRunId  String
+  category       String
+  market         String
+  line           String?
+  probability    Float?
+  confidence     Float
+  riskLevel      String
+  reason         String
+  risk           String
+  minimumOdd     Float?
+  availableOdd   Float?
+  expectedValue  Float?
+  evidenceStatus String
+  analysisRun    AnalysisRun @relation(fields: [analysisRunId], references: [id], onDelete: Cascade)
+
+  @@index([analysisRunId, category])
+}
+
+model ManualOverride {
+  id          String   @id @default(cuid())
+  matchId     String
+  type        String
+  description String
+  sourceUrl   String?
+  observedAt  DateTime
+  match       Match    @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+
+  @@index([matchId, createdAt])
+}
+
+model ApiUsage {
+  id        String   @id @default(cuid())
+  provider  String
+  periodKey String
+  used      Int      @default(0)
+  limit     Int
+  resetsAt  DateTime
+  updatedAt DateTime @updatedAt
+
+  @@unique([provider, periodKey])
+}

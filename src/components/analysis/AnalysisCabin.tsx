@@ -251,6 +251,10 @@ export function AnalysisCabin({
       {updateOpen ? (
         <UpdatePanel
           matchId={analysis.match.id}
+          teams={[
+            analysis.match.homeTeam,
+            analysis.match.awayTeam,
+          ]}
           onClose={() => setUpdateOpen(false)}
           onUpdated={(updated) => setAnalysis(updated)}
         />

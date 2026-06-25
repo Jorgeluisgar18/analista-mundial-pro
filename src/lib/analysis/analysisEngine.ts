@@ -225,7 +225,20 @@ export function analyzeMatch(
     ["Menos de 3.5 goles", model.under35, undefined],
     ["Más de 2.5 goles", model.over25, over25Odd],
     ["Ambos equipos marcan", model.bothTeamsScore, undefined],
-    [`${dataset.match.awayTeam.name} más de 1.5 goles`, 1 - (model.matrix[0][0] + model.matrix[0][1] + model.matrix[1][0] + model.matrix[1][1]) / 2, undefined],
+    [
+      `${dataset.match.awayTeam.name} más de 1.5 goles`,
+      model.matrix.reduce(
+        (total, row) =>
+          total +
+          row.reduce(
+            (rowTotal, probability, awayGoals) =>
+              awayGoals >= 2 ? rowTotal + probability : rowTotal,
+            0,
+          ),
+        0,
+      ),
+      undefined,
+    ],
   ] as const;
   goals.forEach(([market, probability, odd], index) =>
     predictions.push(

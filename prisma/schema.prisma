@@ -159,6 +159,11 @@ model ManualOverride {
   type        String
   description String
   sourceUrl   String?
+  teamId      String?
+  player      String?
+  impact      String?
+  area        String?
+  value       String?
   observedAt  DateTime
   match       Match    @relation(fields: [matchId], references: [id], onDelete: Cascade)
   createdAt   DateTime @default(now())

@@ -225,6 +225,9 @@ export interface ApiUsageSummary {
   resetsAt: string;
 }
 
+export type ManualOverrideImpact = "low" | "medium" | "high";
+export type ManualOverrideArea = "attack" | "defense" | "balanced";
+
 export interface ManualOverrideInput {
   type:
     | "absence"
@@ -237,4 +240,14 @@ export interface ManualOverrideInput {
   description: string;
   sourceUrl?: string;
   observedAt?: string;
+  teamId?: string;
+  player?: string;
+  impact?: ManualOverrideImpact;
+  area?: ManualOverrideArea;
+  value?: string;
+}
+
+export interface ManualOverrideRecord extends ManualOverrideInput {
+  id: string;
+  observedAt: string;
 }

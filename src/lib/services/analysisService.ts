@@ -2,6 +2,7 @@ import "server-only";
 import { createHash } from "node:crypto";
 import { analyzeMatch } from "@/lib/analysis/analysisEngine";
 import { prisma } from "@/lib/db/prisma";
+import { applyManualOverrides } from "@/lib/overrides/applyManualOverrides";
 import { matchService } from "@/lib/services/matchService";
 import type { AnalysisResult, MatchDataset } from "@/types/domain";
 
@@ -95,15 +96,46 @@ export async function getAnalysis(
 ) {
   const dataset = await matchService.getById(matchId);
   if (!dataset) return null;
-  const result = analyzeMatch(dataset, {
-    manuallyUpdated: options.manuallyUpdated,
+  const dbMatch = await prisma.match.findUnique({
+    where: { externalId: matchId },
   });
+  const storedOverrides = dbMatch
+    ? await prisma.manualOverride.findMany({
+        where: { matchId: dbMatch.id },
+        orderBy: { observedAt: "asc" },
+      })
+    : [];
+  const adjustedDataset = applyManualOverrides(
+    dataset,
+    storedOverrides.map((override) => ({
+      type: override.type as
+        | "absence"
+        | "starter"
+        | "formation"
+        | "referee"
+        | "weather"
+        | "odds"
+        | "suspension",
+      id: override.id,
+      description: override.description,
+      sourceUrl: override.sourceUrl ?? undefined,
+      observedAt: override.observedAt.toISOString(),
+      teamId: override.teamId ?? undefined,
+      player: override.player ?? undefined,
+      impact: override.impact as "low" | "medium" | "high" | undefined,
+      area: override.area as "attack" | "defense" | "balanced" | undefined,
+      value: override.value ?? undefined,
+    })),
+  );
+  const manuallyUpdated =
+    Boolean(options.manuallyUpdated) || storedOverrides.length > 0;
+  const result = analyzeMatch(adjustedDataset, { manuallyUpdated });
   if (options.persist !== false) {
     try {
-      await persistAnalysis(dataset, result);
+      await persistAnalysis(adjustedDataset, result);
     } catch (error) {
       console.warn("No se pudo persistir el análisis:", error);
     }
   }
-  return { dataset, analysis: result };
+  return { dataset: adjustedDataset, analysis: result };
 }

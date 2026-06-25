@@ -1,14 +1,22 @@
 "use client";
 
 import { useState } from "react";
-import type { AnalysisResult, ManualOverrideInput } from "@/types/domain";
+import type {
+  AnalysisResult,
+  ManualOverrideArea,
+  ManualOverrideImpact,
+  ManualOverrideInput,
+  TeamRef,
+} from "@/types/domain";
 
 export function UpdatePanel({
   matchId,
+  teams,
   onClose,
   onUpdated,
 }: {
   matchId: string;
+  teams: TeamRef[];
   onClose: () => void;
   onUpdated: (analysis: AnalysisResult) => void;
 }) {
@@ -16,23 +24,43 @@ export function UpdatePanel({
     useState<ManualOverrideInput["type"]>("absence");
   const [description, setDescription] = useState("");
   const [sourceUrl, setSourceUrl] = useState("");
+  const [teamId, setTeamId] = useState(teams[0]?.id ?? "");
+  const [player, setPlayer] = useState("");
+  const [impact, setImpact] = useState<ManualOverrideImpact>("medium");
+  const [area, setArea] = useState<ManualOverrideArea>("attack");
   const [status, setStatus] = useState("");
+  const [saving, setSaving] = useState(false);
 
   async function submit(event: React.FormEvent) {
     event.preventDefault();
     setStatus("Guardando y recalculando…");
-    const response = await fetch(`/api/match/${matchId}/overrides`, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ type, description, sourceUrl }),
-    });
-    const body = await response.json();
-    if (!response.ok) {
-      setStatus(body.detail ?? "No se pudo guardar el cambio.");
-      return;
+    setSaving(true);
+    try {
+      const response = await fetch(`/api/match/${matchId}/overrides`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          type,
+          description,
+          sourceUrl,
+          teamId: type === "absence" ? teamId : undefined,
+          player: type === "absence" ? player : undefined,
+          impact: type === "absence" ? impact : undefined,
+          area: type === "absence" ? area : undefined,
+        }),
+      });
+      const body = await response.json();
+      if (!response.ok) {
+        setStatus(body.detail ?? "No se pudo guardar el cambio.");
+        return;
+      }
+      if (body.analysis) onUpdated(body.analysis);
+      setStatus("Análisis actualizado manualmente");
+    } catch {
+      setStatus("No se pudo conectar con el servidor.");
+    } finally {
+      setSaving(false);
     }
-    if (body.analysis) onUpdated(body.analysis);
-    setStatus("Análisis actualizado manualmente");
   }
 
   return (
@@ -64,6 +92,59 @@ export function UpdatePanel({
               <option value="suspension">Partido suspendido</option>
             </select>
           </label>
+          {type === "absence" ? (
+            <>
+              <label>
+                <span>Equipo afectado</span>
+                <select
+                  value={teamId}
+                  onChange={(event) => setTeamId(event.target.value)}
+                  required
+                >
+                  {teams.map((team) => (
+                    <option key={team.id} value={team.id}>
+                      {team.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                <span>Jugador (opcional)</span>
+                <input
+                  value={player}
+                  onChange={(event) => setPlayer(event.target.value)}
+                  maxLength={120}
+                  placeholder="Nombre del jugador"
+                />
+              </label>
+              <label>
+                <span>Área afectada</span>
+                <select
+                  value={area}
+                  onChange={(event) =>
+                    setArea(event.target.value as ManualOverrideArea)
+                  }
+                >
+                  <option value="attack">Ataque</option>
+                  <option value="defense">Defensa</option>
+                  <option value="balanced">Impacto mixto</option>
+                </select>
+              </label>
+              <label>
+                <span>Impacto estimado</span>
+                <select
+                  value={impact}
+                  onChange={(event) =>
+                    setImpact(event.target.value as ManualOverrideImpact)
+                  }
+                >
+                  <option value="low">Bajo</option>
+                  <option value="medium">Medio</option>
+                  <option value="high">Alto</option>
+                </select>
+              </label>
+            </>
+          ) : null}
           <label>
             <span>Descripción del cambio</span>
             <textarea
@@ -84,8 +165,8 @@ export function UpdatePanel({
               placeholder="https://…"
             />
           </label>
-          <button className="primary-button" type="submit">
-            Guardar y recalcular
+          <button className="primary-button" type="submit" disabled={saving}>
+            {saving ? "Recalculando…" : "Guardar y recalcular"}
           </button>
           {status ? <p className="drawer-status">{status}</p> : null}
         </form>

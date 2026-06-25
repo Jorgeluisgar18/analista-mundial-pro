@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type {
   AnalysisResult,
   ManualOverrideArea,
@@ -30,6 +30,48 @@ export function UpdatePanel({
   const [area, setArea] = useState<ManualOverrideArea>("attack");
   const [status, setStatus] = useState("");
   const [saving, setSaving] = useState(false);
+  const dialogRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    const previousFocus = document.activeElement as HTMLElement | null;
+    const dialog = dialogRef.current;
+    if (!dialog) return;
+
+    const focusable = () =>
+      Array.from(
+        dialog.querySelectorAll<HTMLElement>(
+          'button:not([disabled]), select:not([disabled]), input:not([disabled]), textarea:not([disabled]), a[href]',
+        ),
+      );
+    focusable()[0]?.focus();
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        onClose();
+        return;
+      }
+      if (event.key !== "Tab") return;
+
+      const elements = focusable();
+      if (!elements.length) return;
+      const first = elements[0];
+      const last = elements[elements.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    }
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      previousFocus?.focus();
+    };
+  }, [onClose]);
 
   async function submit(event: React.FormEvent) {
     event.preventDefault();
@@ -65,11 +107,17 @@ export function UpdatePanel({
 
   return (
     <div className="drawer-backdrop" role="presentation">
-      <aside className="update-drawer" aria-label="Panel de cambios manuales">
+      <aside
+        ref={dialogRef}
+        className="update-drawer"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="manual-update-title"
+      >
         <header>
           <div>
             <span className="section-kicker">Revisión humana</span>
-            <h2>Cambios manuales</h2>
+            <h2 id="manual-update-title">Cambios manuales</h2>
           </div>
           <button className="icon-button" onClick={onClose} aria-label="Cerrar">
             <CloseIcon />

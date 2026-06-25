@@ -1,4 +1,6 @@
 import { prisma } from "@/lib/db/prisma";
+import { checkRateLimit } from "@/lib/http/rateLimit";
+import { requireSameOrigin } from "@/lib/http/requestGuards";
 import { problem } from "@/lib/http/problem";
 import { getAnalysis } from "@/lib/services/analysisService";
 import { manualOverrideSchema } from "@/lib/validation/schemas";
@@ -7,6 +9,14 @@ export async function POST(
   request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
+  const originProblem = requireSameOrigin(request);
+  if (originProblem) return originProblem;
+  const limitProblem = checkRateLimit(request, "manual-overrides", {
+    limit: 20,
+    windowMs: 60_000,
+  });
+  if (limitProblem) return limitProblem;
+
   const { id } = await context.params;
   let payload: unknown;
   try {

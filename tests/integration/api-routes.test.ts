@@ -47,6 +47,38 @@ describe("API routes", () => {
     );
   });
 
+  it("rechaza cambios manuales enviados desde otro origen", async () => {
+    const response = await createOverride(
+      new Request("http://local/api/match/demo-col-bra/overrides", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          origin: "https://attacker.example",
+        },
+        body: JSON.stringify({
+          type: "absence",
+          description: "Intento desde origen externo",
+          teamId: demoDataset.match.homeTeam.id,
+          impact: "high",
+          area: "attack",
+        }),
+      }),
+      { params: Promise.resolve({ id: "demo-col-bra" }) },
+    );
+    const body = await response.json();
+
+    try {
+      expect(response.status).toBe(403);
+      expect(body.title).toMatch(/origen no permitido/i);
+    } finally {
+      if (body.override?.id) {
+        await prisma.manualOverride.delete({
+          where: { id: body.override.id },
+        });
+      }
+    }
+  });
+
   it("aplica una baja estructurada antes de recalcular el análisis", async () => {
     const baseline = analyzeMatch(demoDataset);
     const response = await createOverride(

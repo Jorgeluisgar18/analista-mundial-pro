@@ -68,4 +68,29 @@ describe("AnalysisCabin", () => {
     expect(screen.getByText(/Casa B/i)).toBeVisible();
     expect(screen.getByText(/Casa C/i)).toBeVisible();
   });
+
+  it("abre cambios manuales como diálogo modal y permite cerrar con Escape", async () => {
+    render(
+      <AnalysisCabin
+        initialAnalysis={analyzeMatch(demoDataset)}
+        dataset={demoDataset}
+      />,
+    );
+
+    await userEvent.click(
+      screen.getByRole("button", { name: /Cambios manuales/i }),
+    );
+    const dialog = screen.getByRole("dialog", {
+      name: /Cambios manuales/i,
+    });
+
+    expect(dialog).toHaveAttribute("aria-modal", "true");
+    expect(dialog).toContainElement(document.activeElement as HTMLElement);
+
+    await userEvent.keyboard("{Escape}");
+
+    expect(
+      screen.queryByRole("dialog", { name: /Cambios manuales/i }),
+    ).not.toBeInTheDocument();
+  });
 });

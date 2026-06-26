@@ -10,3 +10,6 @@
   targetPort = 3000
   port = 8888
   framework = "#auto"
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"

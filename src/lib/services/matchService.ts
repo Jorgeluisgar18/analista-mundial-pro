@@ -10,11 +10,25 @@ import type {
   WeatherProvider,
 } from "@/lib/providers/types";
 import type { MatchDataset } from "@/types/domain";
+import type { MatchSnapshotCache } from "@/lib/cache/matchSnapshotCache";
+
+let defaultSnapshotCache: MatchSnapshotCache | undefined;
+
+async function getDefaultSnapshotCache() {
+  if (!defaultSnapshotCache) {
+    const { createMatchSnapshotCache } = await import(
+      "@/lib/cache/matchSnapshotCache"
+    );
+    defaultSnapshotCache = createMatchSnapshotCache();
+  }
+  return defaultSnapshotCache;
+}
 
 export function createMatchService({
   env,
   providers: injectedProviders,
   now = () => new Date(),
+  snapshotCache,
 }: {
   env?: ProviderEnvironment;
   providers?: {
@@ -23,6 +37,7 @@ export function createMatchService({
     weather?: WeatherProvider;
   };
   now?: () => Date;
+  snapshotCache?: Pick<MatchSnapshotCache, "getFreshDataset">;
 } = {}) {
   const providers = injectedProviders ?? createProviderRegistry(env);
 
@@ -70,6 +85,11 @@ export function createMatchService({
 
     async getById(id: string): Promise<MatchDataset | null> {
       if (id === demoDataset.match.id) return structuredClone(demoDataset);
+      const cache =
+        snapshotCache ?? (injectedProviders ? undefined : await getDefaultSnapshotCache());
+      const cached = await cache?.getFreshDataset(id);
+      if (cached) return structuredClone(cached);
+
       for (const provider of providers.football) {
         try {
           const result = await provider.getMatch(id);

@@ -169,4 +169,53 @@ describe("matchService", () => {
     expect(weatherCall).not.toHaveBeenCalled();
     expect(oddsCall).not.toHaveBeenCalled();
   });
+
+  it("devuelve el snapshot persistente fresco antes de invocar el proveedor principal", async () => {
+    const cachedDataset = structuredClone(demoDataset);
+    cachedDataset.match.id = "external-snapshot-cache-test";
+    cachedDataset.match.dataOrigin = "CACHE";
+    cachedDataset.sources.push({
+      id: "match-snapshot-cache-hit",
+      label: "Caché persistente",
+      type: "provider",
+      status: "confirmed",
+      observedAt: "2026-07-10T18:45:00.000Z",
+      detail: "Dataset reutilizado desde MatchSnapshot.",
+    });
+    const providerCall = vi.fn();
+    const service = createMatchService({
+      snapshotCache: {
+        async getFreshDataset(id: string) {
+          return id === cachedDataset.match.id ? cachedDataset : null;
+        },
+      },
+      providers: {
+        football: [
+          {
+            id: "football-test",
+            async listMatches() {
+              return {
+                data: [],
+                meta: {
+                  source: "football-test",
+                  fetchedAt: new Date().toISOString(),
+                  isStale: false,
+                  warnings: [],
+                },
+              };
+            },
+            async getMatch() {
+              providerCall();
+              throw new Error("No debió invocar proveedor principal");
+            },
+          },
+        ],
+      },
+    });
+
+    const result = await service.getById(cachedDataset.match.id);
+
+    expect(result?.match.dataOrigin).toBe("CACHE");
+    expect(providerCall).not.toHaveBeenCalled();
+  });
 });

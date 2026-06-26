@@ -110,12 +110,12 @@ Resuelto y verificado:
 - Política explícita de frescura por recurso con ventanas prepartido T-90/T-15
   y reutilización de snapshots frescos de clima/cuotas para conservar llamadas
   API.
+- Caché persistente sobre `MatchSnapshot` para reutilizar datasets frescos con
+  alineaciones, lesiones y estadísticas sin invocar el proveedor principal.
 
 Pendiente para una siguiente fase:
 
 - Calibrar los modelos de conteo por competición con histórico real y pesos
   entrenables, en lugar de líneas base globales.
-- Persistir caché por recurso desde base de datos para reutilizar también
-  alineaciones, lesiones y estadísticas sin invocar el proveedor principal.
 - Preparar una base de datos con mayor concurrencia antes de un despliegue
   multiusuario y dividir los componentes de interfaz más grandes.

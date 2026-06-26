@@ -21,6 +21,21 @@ export function PlayersSection({
       Number(b[sortKey as keyof typeof b] ?? 0) -
       Number(a[sortKey as keyof typeof a] ?? 0),
   );
+
+  if (players.length === 0) {
+    return (
+      <AnalysisSection
+        title={`Jugadores · ${subsection}`}
+        intro="Proyecciones condicionadas a titularidad, rol y minutos esperados. Si cambia el once, deben recalcularse."
+      >
+        <div className="empty-state">
+          No hay proyecciones individuales disponibles para este partido. Las
+          fuentes consultadas no incluyen datos de jugadores.
+        </div>
+      </AnalysisSection>
+    );
+  }
+
   return (
     <AnalysisSection
       title={`Jugadores · ${subsection}`}
@@ -37,7 +52,7 @@ export function PlayersSection({
             <dl>
               <div><dt>Gol</dt><dd>{Math.round((player.goalProbability ?? 0) * 100)}%</dd></div>
               <div><dt>Asistencia</dt><dd>{Math.round((player.assistProbability ?? 0) * 100)}%</dd></div>
-              <div><dt>Tiros</dt><dd>{player.shots?.toFixed(1) ?? "N/D"}</dd></div>
+              <div><dt>Tiros</dt><dd>{player.shots?.toFixed(1) ?? "—"}</dd></div>
               <div><dt>Tarjeta</dt><dd>{Math.round((player.cardProbability ?? 0) * 100)}%</dd></div>
             </dl>
           </article>

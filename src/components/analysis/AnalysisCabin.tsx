@@ -37,7 +37,7 @@ export function AnalysisCabin({
   const [updateOpen, setUpdateOpen] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [selectedPrediction, setSelectedPrediction] = useState<Prediction | null>(null);
-  const currentNavigation = NAVIGATION.find((s) => s.id === activeSection)!;
+  const currentNavigation = NAVIGATION.find((s) => s.id === activeSection) ?? NAVIGATION[0];
 
   function selectSection(section: NavSection) {
     setActiveSection(section.id);
@@ -78,6 +78,7 @@ export function AnalysisCabin({
           <nav className="mobile-section-rail" aria-label="Categorías">
             {NAVIGATION.map((section) => (
               <button
+                type="button"
                 key={section.id}
                 className={activeSection === section.id ? "active" : ""}
                 onClick={() => selectSection(section)}
@@ -89,6 +90,7 @@ export function AnalysisCabin({
           <nav className="subsection-rail" aria-label="Subsecciones">
             {currentNavigation.subs.map((subsection) => (
               <button
+                type="button"
                 className={activeSubsection === subsection ? "active" : ""}
                 key={subsection}
                 aria-label={`Pestaña ${subsection}`}

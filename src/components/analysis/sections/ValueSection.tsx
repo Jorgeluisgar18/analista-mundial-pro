@@ -15,7 +15,19 @@ export function ValueSection({
     return (
       <AnalysisSection
         title="Valor y riesgo · Surebets"
-        intro="El valor compara la probabilidad del modelo con la probabilidad implícita sin margen. No garantiza rentabilidad."
+        intro={
+          <>
+            El valor compara la probabilidad del modelo con la probabilidad
+            implícita sin margen. No garantiza rentabilidad.
+            {" "}
+            <span
+              className="tooltip-trigger"
+              title="Un surebet ocurre cuando la suma de las inversas de las cuotas de todos los resultados posibles es menor a 1: Σ (1/cuotaᵢ) < 1. Garantiza beneficio teórico independientemente del resultado. En la práctica, comisiones, límites y latencia pueden eliminar la oportunidad."
+            >
+              ⓘ
+            </span>
+          </>
+        }
       >
         <div className="surebet-panel">
           <span className="section-kicker">Comprobación aritmética</span>
@@ -56,6 +68,9 @@ export function ValueSection({
       title={`Valor y riesgo · ${subsection}`}
       intro="El valor compara la probabilidad del modelo con la probabilidad implícita sin margen. No garantiza rentabilidad."
     >
+      <p className="section-note">
+        Conservador = EV ≥ 8% y prob. ≥ 62%; Moderado = EV ≥ 4%; Arriesgado = EV positivo pero prob. más baja.
+      </p>
       {rows.length ? (
         <MarketTable predictions={rows} onSelectPrediction={onSelectPrediction} />
       ) : (

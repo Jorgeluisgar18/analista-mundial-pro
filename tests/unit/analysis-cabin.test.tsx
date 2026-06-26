@@ -127,7 +127,7 @@ describe("AnalysisCabin", () => {
     );
 
     await userEvent.click(
-      screen.getByRole("button", { name: /Cambios manuales/i }),
+      screen.getByRole("button", { name: (n) => n === "Cambios manuales" }),
     );
     const dialog = screen.getByRole("dialog", {
       name: /Cambios manuales/i,

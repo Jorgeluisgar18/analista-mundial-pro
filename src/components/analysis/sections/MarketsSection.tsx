@@ -45,7 +45,7 @@ export function MarketsSection({
               "Ambos marcan",
               analysis.predictions.find(
                 (p) => p.market === "Ambos equipos marcan",
-              )?.probability ?? "N/D",
+              )?.probability ?? "No disponible",
               "%",
             ],
           ]}

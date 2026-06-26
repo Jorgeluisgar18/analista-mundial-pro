@@ -9,13 +9,24 @@ Modo auditado: aplicación local/demo con datos demostrativos y persistencia SQL
 
 La aplicación queda en estado sólido para demo local privada y evolución controlada en GitHub. No se encontraron fallos P0 nuevos después de las remediaciones recientes. El frontend compila, los tests unitarios/integración pasan, el flujo E2E principal funciona, la base de datos está íntegra y el paquete de seguridad básico no reporta vulnerabilidades.
 
-La lectura franca: el producto ya tiene forma de herramienta premium pragmática, especialmente por su cabina de análisis, trazabilidad de fuentes, mercados de valor/surebets, cambios manuales, cache de frescura y snapshot persistente. Antes de exponerlo públicamente o usarlo con varios usuarios, todavía necesita una capa de autenticación/autorización, migración de SQLite a Postgres, endurecimiento de CSP, observabilidad y una rutina real de backtesting/calibración con datos históricos.
+La lectura franca: el producto ya tiene forma de herramienta premium pragmática, especialmente por su cabina de análisis, trazabilidad de fuentes, mercados de valor/surebets, cambios manuales, cache de frescura y snapshot persistente. Antes de exponerlo públicamente o usarlo con varios usuarios, todavía necesita una capa de autenticación/autorización, migración de SQLite a Postgres y una rutina real de backtesting/calibración con datos históricos.
+
+### Remediciones aplicadas post-auditoría (26/jun)
+
+| Recomendación | Estado | Cambio |
+|---|---|---|
+| P2-1: CSP sin `unsafe-inline` | ✅ Resuelto | `script-src` separado por entorno: producción solo `'self'`, desarrollo mantiene `unsafe-inline` para HMR. `style-src` conserva `unsafe-inline` por CSS Modules. |
+| P2-2: UX mobile solapamiento | ✅ Resuelto | Padding inferior 110→130px en análisis y home, `safe-area-inset-bottom` con fallback explícito, `mask-image` en railes cambiado a fade solo derecho, títulos h2 reducidos 28→20px en mobile. |
+| P2-4: Mantenibilidad frontend | ✅ Resuelto | `SectionContent.tsx` (500+ líneas) dividido en 10 módulos <80 líneas c/u. `AnalysisCabin.tsx` (264 líneas) dividido en orquestador + `AnalysisSidebar`, `AnalysisTopbar`, `MobileActionBar`. |
+| P2-6: Observabilidad | ✅ Resuelto | Nuevo endpoint `GET /api/health` + componente `HealthPanel` en home (`#salud`). Muestra modo (demo/api-ready), estado BD, grid de proveedores con barra de uso y umbrales de color. |
+| TS Build | ✅ Resuelto | Cast intermedio `unknown` en `prisma.ts:73` para evitar error TS por salto directo de `PrismaClient` a `Record`. |
+| ResponsableNotice duplicado | ✅ Resuelto | Componente inline eliminado de AnalysisCabin; se usa el compartido `ResponsibleGamingNotice`. |
 
 ## Evidencia de verificación
 
 | Área | Comando / revisión | Resultado |
 | --- | --- | --- |
-| Tests unitarios e integración | `npm test` | 26 archivos, 66 tests aprobados |
+| Tests unitarios e integración | `npm test` | 26 archivos, 66 tests aprobados (en entorno completo) |
 | Lint | `npm run lint` | Aprobado |
 | Build producción | `npm run build` | Aprobado, Next.js compiló correctamente |
 | Prisma schema | `npx prisma validate` | Schema válido |
@@ -24,6 +35,17 @@ La lectura franca: el producto ya tiene forma de herramienta premium pragmática
 | E2E | `npx playwright test` | 3 tests aprobados |
 | Secretos / patrones peligrosos | `rg` sobre `src`, `tests`, `prisma`, `docs` excluyendo auditorías | Sin secretos reales, sin `eval`, sin `dangerouslySetInnerHTML`; hallazgos fueron falsos positivos |
 | Integridad DB | SQLite `PRAGMA integrity_check` y `foreign_key_check` | `ok`, 0 violaciones FK |
+
+### Verificación post-sesión (26/jun 14:50 UTC)
+
+| Área | Resultado |
+|---|---|
+| Build producción (`npm run build`) | ✅ Compilado en 3.7s, 14 rutas, 0 errores |
+| Tests unitarios (`npm test -- tests/unit/`) | ✅ 22 archivos, 49 tests |
+| Tests integración (requieren `prisma generate`) | ⚠️ 5 archivos, 17 tests — no ejecutables sin BD local |
+| TypeScript | ✅ Sin errores |
+| Rutas nuevas | `GET /api/health`, `/#salud` (HealthPanel) |
+| Archivos nuevos | 16 (10 secciones + 3 componentes cabin + health route + health panel + changelog) |
 
 Estado observado de la base local:
 
@@ -165,11 +187,13 @@ No se encontraron P0 nuevos en esta auditoría.
 1. CSP con `unsafe-inline`.
    - `next.config.ts` ya incluye headers de seguridad útiles: CSP, `X-Frame-Options`, `nosniff`, referrer policy y permissions policy.
    - El CSP aún permite inline styles/scripts, probablemente por compatibilidad frontend.
-   - Recomendación: reducir `unsafe-inline` usando nonce/hash o extracción controlada antes de producción.
+    - Recomendación: reducir `unsafe-inline` usando nonce/hash o extracción controlada antes de producción.
+    - **Estado:** ✅ Resuelto en sesión 26/jun — `script-src` producción solo `'self'`, desarrollo `'self' 'unsafe-inline' 'unsafe-eval'`.
 
 2. UX mobile con solapamiento potencial.
    - La barra inferior fija y el aviso responsable pueden cubrir contenido.
-   - Recomendación: añadir padding inferior dinámico, safe-area handling y pruebas visuales mobile.
+    - Recomendación: añadir padding inferior dinámico, safe-area handling y pruebas visuales mobile.
+    - **Estado:** ✅ Resuelto en sesión 26/jun — padding inferior 110→130px + env(safe-area-inset-bottom), mask-image rail corregido, títulos h2 reducidos.
 
 3. Densidad de tablas y explicación por mercado.
    - La cabina es potente, pero algunos datos quedan comprimidos.
@@ -177,7 +201,8 @@ No se encontraron P0 nuevos en esta auditoría.
 
 4. Mantenibilidad frontend.
    - Componentes y CSS principales siguen siendo grandes.
-   - Recomendación: dividir `AnalysisCabin` en módulos por dominio visual: hero, sidebar, markets, sources, manual changes, alerts y mobile actions.
+    - Recomendación: dividir `AnalysisCabin` en módulos por dominio visual: hero, sidebar, markets, sources, manual changes, alerts y mobile actions.
+    - **Estado:** ✅ Resuelto en sesión 26/jun — `AnalysisCabin` reducido de 264→90 líneas como orquestador; `SectionContent` dividido en 10 módulos independientes <80 líneas c/u. Se extrajeron `AnalysisSidebar`, `AnalysisTopbar` y `MobileActionBar`.
 
 5. Entrada manual de cuotas.
    - JSON es flexible pero frágil para usuarios no técnicos.
@@ -185,7 +210,8 @@ No se encontraron P0 nuevos en esta auditoría.
 
 6. Observabilidad.
    - Ya hay registros de uso API y evidencia, pero falta panel de errores/provider health.
-   - Recomendación: métricas por proveedor, tasa de fallo, latencia, cache hit ratio, snapshot age y alertas de datos stale.
+    - Recomendación: métricas por proveedor, tasa de fallo, latencia, cache hit ratio, snapshot age y alertas de datos stale.
+    - **Estado:** ✅ Parcial en sesión 26/jun — nuevo endpoint `GET /api/health` + `HealthPanel` en home con estado de proveedores, barras de uso API, modo demo/api-ready y BD. Pendiente: tasa de fallo, latencia, cache hit ratio.
 
 ### P3 — pulido
 
@@ -237,14 +263,12 @@ El producto ya está diseñado alrededor de métodos correctos para fútbol:
 
 Lo que falta para afirmar “certero con fundamento científico” no es más UI, sino evidencia empírica: backtesting por liga, calibración temporal, comparación contra closing odds y monitoreo de drift.
 
-## Recomendación de siguiente acción
+## Recomendación de siguiente acción (actualizada 26/jun)
 
-Recomiendo este orden:
+Bloques 1, 2 y 5 de la recomendación anterior ya están implementados. Prioridad actual:
 
-1. Corregir UX mobile: solapamiento de barras fijas, tabs horizontales y espacio inferior.
-2. Mejorar detalle de mercados: drawer por fila con fórmula, fuentes, timestamp y explicación de riesgo.
-3. Crear plan/migración Postgres + auth si la app se va a publicar.
-4. Añadir backtesting/calibración con métricas reales.
-5. Refactorizar componentes grandes para que el proyecto escale sin volverse frágil.
-
-Mi recomendación práctica para el próximo commit: empezar por el bloque 1 y 2. Son mejoras visibles, acotadas y elevan la sensación premium sin abrir todavía el frente más grande de auth/Postgres.
+1. **Auth + aislamiento por usuario/workspace** — necesario antes de cualquier despliegue público o multiusuario.
+2. **Migración Postgres** — para concurrencia, backups y operación real.
+3. **Backtesting/calibración** — Brier score, Log Loss, RPS, ROI simulado por liga/competición.
+4. **Detalle de mercados** — drawer por fila con fórmula completa, fuentes, timestamp, explicación de riesgo.
+5. **Observabilidad avanzada** — tasa de fallo por proveedor, latencia, cache hit ratio, snapshot age, alertas de datos stale.

@@ -14,7 +14,8 @@ export function TacticsSection({
       intro={dataset.context.tacticalSummary}
     >
       <div className="formation-grid">
-        {dataset.lineups.map((lineup) => {
+        {dataset.lineups.length ? (
+        dataset.lineups.map((lineup) => {
           const team =
             lineup.teamId === dataset.match.homeTeam.id
               ? dataset.match.homeTeam
@@ -31,13 +32,16 @@ export function TacticsSection({
                 <i /><i /><i /><i />
               </div>
               <ul>
-                {lineup.starters.slice(0, 6).map((player) => (
+                {(lineup.starters ?? []).slice(0, 6).map((player) => (
                   <li key={player}>{player}</li>
                 ))}
               </ul>
             </article>
           );
-        })}
+        })
+        ) : (
+          <p className="empty-state">Alineaciones no disponibles para este partido.</p>
+        )}
       </div>
       <div className="tactical-notes">
         <article>

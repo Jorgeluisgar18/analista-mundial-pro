@@ -7,7 +7,7 @@ export function AnalysisSection({
   children,
 }: {
   title: string;
-  intro: string;
+  intro: string | ReactNode;
   aside?: ReactNode;
   children: ReactNode;
 }) {

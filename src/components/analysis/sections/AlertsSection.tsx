@@ -15,15 +15,19 @@ export function AlertsSection({
       intro="Eventos que obligan a revisar el modelo antes del inicio."
     >
       <div className="alerts-list">
-        {analysis.alerts.map((alert) => (
-          <article className={`alert-${alert.level}`} key={alert.title}>
-            <AlertIcon />
-            <div>
-              <strong>{alert.title}</strong>
-              <p>{alert.detail}</p>
-            </div>
-          </article>
-        ))}
+        {analysis.alerts.length ? (
+          analysis.alerts.map((alert) => (
+            <article className={`alert-${alert.level}`} key={alert.title}>
+              <AlertIcon />
+              <div>
+                <strong>{alert.title}</strong>
+                <p>{alert.detail}</p>
+              </div>
+            </article>
+          ))
+        ) : (
+          <p className="empty-state">No hay alertas activas en este momento.</p>
+        )}
         {[
           "Baja de último momento",
           "Cambio de arquero",

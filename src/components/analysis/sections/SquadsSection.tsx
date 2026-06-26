@@ -26,7 +26,7 @@ export function SquadsSection({
               · {String(lineup.formation.value)}
             </h3>
             <ol>
-              {lineup.starters.map((player) => (
+              {(lineup.starters ?? []).map((player) => (
                 <li key={player}>{player}</li>
               ))}
             </ol>
@@ -43,7 +43,7 @@ export function SquadsSection({
               <div>
                 <strong>{item.player}</strong>
                 <p>{item.impact}</p>
-                <small>Reemplazo probable: {item.replacement ?? "Dato no disponible"}</small>
+                <small>Reemplazo probable: {item.replacement ?? "Sin información de reemplazo"}</small>
               </div>
               <span>{item.evidence.status}</span>
             </article>

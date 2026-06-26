@@ -7,9 +7,18 @@ export function MarketTable({
   predictions: Prediction[];
   onSelectPrediction?: (prediction: Prediction) => void;
 }) {
+  if (predictions.length === 0) {
+    return (
+      <div className="empty-state">
+        No hay predicciones disponibles para este mercado en el snapshot actual.
+      </div>
+    );
+  }
+
   return (
     <div className="table-scroll">
-      <table className="market-table">
+      <table className="market-table" aria-label="Predicciones del mercado con probabilidad, intervalo, cuota mínima, valor, confianza y riesgo">
+        <caption className="sr-only">Mercados</caption>
         <thead>
           <tr>
             <th>Mercado</th>

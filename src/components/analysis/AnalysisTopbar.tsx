@@ -20,13 +20,13 @@ export function AnalysisTopbar({
         <small>Analista<br />Mundial Pro</small>
       </Link>
       <div className="topbar-actions">
-        <button className="secondary-button" onClick={onExport}>
+        <button type="button" className="secondary-button" onClick={onExport}>
           <ExportIcon /> Descargar informe
         </button>
-        <button className="secondary-button" onClick={onEdit}>
+        <button type="button" className="secondary-button" onClick={onEdit}>
           <EditIcon /> Cambios manuales
         </button>
-        <button className="primary-button" onClick={onRefresh} disabled={refreshing}>
+        <button type="button" className="primary-button" onClick={onRefresh} disabled={refreshing}>
           <RefreshIcon /> {refreshing ? "Actualizando…" : "Actualizar datos"}
         </button>
       </div>

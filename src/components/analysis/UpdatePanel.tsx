@@ -127,7 +127,7 @@ export function UpdatePanel({
             <span className="section-kicker">Revisión humana</span>
             <h2 id="manual-update-title">Cambios manuales</h2>
           </div>
-          <button className="icon-button" onClick={onClose} aria-label="Cerrar">
+          <button type="button" className="icon-button" onClick={onClose} aria-label="Cerrar">
             <CloseIcon />
           </button>
         </header>

@@ -36,13 +36,17 @@ export function SummarySection({ analysis }: { analysis: AnalysisResult }) {
         ]}
       />
       <div className="scenario-grid">
-        {analysis.scenarios.map((s) => (
-          <article key={s.title}>
-            <span>{s.probability.toFixed(1)}%</span>
-            <strong>{s.title}</strong>
-            <p>{s.description}</p>
-          </article>
-        ))}
+        {(analysis.scenarios ?? []).length ? (
+          (analysis.scenarios ?? []).map((s) => (
+            <article key={s.title}>
+              <span>{s.probability.toFixed(1)}%</span>
+              <strong>{s.title}</strong>
+              <p>{s.description}</p>
+            </article>
+          ))
+        ) : (
+          <p className="empty-state">No hay escenarios modelados para este partido.</p>
+        )}
       </div>
     </AnalysisSection>
   );

@@ -64,9 +64,11 @@ function ProviderCard({ provider }: { provider: ProviderInfo }) {
 
 export function HealthPanel() {
   const [health, setHealth] = useState<HealthData | null>(null);
+  const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
 
   const fetchHealth = useCallback(async () => {
+    setLoading(true);
     setErr("");
     try {
       const res = await fetch("/api/health");
@@ -74,6 +76,8 @@ export function HealthPanel() {
       setHealth(await res.json());
     } catch (e: unknown) {
       setErr(e instanceof Error ? e.message : "Error al cargar estado");
+    } finally {
+      setLoading(false);
     }
   }, []);
 
@@ -95,7 +99,8 @@ export function HealthPanel() {
           <div className="health-meta">
             <span>BD: <strong>{health.database === "connected" ? "Conectada" : "Sin datos"}</strong></span>
             <span>Verificado: {new Date(health.checkedAt).toLocaleTimeString()}</span>
-            <button className="health-refresh" onClick={fetchHealth}>↻</button>
+            <button type="button" className="health-refresh" onClick={fetchHealth} aria-label="Actualizar estado del sistema">↻</button>
+            {loading && <span className="health-loading" aria-label="Cargando estado del sistema">Cargando...</span>}
           </div>
           <div className="health-grid">
             {health.providers.map((p) => (

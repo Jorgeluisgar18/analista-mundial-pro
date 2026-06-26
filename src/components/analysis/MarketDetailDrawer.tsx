@@ -155,7 +155,7 @@ export function MarketDetailDrawer({
             <span className="section-kicker">Estadística y Trazabilidad</span>
             <h2 id="market-detail-title">{prediction.market}</h2>
           </div>
-          <button className="icon-button" onClick={onClose} aria-label="Cerrar">
+          <button type="button" className="icon-button" onClick={onClose} aria-label="Cerrar">
             <CloseIcon />
           </button>
         </header>
@@ -171,7 +171,7 @@ export function MarketDetailDrawer({
               <div>
                 <span style={{ display: "block", fontSize: "9px", color: "var(--muted)", textTransform: "uppercase" }}>Probabilidad Modelo</span>
                 <strong style={{ display: "block", fontSize: "28px", color: "var(--emerald)", fontWeight: "900", marginTop: "4px" }}>
-                  {prediction.probability !== undefined ? `${prediction.probability.toFixed(1)}%` : "N/D"}
+                  {prediction.probability !== undefined ? `${prediction.probability.toFixed(1)}%` : "—"}
                 </strong>
                 {prediction.interval && (
                   <span style={{ fontSize: "10px", color: "var(--muted-2)" }}>

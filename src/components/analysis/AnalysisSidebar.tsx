@@ -31,6 +31,7 @@ export function AnalysisSidebar({
         return (
           <div className="sidebar-group" key={section.id}>
             <button
+              type="button"
               className={active ? "sidebar-button active" : "sidebar-button"}
               onClick={() => onSelectSection(section)}
               aria-expanded={active}
@@ -42,9 +43,11 @@ export function AnalysisSidebar({
               <div className="sidebar-subnav">
                 {section.subs.map((subsection) => (
                   <button
+                    type="button"
                     className={activeSubsection === subsection ? "selected" : ""}
                     key={subsection}
                     onClick={() => onSelectSubsection(subsection)}
+                    aria-current={activeSubsection === subsection ? "true" : undefined}
                   >
                     {subsection}
                   </button>

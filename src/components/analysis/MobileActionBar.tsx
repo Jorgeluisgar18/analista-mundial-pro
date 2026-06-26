@@ -11,9 +11,9 @@ export function MobileActionBar({
 }) {
   return (
     <div className="mobile-actionbar">
-      <button onClick={onRefresh}><RefreshIcon />Actualizar</button>
-      <button onClick={onEdit}><EditIcon />Ajustar</button>
-      <button onClick={onExport}><ExportIcon />Descargar</button>
+      <button type="button" onClick={onRefresh} aria-label="Actualizar datos del análisis"><RefreshIcon />Actualizar</button>
+      <button type="button" onClick={onEdit} aria-label="Abrir panel de cambios manuales"><EditIcon />Ajustar</button>
+      <button type="button" onClick={onExport} aria-label="Descargar informe en HTML"><ExportIcon />Descargar</button>
     </div>
   );
 }

@@ -113,9 +113,24 @@ Resuelto y verificado:
 - Caché persistente sobre `MatchSnapshot` para reutilizar datasets frescos con
   alineaciones, lesiones y estadísticas sin invocar el proveedor principal.
 
+Resuelto en sesión 26/jun:
+
+- CSP hardening: `script-src` producción solo `'self'` (sin `unsafe-inline`).
+- UX mobile: padding bottom, safe-area, mask-image rail, títulos responsive.
+- Refactor frontend: `SectionContent` dividido en 10 módulos <80 líneas c/u;
+  `AnalysisCabin` (264→90 líneas) como orquestador con `AnalysisSidebar`,
+  `AnalysisTopbar`, `MobileActionBar` extraídos.
+- Observabilidad inicial: endpoint `GET /api/health` + `HealthPanel` en home
+  con estado de proveedores, barras de uso y modo demo/api-ready.
+- Fix build TS: cast intermedio `unknown` en `prisma.ts`.
+- Componente `ResponsibleNotice` duplicado eliminado — se usa el compartido.
+
 Pendiente para una siguiente fase:
 
 - Calibrar los modelos de conteo por competición con histórico real y pesos
   entrenables, en lugar de líneas base globales.
 - Preparar una base de datos con mayor concurrencia antes de un despliegue
-  multiusuario y dividir los componentes de interfaz más grandes.
+  multiusuario.
+- Autenticación/autorización y aislamiento por usuario/workspace.
+- Backtesting/calibración con métricas Brier, Log Loss, RPS y ROI simulado.
+- Observabilidad avanzada: tasa de fallo, latencia, cache hit ratio, snapshot age.

@@ -17,5 +17,6 @@ test-results/
 playwright-report/
 *.tsbuildinfo
 .vercel/
+.netlify/
 .DS_Store
 *.pem

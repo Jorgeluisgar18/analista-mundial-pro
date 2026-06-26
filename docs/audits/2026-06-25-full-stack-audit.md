@@ -104,13 +104,14 @@ Resuelto y verificado:
   de juego.
 - Narrativa del motor y textos de cabina parametrizados por los equipos reales
   del partido.
+- Cambios manuales estructurados para bajas, titulares, formación, árbitro,
+  clima, cuotas y suspensión, con impacto explícito sobre dataset/modelo cuando
+  corresponde.
 
 Pendiente para una siguiente fase:
 
 - Calibrar los modelos de conteo por competición con histórico real y pesos
   entrenables, en lugar de líneas base globales.
-- Hacer que todos los tipos de cambio manual, no solo las bajas estructuradas,
-  modifiquen explícitamente las variables del modelo.
 - Añadir política de caché y vencimiento por recurso para reservar llamadas
   cerca de la publicación de alineaciones.
 - Preparar una base de datos con mayor concurrencia antes de un despliegue

@@ -28,9 +28,16 @@ export function UpdatePanel({
   const [player, setPlayer] = useState("");
   const [impact, setImpact] = useState<ManualOverrideImpact>("medium");
   const [area, setArea] = useState<ManualOverrideArea>("attack");
+  const [value, setValue] = useState("");
   const [status, setStatus] = useState("");
   const [saving, setSaving] = useState(false);
   const dialogRef = useRef<HTMLElement>(null);
+  const needsTeam = ["absence", "starter", "formation"].includes(type);
+  const needsPlayer = ["absence", "starter"].includes(type);
+  const needsImpact = ["absence", "starter"].includes(type);
+  const needsValue = ["formation", "referee", "weather", "odds"].includes(
+    type,
+  );
 
   useEffect(() => {
     const previousFocus = document.activeElement as HTMLElement | null;
@@ -85,10 +92,11 @@ export function UpdatePanel({
           type,
           description,
           sourceUrl,
-          teamId: type === "absence" ? teamId : undefined,
-          player: type === "absence" ? player : undefined,
-          impact: type === "absence" ? impact : undefined,
-          area: type === "absence" ? area : undefined,
+          teamId: needsTeam ? teamId : undefined,
+          player: needsPlayer ? player : undefined,
+          impact: needsImpact ? impact : undefined,
+          area: needsImpact ? area : undefined,
+          value: needsValue ? value : undefined,
         }),
       });
       const body = await response.json();
@@ -140,31 +148,40 @@ export function UpdatePanel({
               <option value="suspension">Partido suspendido</option>
             </select>
           </label>
-          {type === "absence" ? (
+          {needsTeam ? (
+            <label>
+              <span>Equipo afectado</span>
+              <select
+                value={teamId}
+                onChange={(event) => setTeamId(event.target.value)}
+                required
+              >
+                {teams.map((team) => (
+                  <option key={team.id} value={team.id}>
+                    {team.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : null}
+          {needsPlayer ? (
             <>
               <label>
-                <span>Equipo afectado</span>
-                <select
-                  value={teamId}
-                  onChange={(event) => setTeamId(event.target.value)}
-                  required
-                >
-                  {teams.map((team) => (
-                    <option key={team.id} value={team.id}>
-                      {team.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label>
-                <span>Jugador (opcional)</span>
+                <span>
+                  {type === "starter" ? "Jugador confirmado" : "Jugador (opcional)"}
+                </span>
                 <input
                   value={player}
                   onChange={(event) => setPlayer(event.target.value)}
                   maxLength={120}
                   placeholder="Nombre del jugador"
+                  required={type === "starter"}
                 />
               </label>
+            </>
+          ) : null}
+          {needsImpact ? (
+            <>
               <label>
                 <span>Área afectada</span>
                 <select
@@ -192,6 +209,23 @@ export function UpdatePanel({
                 </select>
               </label>
             </>
+          ) : null}
+          {needsValue ? (
+            <label>
+              <span>Valor específico</span>
+              <input
+                value={value}
+                onChange={(event) => setValue(event.target.value)}
+                maxLength={type === "odds" ? 4000 : 200}
+                placeholder={
+                  type === "formation"
+                    ? "Ej.: 5-4-1"
+                    : type === "odds"
+                      ? "JSON de cuotas normalizadas"
+                      : "Dato confirmado"
+                }
+              />
+            </label>
           ) : null}
           <label>
             <span>Descripción del cambio</span>

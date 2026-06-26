@@ -25,29 +25,40 @@ export const manualOverrideSchema = z
     player: z.string().trim().max(120).optional(),
     impact: z.enum(["low", "medium", "high"]).optional(),
     area: z.enum(["attack", "defense", "balanced"]).optional(),
-    value: z.string().trim().max(200).optional(),
+    value: z.string().trim().max(4000).optional(),
   })
   .superRefine((data, context) => {
-    if (data.type !== "absence") return;
-    if (!data.teamId) {
+    function requireField(
+      field: "teamId" | "impact" | "area" | "value" | "player",
+      message: string,
+    ) {
+      if (data[field]) return;
       context.addIssue({
         code: "custom",
-        path: ["teamId"],
-        message: "Selecciona el equipo afectado.",
+        path: [field],
+        message,
       });
     }
-    if (!data.impact) {
-      context.addIssue({
-        code: "custom",
-        path: ["impact"],
-        message: "Selecciona el nivel de impacto.",
-      });
+
+    if (data.type === "absence") {
+      requireField("teamId", "Selecciona el equipo afectado.");
+      requireField("impact", "Selecciona el nivel de impacto.");
+      requireField("area", "Selecciona el área afectada.");
     }
-    if (!data.area) {
-      context.addIssue({
-        code: "custom",
-        path: ["area"],
-        message: "Selecciona el área afectada.",
-      });
+
+    if (data.type === "starter") {
+      requireField("teamId", "Selecciona el equipo afectado.");
+      requireField("player", "Indica el titular confirmado.");
+      requireField("impact", "Selecciona el nivel de impacto.");
+      requireField("area", "Selecciona el área afectada.");
+    }
+
+    if (data.type === "formation") {
+      requireField("teamId", "Selecciona el equipo afectado.");
+      requireField("value", "Indica la formación confirmada.");
+    }
+
+    if (["referee", "weather", "odds"].includes(data.type)) {
+      requireField("value", "Indica el valor confirmado del cambio.");
     }
   });

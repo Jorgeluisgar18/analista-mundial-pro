@@ -1,6 +1,13 @@
 import { describe, expect, it, vi } from "vitest";
 import { demoDataset } from "@/data/demo";
 import { createMatchService } from "@/lib/services/matchService";
+import { getApiUsageSnapshot } from "@/lib/services/apiUsageService";
+
+vi.mock("@/lib/services/apiUsageService", () => ({
+  getApiUsageSnapshot: vi.fn(async () => []),
+}));
+
+const mockedGetApiUsageSnapshot = vi.mocked(getApiUsageSnapshot);
 
 describe("matchService", () => {
   it("usa demo claramente etiquetado cuando no hay claves", async () => {
@@ -14,6 +21,60 @@ describe("matchService", () => {
     const service = createMatchService({ env: {} });
     const result = await service.listByDate("2026-07-01");
     expect(result.matches).toEqual([]);
+  });
+
+  it("protege la cuota gratis de API-Football y evita llamar al proveedor cuando queda reserva baja", async () => {
+    mockedGetApiUsageSnapshot.mockResolvedValueOnce([
+      {
+        provider: "API-Football",
+        used: 91,
+        limit: 100,
+        period: "day",
+        periodKey: "2026-06-26",
+        resetsAt: "2026-06-27T00:00:00.000Z",
+        updatedAt: "2026-06-26T12:00:00.000Z",
+      },
+    ]);
+    const providerCall = vi.fn();
+    const service = createMatchService({
+      providers: {
+        football: [
+          {
+            id: "api-football",
+            async listMatches() {
+              providerCall();
+              return {
+                data: [],
+                meta: {
+                  source: "API-Football",
+                  fetchedAt: new Date().toISOString(),
+                  isStale: false,
+                  warnings: [],
+                },
+              };
+            },
+            async getMatch() {
+              providerCall();
+              return {
+                data: null,
+                meta: {
+                  source: "API-Football",
+                  fetchedAt: new Date().toISOString(),
+                  isStale: false,
+                  warnings: [],
+                },
+              };
+            },
+          },
+        ],
+      },
+    });
+
+    const result = await service.listByDate("2026-06-26", "all");
+
+    expect(providerCall).not.toHaveBeenCalled();
+    expect(result.mode).toBe("demo");
+    expect(result.warnings.join(" ")).toMatch(/plan gratuito/i);
   });
 
   it("incorpora el clima externo al dataset antes del análisis", async () => {

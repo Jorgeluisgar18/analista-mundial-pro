@@ -33,6 +33,17 @@ Después de configurar claves:
 3. Revisa que el proveedor aparezca con `configured: true`.
 4. Busca partidos en una fecha/liga con cobertura real.
 
+## Plan gratuito y límites
+
+La primera integración real usa API-FOOTBALL con el plan gratis. La app registra el consumo reportado por el proveedor y protege una reserva diaria: si el último registro indica que quedan muy pocas solicitudes, omite nuevas llamadas a API-FOOTBALL y vuelve a demo/cache con una advertencia visible.
+
+Recomendaciones prácticas:
+
+- Evita refrescar muchas veces el mismo partido.
+- Usa la búsqueda por fecha/liga antes de abrir varios partidos.
+- Prioriza snapshots cacheados cuando estés cerca del límite diario.
+- Agrega proveedores complementarios para repartir cobertura y no depender de una sola cuota.
+
 ## Reglas de seguridad
 
 - No pegues claves reales en commits, issues ni documentación.

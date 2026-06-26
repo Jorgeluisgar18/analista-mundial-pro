@@ -1,5 +1,6 @@
 import { demoDataset, demoMatches } from "@/data/demo";
 import { cacheDecision } from "@/lib/cache/cachePolicy";
+import { apiQuotaDecision } from "@/lib/providers/apiQuotaPolicy";
 import {
   createProviderRegistry,
   type ProviderEnvironment,
@@ -46,10 +47,29 @@ export function createMatchService({
   const providers = injectedProviders ?? createProviderRegistry(env);
   const providerStatus = () => getProviderStatus(env);
 
+  async function providerQuotaWarning(providerId: string) {
+    if (providerId !== "api-football") return undefined;
+    const { getApiUsageSnapshot } = await import(
+      "@/lib/services/apiUsageService"
+    );
+    const usage = (await getApiUsageSnapshot()).find(
+      (record) => record.provider === "API-Football" && record.period === "day",
+    );
+    const decision = apiQuotaDecision(usage);
+    return decision.shouldCall
+      ? undefined
+      : `API-Football omitido para proteger el plan gratuito. ${decision.reason}`;
+  }
+
   return {
     async listByDate(date: string, competition?: string) {
       const warnings: string[] = [];
       for (const provider of providers.football) {
+        const quotaWarning = await providerQuotaWarning(provider.id);
+        if (quotaWarning) {
+          warnings.push(quotaWarning);
+          continue;
+        }
         try {
           const result = await provider.listMatches(date, competition);
           if (result.data.length) {
@@ -100,6 +120,8 @@ export function createMatchService({
       if (cached) return structuredClone(cached);
 
       for (const provider of providers.football) {
+        const quotaWarning = await providerQuotaWarning(provider.id);
+        if (quotaWarning) continue;
         try {
           const result = await provider.getMatch(id);
           if (result.data) {

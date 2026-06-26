@@ -59,6 +59,8 @@ Consulta los límites vigentes de cada proveedor. La aplicación evita sondeos c
 Para validar la configuración sin revelar secretos, abre `/api/provider-status`.
 La guía visual está en `/docs/provider-setup` y el documento de referencia en `docs/provider-setup.md`.
 
+En el plan gratuito de API-FOOTBALL, la aplicación protege una reserva diaria antes de gastar las últimas solicitudes disponibles y vuelve a demo/cache con advertencias visibles.
+
 ## Ejecución
 
 ```bash

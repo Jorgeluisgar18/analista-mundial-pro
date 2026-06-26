@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { demoDataset } from "@/data/demo";
 import { createMatchService } from "@/lib/services/matchService";
 
@@ -80,5 +80,93 @@ describe("matchService", () => {
         expect.objectContaining({ id: "weather-provider" }),
       ]),
     );
+  });
+  it("reutiliza clima y cuotas frescas para no gastar llamadas externas", async () => {
+    const dataset = structuredClone(demoDataset);
+    dataset.match.id = "external-cache-test";
+    dataset.match.dataOrigin = "API";
+    dataset.match.kickoff = "2026-07-10T20:00:00.000Z";
+    dataset.weather.observedAt = "2026-07-10T18:40:00.000Z";
+    dataset.odds = dataset.odds.map((odd) => ({
+      ...odd,
+      observedAt: "2026-07-10T18:40:00.000Z",
+    }));
+    dataset.sources.push(
+      {
+        id: "weather-provider",
+        label: "Open-Meteo",
+        type: "provider",
+        status: "confirmed",
+        observedAt: "2026-07-10T18:40:00.000Z",
+        detail: "Snapshot de clima fresco.",
+      },
+      {
+        id: "odds-provider",
+        label: "The Odds API",
+        type: "provider",
+        status: "confirmed",
+        observedAt: "2026-07-10T18:40:00.000Z",
+        detail: "Snapshot de cuotas fresco.",
+      },
+    );
+    const weatherCall = vi.fn();
+    const oddsCall = vi.fn();
+    const service = createMatchService({
+      now: () => new Date("2026-07-10T18:50:00.000Z"),
+      providers: {
+        football: [
+          {
+            id: "football-test",
+            async listMatches() {
+              return {
+                data: [],
+                meta: {
+                  source: "football-test",
+                  fetchedAt: "2026-07-10T18:50:00.000Z",
+                  isStale: false,
+                  warnings: [],
+                },
+              };
+            },
+            async getMatch() {
+              return {
+                data: dataset,
+                meta: {
+                  source: "football-test",
+                  fetchedAt: "2026-07-10T18:50:00.000Z",
+                  isStale: false,
+                  warnings: [],
+                },
+              };
+            },
+          },
+        ],
+        weather: {
+          id: "weather-test",
+          async getWeatherForLocation() {
+            weatherCall();
+            throw new Error("No debió consultar clima fresco");
+          },
+        },
+        odds: {
+          id: "odds-test",
+          async getOdds() {
+            oddsCall();
+            throw new Error("No debió consultar cuotas frescas");
+          },
+        },
+      },
+    });
+
+    const result = await service.getById("external-cache-test");
+
+    expect(result?.sources).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: "weather-cache-hit" }),
+        expect.objectContaining({ id: "odds-cache-hit" }),
+      ]),
+    );
+    expect(weatherCall).not.toHaveBeenCalled();
+    expect(oddsCall).not.toHaveBeenCalled();
   });
 });

@@ -107,12 +107,15 @@ Resuelto y verificado:
 - Cambios manuales estructurados para bajas, titulares, formación, árbitro,
   clima, cuotas y suspensión, con impacto explícito sobre dataset/modelo cuando
   corresponde.
+- Política explícita de frescura por recurso con ventanas prepartido T-90/T-15
+  y reutilización de snapshots frescos de clima/cuotas para conservar llamadas
+  API.
 
 Pendiente para una siguiente fase:
 
 - Calibrar los modelos de conteo por competición con histórico real y pesos
   entrenables, en lugar de líneas base globales.
-- Añadir política de caché y vencimiento por recurso para reservar llamadas
-  cerca de la publicación de alineaciones.
+- Persistir caché por recurso desde base de datos para reutilizar también
+  alineaciones, lesiones y estadísticas sin invocar el proveedor principal.
 - Preparar una base de datos con mayor concurrencia antes de un despliegue
   multiusuario y dividir los componentes de interfaz más grandes.

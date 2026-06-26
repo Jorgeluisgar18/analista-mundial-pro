@@ -1,4 +1,5 @@
 import { demoDataset, demoMatches } from "@/data/demo";
+import { cacheDecision } from "@/lib/cache/cachePolicy";
 import {
   createProviderRegistry,
   type ProviderEnvironment,
@@ -13,6 +14,7 @@ import type { MatchDataset } from "@/types/domain";
 export function createMatchService({
   env,
   providers: injectedProviders,
+  now = () => new Date(),
 }: {
   env?: ProviderEnvironment;
   providers?: {
@@ -20,6 +22,7 @@ export function createMatchService({
     odds?: OddsProvider;
     weather?: WeatherProvider;
   };
+  now?: () => Date;
 } = {}) {
   const providers = injectedProviders ?? createProviderRegistry(env);
 
@@ -71,9 +74,19 @@ export function createMatchService({
         try {
           const result = await provider.getMatch(id);
           if (result.data) {
+            const weatherSource = result.data.sources.find(
+              (source) => source.id === "weather-provider",
+            );
+            const weatherDecision = cacheDecision({
+              resource: "weather",
+              kickoff: result.data.match.kickoff,
+              observedAt: weatherSource?.observedAt,
+              now: now(),
+            });
             if (
               providers.weather &&
-              result.data.match.city !== "Dato no disponible"
+              result.data.match.city !== "Dato no disponible" &&
+              weatherDecision.shouldRefresh
             ) {
               try {
                 const weather = await providers.weather.getWeatherForLocation(
@@ -100,8 +113,31 @@ export function createMatchService({
                   detail: "No fue posible consultar el clima en este momento.",
                 });
               }
+            } else if (providers.weather && weatherSource) {
+              result.data.sources.push({
+                id: "weather-cache-hit",
+                label: weatherSource.label,
+                type: "provider",
+                status: weatherSource.status,
+                observedAt: weatherSource.observedAt,
+                detail: `Clima reutilizado por caché: ${weatherDecision.reason}`,
+              });
             }
-            if (providers.odds) {
+
+            const oddsSource = result.data.sources.find(
+              (source) => source.id === "odds-provider",
+            );
+            const latestOddObservedAt = result.data.odds
+              .map((odd) => odd.observedAt)
+              .sort()
+              .at(-1);
+            const oddsDecision = cacheDecision({
+              resource: "odds",
+              kickoff: result.data.match.kickoff,
+              observedAt: oddsSource?.observedAt ?? latestOddObservedAt,
+              now: now(),
+            });
+            if (providers.odds && oddsDecision.shouldRefresh) {
               try {
                 const odds = await providers.odds.getOdds(result.data.match);
                 result.data.odds = odds.data;
@@ -125,6 +161,15 @@ export function createMatchService({
                   detail: "No fue posible consultar cuotas en este momento.",
                 });
               }
+            } else if (providers.odds && oddsSource) {
+              result.data.sources.push({
+                id: "odds-cache-hit",
+                label: oddsSource.label,
+                type: "provider",
+                status: oddsSource.status,
+                observedAt: oddsSource.observedAt,
+                detail: `Cuotas reutilizadas por caché: ${oddsDecision.reason}`,
+              });
             }
             return result.data;
           }

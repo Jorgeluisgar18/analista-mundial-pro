@@ -142,4 +142,29 @@ describe("AnalysisCabin", () => {
       screen.queryByRole("dialog", { name: /Cambios manuales/i }),
     ).not.toBeInTheDocument();
   });
+
+  it("abre el desglose detallado del mercado al hacer clic en una fila de la tabla y se cierra con Escape", async () => {
+    render(
+      <AnalysisCabin
+        initialAnalysis={analyzeMatch(demoDataset)}
+        dataset={demoDataset}
+      />,
+    );
+
+    await userEvent.click(
+      screen.getByRole("button", { name: /05 · mercados/i }),
+    );
+    await userEvent.click(screen.getByRole("button", { name: /^goles$/i }));
+
+    const row = screen.getByRole("button", { name: /Detalle del mercado Más de 2.5 goles/i });
+    await userEvent.click(row);
+
+    const drawer = screen.getByRole("dialog", { name: /Más de 2.5 goles/i });
+    expect(drawer).toHaveAttribute("aria-modal", "true");
+    expect(screen.getByText(/Modelo Matemático/i)).toBeInTheDocument();
+    expect(screen.getByText(/Masa de Probabilidad Dixon-Coles/i)).toBeInTheDocument();
+
+    await userEvent.keyboard("{Escape}");
+    expect(screen.queryByRole("dialog", { name: /Más de 2.5 goles/i })).not.toBeInTheDocument();
+  });
 });

@@ -2,8 +2,10 @@ import type { Prediction } from "@/types/domain";
 
 export function MarketTable({
   predictions,
+  onSelectPrediction,
 }: {
   predictions: Prediction[];
+  onSelectPrediction?: (prediction: Prediction) => void;
 }) {
   return (
     <div className="table-scroll">
@@ -21,7 +23,19 @@ export function MarketTable({
         </thead>
         <tbody>
           {predictions.map((prediction) => (
-            <tr key={prediction.id}>
+            <tr
+              key={prediction.id}
+              onClick={() => onSelectPrediction?.(prediction)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  onSelectPrediction?.(prediction);
+                }
+              }}
+              tabIndex={onSelectPrediction ? 0 : undefined}
+              role={onSelectPrediction ? "button" : undefined}
+              aria-label={`Detalle del mercado ${prediction.market}`}
+            >
               <td>
                 <strong>{prediction.market}</strong>
                 <small>{prediction.reason}</small>

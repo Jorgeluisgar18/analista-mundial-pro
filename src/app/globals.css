@@ -1173,6 +1173,8 @@ textarea:focus-visible {
   border-bottom: 1px solid var(--line);
   background: #071417;
   scrollbar-width: none;
+  mask-image: linear-gradient(to right, transparent, black 20px, black calc(100% - 20px), transparent);
+  -webkit-mask-image: linear-gradient(to right, transparent, black 20px, black calc(100% - 20px), transparent);
 }
 
 .subsection-rail::-webkit-scrollbar,
@@ -1379,6 +1381,15 @@ textarea:focus-visible {
   font-family: var(--font-copy);
   font-size: 9px;
   line-height: 1.4;
+}
+
+.market-table tbody tr {
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.market-table tbody tr:hover {
+  background: #0d2522;
 }
 
 .table-probability {
@@ -2405,11 +2416,24 @@ textarea:focus-visible {
   }
 
   .analysis-content {
-    padding: 24px 18px 95px;
+    padding: 16px 12px calc(110px + env(safe-area-inset-bottom));
   }
 
   .analysis-section-header {
     align-items: start;
+    padding-bottom: 10px;
+    gap: 12px;
+  }
+
+  .analysis-section-header h2 {
+    font-size: 20px !important;
+    letter-spacing: -0.02em;
+  }
+
+  .analysis-section-header p {
+    margin-top: 4px;
+    font-size: 11px;
+    line-height: 1.4;
   }
 
   .confidence-badge {
@@ -2498,13 +2522,13 @@ textarea:focus-visible {
   }
 
   .analysis-app {
-    padding-bottom: 98px;
+    padding-bottom: calc(98px + env(safe-area-inset-bottom));
   }
 
   .mobile-responsible {
     position: fixed;
     right: 0;
-    bottom: 66px;
+    bottom: calc(66px + env(safe-area-inset-bottom));
     left: 0;
     z-index: 30;
     display: block;
@@ -2532,7 +2556,8 @@ textarea:focus-visible {
     z-index: 30;
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    min-height: 66px;
+    min-height: calc(66px + env(safe-area-inset-bottom));
+    padding-bottom: env(safe-area-inset-bottom);
     border-top: 1px solid var(--line-strong);
     background: rgba(3, 13, 16, 0.96);
     backdrop-filter: blur(14px);

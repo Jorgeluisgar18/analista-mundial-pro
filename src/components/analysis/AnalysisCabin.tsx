@@ -79,7 +79,7 @@ const NAVIGATION = [
   {
     id: "sources",
     label: "10 · Fuentes",
-    subs: ["Evidencia", "Calidad", "Metodología", "Consumo API"],
+    subs: ["Evidencia", "Calidad", "Metodología"],
   },
 ] as const;
 
@@ -134,7 +134,7 @@ export function AnalysisCabin({
         </Link>
         <div className="topbar-actions">
           <button className="secondary-button" onClick={exportHtml}>
-            <ExportIcon /> Exportar HTML
+            <ExportIcon /> Descargar informe
           </button>
           <button
             className="secondary-button"
@@ -232,18 +232,14 @@ export function AnalysisCabin({
       </div>
       <footer className="analysis-footer">
         <ResponsibleGamingNotice />
-        <span>
-          Modelo {analysis.modelVersion} · Confianza{" "}
-          {analysis.expected.confidence.toFixed(1)}/10
-        </span>
       </footer>
       <div className="mobile-responsible">
         Análisis probabilístico · No garantiza resultados · Juega responsablemente
       </div>
       <div className="mobile-actionbar">
         <button onClick={refresh}><RefreshIcon />Actualizar</button>
-        <button onClick={() => setUpdateOpen(true)}><EditIcon />Cambios</button>
-        <button onClick={exportHtml}><ExportIcon />Exportar</button>
+        <button onClick={() => setUpdateOpen(true)}><EditIcon />Ajustar</button>
+        <button onClick={exportHtml}><ExportIcon />Descargar</button>
       </div>
       {updateOpen ? (
         <UpdatePanel

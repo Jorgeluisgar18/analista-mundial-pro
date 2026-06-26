@@ -457,8 +457,8 @@ export function SectionContent({
         </article>
         <article>
           <span>Validación</span>
-          <strong>Brier · Log loss · RPS</strong>
-          <p>La calibración probabilística importa más que acertar un resultado aislado.</p>
+          <strong>Calibración continua</strong>
+          <p>Las probabilidades se evalúan contra resultados reales. Acertar el nivel de certeza importa más que acertar un resultado aislado.</p>
         </article>
       </div>
     </AnalysisSection>

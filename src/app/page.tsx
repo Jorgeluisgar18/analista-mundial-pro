@@ -18,10 +18,8 @@ export default function Home() {
         <nav aria-label="Navegación principal">
           <a href="#partidos">Partidos</a>
           <a href="#metodologia">Metodología</a>
-          <a href="#fuentes">Fuentes</a>
-          <Link href="/docs/provider-setup">APIs</Link>
+          <a href="#fuentes">Transparencia</a>
         </nav>
-        <span className="local-mode">Local · Privado</span>
       </header>
       <main>
         <section className="home-hero">
@@ -95,17 +93,17 @@ export default function Home() {
           </article>
           <article id="fuentes">
             <span>03</span>
-            <h2>Gratis y extensible</h2>
+            <h2>Transparencia total</h2>
             <p>
-              API-Football, Football-Data.org, The Odds API y Open-Meteo son
-              adaptadores opcionales; el modo demo funciona desde el inicio.
+              Cada predicción muestra su fuente, el momento de captura y el
+              nivel de certeza. Lo desconocido aparece como desconocido.
             </p>
           </article>
         </section>
       </main>
       <footer className="home-footer">
         <ResponsibleGamingNotice />
-        <p>Analista Mundial Pro · Herramienta personal local-first</p>
+        <p>Analista Mundial Pro · Análisis prepartido probabilístico</p>
       </footer>
     </div>
   );

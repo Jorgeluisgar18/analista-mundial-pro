@@ -19,6 +19,7 @@ export default function Home() {
           <a href="#partidos">Partidos</a>
           <a href="#metodologia">Metodología</a>
           <a href="#fuentes">Fuentes</a>
+          <Link href="/docs/provider-setup">APIs</Link>
         </nav>
         <span className="local-mode">Local · Privado</span>
       </header>

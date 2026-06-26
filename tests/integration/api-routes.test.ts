@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { GET as getMatches } from "@/app/api/matches/route";
+import { GET as getProviderStatus } from "@/app/api/provider-status/route";
 import { POST as createOverride } from "@/app/api/match/[id]/overrides/route";
 import MatchPage from "@/app/match/[id]/page";
 import { analyzeMatch } from "@/lib/analysis/analysisEngine";
@@ -24,6 +25,44 @@ describe("API routes", () => {
     const body = await response.json();
     expect(body.matches[0].id).toBe("demo-col-bra");
     expect(body.mode).toBe("demo");
+  });
+
+  it("expone estado seguro de proveedores en la búsqueda de partidos", async () => {
+    const response = await getMatches(
+      new Request("http://local/api/matches?date=2026-06-26&competition=all"),
+    );
+    const body = await response.json();
+
+    expect(body.providerStatus).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          envName: "FOOTBALL_API_KEY",
+          configured: expect.any(Boolean),
+        }),
+        expect.objectContaining({
+          envName: "FOOTBALL_DATA_API_KEY",
+          configured: expect.any(Boolean),
+        }),
+      ]),
+    );
+    expect(JSON.stringify(body.providerStatus)).not.toMatch(/sk-|secret|token/i);
+  });
+
+  it("expone un endpoint de diagnóstico de proveedores sin secretos", async () => {
+    const response = await getProviderStatus();
+    const body = await response.json();
+
+    expect(body.providers).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: "football-data",
+          envName: "FOOTBALL_DATA_API_KEY",
+          configured: expect.any(Boolean),
+        }),
+      ]),
+    );
+    expect(body.docsPath).toBe("/docs/provider-setup");
+    expect(JSON.stringify(body)).not.toMatch(/api-football-secret|odds-secret/i);
   });
 
   it("rechaza JSON malformado en cambios manuales", async () => {

@@ -37,14 +37,14 @@ npm run db:seed
 
 ## Variables de entorno
 
-Copia `.env.example` como `.env.local`:
+Copia `.env.example` como `.env`:
 
 ```dotenv
 DATABASE_URL="file:./prisma/dev.db"
-FOOTBALL_API_KEY=
-FOOTBALL_DATA_API_KEY=
-ODDS_API_KEY=
-OPENAI_API_KEY=
+FOOTBALL_API_KEY=""
+FOOTBALL_DATA_API_KEY=""
+ODDS_API_KEY=""
+OPENAI_API_KEY=""
 ```
 
 Todas las claves son opcionales. Ninguna se incluye en el bundle del navegador.
@@ -55,6 +55,9 @@ Todas las claves son opcionales. Ninguna se incluye en el bundle del navegador.
 - `OPENAI_API_KEY`: reservado para redacción opcional futura; el análisis actual es determinista y funciona sin esta clave.
 
 Consulta los límites vigentes de cada proveedor. La aplicación evita sondeos continuos y prioriza actualización bajo demanda.
+
+Para validar la configuración sin revelar secretos, abre `/api/provider-status`.
+La guía visual está en `/docs/provider-setup` y el documento de referencia en `docs/provider-setup.md`.
 
 ## Ejecución
 

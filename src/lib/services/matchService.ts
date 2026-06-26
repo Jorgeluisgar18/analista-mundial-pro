@@ -4,6 +4,10 @@ import {
   createProviderRegistry,
   type ProviderEnvironment,
 } from "@/lib/providers/providerRegistry";
+import {
+  getProviderStatus,
+  missingFootballProviderWarning,
+} from "@/lib/providers/providerConfig";
 import type {
   FootballProvider,
   OddsProvider,
@@ -40,6 +44,7 @@ export function createMatchService({
   snapshotCache?: Pick<MatchSnapshotCache, "getFreshDataset">;
 } = {}) {
   const providers = injectedProviders ?? createProviderRegistry(env);
+  const providerStatus = () => getProviderStatus(env);
 
   return {
     async listByDate(date: string, competition?: string) {
@@ -53,6 +58,7 @@ export function createMatchService({
               source: result.meta.source,
               fetchedAt: result.meta.fetchedAt,
               warnings: result.meta.warnings,
+              providerStatus: providerStatus(),
               matches: result.data,
             };
           }
@@ -71,14 +77,17 @@ export function createMatchService({
             competition === "all" ||
             match.competition.id === competition),
       );
+      const missingProviderWarning = missingFootballProviderWarning(env);
       return {
         mode: "demo" as const,
         source: "Datos demostrativos locales",
         fetchedAt: new Date().toISOString(),
         warnings: [
           ...warnings,
+          ...(missingProviderWarning ? [missingProviderWarning] : []),
           "Sin claves activas o cobertura disponible: se muestran datos demostrativos.",
         ],
+        providerStatus: providerStatus(),
         matches,
       };
     },

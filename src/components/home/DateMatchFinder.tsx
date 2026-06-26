@@ -10,6 +10,14 @@ interface MatchSearchResponse {
   source: string;
   warnings: string[];
   matches: NormalizedMatch[];
+  providerStatus?: Array<{
+    id: string;
+    label: string;
+    envName: string;
+    configured: boolean;
+    docsUrl: string;
+    purpose: string;
+  }>;
 }
 
 export function DateMatchFinder({ initialDate }: { initialDate: string }) {
@@ -118,8 +126,58 @@ export function DateMatchFinder({ initialDate }: { initialDate: string }) {
               ))}
             </div>
           ) : (
-            <div className="empty-state">
-              No hay partidos disponibles para esta fecha.
+            <div className="empty-state empty-state-diagnostic">
+              <div>
+                <span className="section-kicker">
+                  Sin cobertura para este filtro
+                </span>
+                <h3>No encontramos partidos para esta fecha y competición.</h3>
+                <p>
+                  El modo demo solo cubre partidos de muestra, como el
+                  2026-06-15 en FIFA World Cup. Para calendarios reales de
+                  ligas top, Mundial y competiciones UEFA, configura al menos
+                  una API de fútbol real.
+                </p>
+              </div>
+              {result.providerStatus?.length ? (
+                <div className="provider-checklist" aria-label="Estado de APIs">
+                  {result.providerStatus.map((provider) => (
+                    <div className="provider-check" key={provider.id}>
+                      <span
+                        className={
+                          provider.configured
+                            ? "provider-dot provider-dot-ok"
+                            : "provider-dot provider-dot-missing"
+                        }
+                        aria-hidden="true"
+                      />
+                      <div>
+                        <strong>{provider.label}</strong>
+                        <small>
+                          {provider.configured
+                            ? "Configurada"
+                            : `Pendiente: ${provider.envName}`}
+                        </small>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : null}
+              <div className="empty-actions">
+                <Link className="secondary-button" href="/docs/provider-setup">
+                  Ver guía de APIs
+                </Link>
+                <button
+                  className="ghost-button"
+                  type="button"
+                  onClick={() => {
+                    setDate("2026-06-15");
+                    setCompetition("wc-2026");
+                  }}
+                >
+                  Usar fecha demo
+                </button>
+              </div>
             </div>
           )}
           {result.warnings.length ? (

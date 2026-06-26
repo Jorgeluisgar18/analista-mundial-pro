@@ -69,6 +69,55 @@ describe("AnalysisCabin", () => {
     expect(screen.getByText(/Casa C/i)).toBeVisible();
   });
 
+  it("renderiza contexto, táctica y porteros con equipos genéricos", async () => {
+    const dataset = structuredClone(demoDataset);
+    dataset.match.homeTeam = {
+      ...dataset.match.homeTeam,
+      name: "River Azul",
+    };
+    dataset.match.awayTeam = {
+      ...dataset.match.awayTeam,
+      name: "Estrella Norte",
+    };
+
+    render(
+      <AnalysisCabin
+        initialAnalysis={analyzeMatch(dataset)}
+        dataset={dataset}
+      />,
+    );
+
+    await userEvent.click(
+      screen.getByRole("button", { name: /02 · contexto/i }),
+    );
+
+    expect(screen.getByText(/Necesidad de River Azul/i)).toBeVisible();
+    expect(screen.getByText(/Necesidad de Estrella Norte/i)).toBeVisible();
+    expect(
+      screen.queryByText(/Necesidad de Colombia|Necesidad de Brasil/i),
+    ).not.toBeInTheDocument();
+
+    await userEvent.click(
+      screen.getByRole("button", { name: /03 · táctica/i }),
+    );
+
+    expect(
+      screen.queryByText(/Brasil busca|Colombia protege/i),
+    ).not.toBeInTheDocument();
+    expect(screen.getAllByText(/Estrella Norte/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/River Azul/i).length).toBeGreaterThan(0);
+
+    await userEvent.click(
+      screen.getByRole("button", { name: /07 · porteros/i }),
+    );
+
+    expect(
+      screen.queryByText(/Brasil concentra|Colombia puede/i),
+    ).not.toBeInTheDocument();
+    expect(screen.getAllByText(/Estrella Norte/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/River Azul/i).length).toBeGreaterThan(0);
+  });
+
   it("abre cambios manuales como diálogo modal y permite cerrar con Escape", async () => {
     render(
       <AnalysisCabin

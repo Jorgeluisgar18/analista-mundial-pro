@@ -99,11 +99,16 @@ Resuelto y verificado:
 - Integración de Open-Meteo mediante geocodificación de la ciudad y consulta
   horaria en UTC.
 - Registro real de consumo de API por minuto, día, mes o fair-use.
+- Mercados secundarios sin nombres fijos de la demo y con probabilidades de
+  conteo basadas en Poisson para corners, tarjetas, faltas, disparos y fueras
+  de juego.
+- Narrativa del motor y textos de cabina parametrizados por los equipos reales
+  del partido.
 
 Pendiente para una siguiente fase:
 
-- Sustituir los priors fijos de corners, tarjetas, faltas, tiros y offsides por
-  modelos entrenables y calibrados por competición.
+- Calibrar los modelos de conteo por competición con histórico real y pesos
+  entrenables, en lugar de líneas base globales.
 - Hacer que todos los tipos de cambio manual, no solo las bajas estructuradas,
   modifiquen explícitamente las variables del modelo.
 - Añadir política de caché y vencimiento por recurso para reservar llamadas

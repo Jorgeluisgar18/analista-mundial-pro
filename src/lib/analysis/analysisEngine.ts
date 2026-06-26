@@ -10,6 +10,7 @@ import {
   normalizeOddOutcome,
   removeOverround,
 } from "@/lib/models/odds";
+import { poissonDistribution } from "@/lib/models/poisson";
 import type {
   AnalysisResult,
   ArbitrageOpportunity,
@@ -225,6 +226,47 @@ function topScores(matrix: number[][]) {
     .slice(0, 5);
 }
 
+function poissonAtLeast(lambda: number, minimum: number) {
+  if (!Number.isFinite(lambda) || lambda <= 0) return 0;
+  const maxEvents = Math.max(25, Math.ceil(lambda + 10 * Math.sqrt(lambda)));
+  return poissonDistribution(lambda, maxEvents).reduce(
+    (total, probability, events) =>
+      events >= minimum ? total + probability : total,
+    0,
+  );
+}
+
+function poissonGreaterThan(firstLambda: number, secondLambda: number) {
+  if (
+    !Number.isFinite(firstLambda) ||
+    !Number.isFinite(secondLambda) ||
+    firstLambda <= 0 ||
+    secondLambda <= 0
+  ) {
+    return 0;
+  }
+  const maxLambda = Math.max(firstLambda, secondLambda);
+  const maxEvents = Math.max(
+    25,
+    Math.ceil(maxLambda + 10 * Math.sqrt(maxLambda)),
+  );
+  const firstDistribution = poissonDistribution(firstLambda, maxEvents);
+  const secondDistribution = poissonDistribution(secondLambda, maxEvents);
+
+  return firstDistribution.reduce(
+    (total, firstProbability, firstEvents) =>
+      total +
+      secondDistribution.reduce(
+        (rowTotal, secondProbability, secondEvents) =>
+          firstEvents > secondEvents
+            ? rowTotal + firstProbability * secondProbability
+            : rowTotal,
+        0,
+      ),
+    0,
+  );
+}
+
 export function analyzeMatch(
   dataset: MatchDataset,
   options: { manuallyUpdated?: boolean } = {},
@@ -397,8 +439,8 @@ export function analyzeMatch(
       labels: [
         "Más de 7.5 corners",
         "Más de 8.5 corners",
-        "Brasil más corners",
-        "Colombia más de 3.5 corners",
+        `${dataset.match.awayTeam.name} más corners`,
+        `${dataset.match.homeTeam.name} más de 3.5 corners`,
         "Más de 3.5 corners 1T",
       ],
       reason: "Volumen de ataques, amplitud y producción reciente de corners.",
@@ -409,8 +451,8 @@ export function analyzeMatch(
       labels: [
         "Más de 3.5 tarjetas",
         "Más de 4.5 tarjetas",
-        "Colombia más de 1.5 tarjetas",
-        "Brasil más de 1.5 tarjetas",
+        `${dataset.match.homeTeam.name} más de 1.5 tarjetas`,
+        `${dataset.match.awayTeam.name} más de 1.5 tarjetas`,
         "Posible tarjeta roja",
       ],
       reason: "Disciplina reciente, presión competitiva y perfil arbitral disponible.",
@@ -420,9 +462,9 @@ export function analyzeMatch(
       base: features.expectedFouls,
       labels: [
         "Más de 21.5 faltas",
-        "Colombia más de 10.5 faltas",
-        "Brasil más de 9.5 faltas",
-        "Colombia más faltas recibidas",
+        `${dataset.match.homeTeam.name} más de 10.5 faltas`,
+        `${dataset.match.awayTeam.name} más de 9.5 faltas`,
+        `${dataset.match.homeTeam.name} más faltas`,
         "Más faltas en 2T",
       ],
       reason: "Frecuencia histórica de duelos, presión y transición.",
@@ -431,11 +473,11 @@ export function analyzeMatch(
       category: "shots",
       base: features.expectedShots,
       labels: [
-        "Brasil más de 12.5 disparos",
-        "Colombia más de 8.5 disparos",
+        `${dataset.match.awayTeam.name} más de 12.5 disparos`,
+        `${dataset.match.homeTeam.name} más de 8.5 disparos`,
         "Más de 23.5 disparos",
-        "Brasil más de 4.5 tiros a puerta",
-        "Colombia más de 2.5 tiros a puerta",
+        `${dataset.match.awayTeam.name} más de 4.5 tiros a puerta`,
+        `${dataset.match.homeTeam.name} más de 2.5 tiros a puerta`,
       ],
       reason: "Producción reciente de remates y control territorial esperado.",
     },
@@ -444,8 +486,8 @@ export function analyzeMatch(
       base: features.expectedOffsides,
       labels: [
         "Más de 2.5 fueras de juego",
-        "Brasil más de 1.5 fueras de juego",
-        "Colombia más de 0.5 fueras de juego",
+        `${dataset.match.awayTeam.name} más de 1.5 fueras de juego`,
+        `${dataset.match.homeTeam.name} más de 0.5 fueras de juego`,
       ],
       reason: "Altura defensiva y frecuencia de ataques al espacio.",
     },
@@ -453,13 +495,58 @@ export function analyzeMatch(
 
   countMarkets.forEach((group) => {
     group.labels.forEach((market, index) => {
-      const center =
-        group.category === "cards"
-          ? group.base / 6
-          : group.category === "offsides"
-            ? group.base / 5
-            : group.base / 14;
-      const probability = clamp(0.48 + center * 0.18 - index * 0.055);
+      let probability = 0;
+      if (group.category === "corners") {
+        const probabilities = [
+          poissonAtLeast(features.expectedCorners, 8),
+          poissonAtLeast(features.expectedCorners, 9),
+          poissonGreaterThan(dataset.away.corners, dataset.home.corners),
+          poissonAtLeast(dataset.home.corners, 4),
+          poissonAtLeast(features.expectedCorners * 0.46, 4),
+        ];
+        probability = probabilities[index] ?? 0;
+      }
+      if (group.category === "cards") {
+        const probabilities = [
+          poissonAtLeast(features.expectedCards, 4),
+          poissonAtLeast(features.expectedCards, 5),
+          poissonAtLeast(dataset.home.cards, 2),
+          poissonAtLeast(dataset.away.cards, 2),
+          clamp(1 - Math.exp(-features.expectedCards * 0.045), 0.05, 0.32),
+        ];
+        probability = probabilities[index] ?? 0;
+      }
+      if (group.category === "fouls") {
+        const probabilities = [
+          poissonAtLeast(features.expectedFouls, 22),
+          poissonAtLeast(dataset.home.fouls, 11),
+          poissonAtLeast(dataset.away.fouls, 10),
+          poissonGreaterThan(dataset.home.fouls, dataset.away.fouls),
+          poissonGreaterThan(
+            features.expectedFouls * 0.54,
+            features.expectedFouls * 0.46,
+          ),
+        ];
+        probability = probabilities[index] ?? 0;
+      }
+      if (group.category === "shots") {
+        const probabilities = [
+          poissonAtLeast(dataset.away.shots, 13),
+          poissonAtLeast(dataset.home.shots, 9),
+          poissonAtLeast(features.expectedShots, 24),
+          poissonAtLeast(dataset.away.shotsOnTarget, 5),
+          poissonAtLeast(dataset.home.shotsOnTarget, 3),
+        ];
+        probability = probabilities[index] ?? 0;
+      }
+      if (group.category === "offsides") {
+        const probabilities = [
+          poissonAtLeast(features.expectedOffsides, 3),
+          poissonAtLeast(dataset.away.offsides, 2),
+          poissonAtLeast(dataset.home.offsides, 1),
+        ];
+        probability = probabilities[index] ?? 0;
+      }
       predictions.push(
         makePrediction({
           id: `${group.category}-${index}`,
@@ -524,7 +611,7 @@ export function analyzeMatch(
 
   return {
     id: `analysis-${dataset.match.id}`,
-    modelVersion: "AMP ensemble 1.0.0",
+    modelVersion: "AMP ensemble 1.1.0",
     generatedAt: new Date().toISOString(),
     manuallyUpdated: Boolean(options.manuallyUpdated),
     match: dataset.match,
@@ -542,7 +629,7 @@ export function analyzeMatch(
     arbitrage: findArbitrage(normalizedOdds, dataset.match),
     scenarios: [
       {
-        title: "Brasil controla territorio",
+        title: `${dataset.match.awayTeam.name} controla territorio`,
         probability: away,
         description:
           "Amplitud alta, presión tras pérdida y mayor volumen de remate.",
@@ -550,11 +637,10 @@ export function analyzeMatch(
       {
         title: "Partido bloqueado",
         probability: draw,
-        description:
-          "Colombia protege carril central y reduce ocasiones claras.",
+        description: `${dataset.match.homeTeam.name} protege carril central y reduce ocasiones claras.`,
       },
       {
-        title: "Transición colombiana",
+        title: `Transición de ${dataset.match.homeTeam.name}`,
         probability: Math.min(home, 24),
         description:
           "Recuperación media y ataque rápido sobre el lateral adelantado.",

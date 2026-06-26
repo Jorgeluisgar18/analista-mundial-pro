@@ -4,6 +4,7 @@ import { buildFeatures } from "@/lib/analysis/features";
 import { demoDataset } from "@/data/demo";
 import { dixonColesMatrix } from "@/lib/models/dixonColes";
 import { removeOverround } from "@/lib/models/odds";
+import { poissonDistribution } from "@/lib/models/poisson";
 
 describe("analysisEngine", () => {
   it("genera probabilidades normalizadas y mercados trazables", () => {
@@ -167,5 +168,78 @@ describe("analysisEngine", () => {
     expect(opportunities[0].market).toBe("1X2");
     expect(opportunities[0].isOpportunity).toBe(true);
     expect(opportunities[0].theoreticalProfit).toBeGreaterThan(0);
+  });
+
+  it("genera mercados secundarios con los equipos reales del partido", () => {
+    const dataset = structuredClone(demoDataset);
+    dataset.match.homeTeam = {
+      ...dataset.match.homeTeam,
+      name: "River Azul",
+    };
+    dataset.match.awayTeam = {
+      ...dataset.match.awayTeam,
+      name: "Estrella Norte",
+    };
+
+    const result = analyzeMatch(dataset);
+    const secondaryMarkets = result.predictions.filter((prediction) =>
+      ["corners", "cards", "fouls", "shots", "offsides"].includes(
+        prediction.category,
+      ),
+    );
+
+    expect(
+      secondaryMarkets.some((prediction) =>
+        /Brasil|Colombia/i.test(prediction.market),
+      ),
+    ).toBe(false);
+    expect(
+      secondaryMarkets.some((prediction) =>
+        prediction.market.includes("River Azul"),
+      ),
+    ).toBe(true);
+    expect(
+      secondaryMarkets.some((prediction) =>
+        prediction.market.includes("Estrella Norte"),
+      ),
+    ).toBe(true);
+  });
+
+  it("genera escenarios narrativos sin nombres fijos de la demo", () => {
+    const dataset = structuredClone(demoDataset);
+    dataset.match.homeTeam = {
+      ...dataset.match.homeTeam,
+      name: "River Azul",
+    };
+    dataset.match.awayTeam = {
+      ...dataset.match.awayTeam,
+      name: "Estrella Norte",
+    };
+
+    const result = analyzeMatch(dataset);
+    const scenarioText = result.scenarios
+      .map((scenario) => `${scenario.title} ${scenario.description}`)
+      .join(" ");
+
+    expect(scenarioText).not.toMatch(/Brasil|Colombia|colombiana/i);
+    expect(scenarioText).toContain("River Azul");
+    expect(scenarioText).toContain("Estrella Norte");
+  });
+
+  it("estima totales secundarios con Poisson sobre el volumen esperado", () => {
+    const result = analyzeMatch(demoDataset);
+    const expectedCorners = demoDataset.home.corners + demoDataset.away.corners;
+    const distribution = poissonDistribution(expectedCorners, 30);
+    const expectedOver85 =
+      distribution.reduce(
+        (total, probability, corners) =>
+          corners >= 9 ? total + probability : total,
+        0,
+      ) * 100;
+    const market = result.predictions.find(
+      (prediction) => /8\.5 corners/i.test(prediction.market),
+    );
+
+    expect(market?.probability).toBeCloseTo(expectedOver85, 1);
   });
 });

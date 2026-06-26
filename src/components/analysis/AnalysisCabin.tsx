@@ -389,8 +389,8 @@ function SectionContent({
 
   if (activeSection === "context") {
     const contextRows = [
-      ["Necesidad de Colombia", dataset.context.homeNeed],
-      ["Necesidad de Brasil", dataset.context.awayNeed],
+      [`Necesidad de ${dataset.match.homeTeam.name}`, dataset.context.homeNeed],
+      [`Necesidad de ${dataset.match.awayTeam.name}`, dataset.context.awayNeed],
       ["Motivación local", dataset.context.homeMotivation],
       ["Motivación visitante", dataset.context.awayMotivation],
       ["Presión competitiva", dataset.context.pressure],
@@ -452,11 +452,17 @@ function SectionContent({
         <div className="tactical-notes">
           <article>
             <span>Plan ofensivo</span>
-            <p>Brasil busca amplitud, fijación exterior y llegada del interior al área.</p>
+            <p>
+              {dataset.match.awayTeam.name} busca amplitud, fijación exterior y
+              llegada del interior al área.
+            </p>
           </article>
           <article>
             <span>Plan defensivo</span>
-            <p>Colombia protege el carril central y orienta la presión hacia banda.</p>
+            <p>
+              {dataset.match.homeTeam.name} protege el carril central y orienta
+              la presión hacia banda.
+            </p>
           </article>
           <article>
             <span>Duelo clave</span>
@@ -575,14 +581,14 @@ function SectionContent({
             team={dataset.match.homeTeam.name}
             cleanSheet={homeClean}
             saves={Math.max(1.5, dataset.away.shotsOnTarget - analysis.expected.awayGoals)}
-            risk="Brasil concentra más remates en zona central."
+            risk={`${dataset.match.awayTeam.name} concentra más remates en zona central.`}
           />
           <div className="keeper-versus">VS</div>
           <Keeper
             team={dataset.match.awayTeam.name}
             cleanSheet={awayClean}
             saves={Math.max(1.5, dataset.home.shotsOnTarget - analysis.expected.homeGoals)}
-            risk="Colombia puede producir ocasiones de alta calidad en transición."
+            risk={`${dataset.match.homeTeam.name} puede producir ocasiones de alta calidad en transición.`}
           />
         </div>
       </AnalysisSection>

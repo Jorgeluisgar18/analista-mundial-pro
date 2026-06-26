@@ -1173,8 +1173,8 @@ textarea:focus-visible {
   border-bottom: 1px solid var(--line);
   background: #071417;
   scrollbar-width: none;
-  mask-image: linear-gradient(to right, transparent, black 20px, black calc(100% - 20px), transparent);
-  -webkit-mask-image: linear-gradient(to right, transparent, black 20px, black calc(100% - 20px), transparent);
+  mask-image: linear-gradient(to right, black 94%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to right, black 94%, transparent 100%);
 }
 
 .subsection-rail::-webkit-scrollbar,
@@ -2416,7 +2416,7 @@ textarea:focus-visible {
   }
 
   .analysis-content {
-    padding: 16px 12px calc(110px + env(safe-area-inset-bottom));
+    padding: 16px 12px calc(130px + env(safe-area-inset-bottom));
   }
 
   .analysis-section-header {
@@ -2522,7 +2522,7 @@ textarea:focus-visible {
   }
 
   .analysis-app {
-    padding-bottom: calc(98px + env(safe-area-inset-bottom));
+    padding-bottom: calc(130px + env(safe-area-inset-bottom));
   }
 
   .mobile-responsible {
@@ -2556,8 +2556,8 @@ textarea:focus-visible {
     z-index: 30;
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    min-height: calc(66px + env(safe-area-inset-bottom));
-    padding-bottom: env(safe-area-inset-bottom);
+    min-height: calc(66px + env(safe-area-inset-bottom, 0px));
+    padding-bottom: env(safe-area-inset-bottom, 0px);
     border-top: 1px solid var(--line-strong);
     background: rgba(3, 13, 16, 0.96);
     backdrop-filter: blur(14px);
@@ -2671,7 +2671,7 @@ textarea:focus-visible {
   }
 
   .analysis-section-header h2 {
-    font-size: 28px;
+    font-size: 20px !important;
   }
 
   .analysis-section-header p {
@@ -2762,6 +2762,217 @@ textarea:focus-visible {
 
   .market-table td:last-child small {
     display: none;
+  }
+}
+
+.health-panel {
+  max-width: 960px;
+  margin: 80px auto;
+  padding-inline: 24px;
+}
+
+.health-heading {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 18px;
+  font-size: 22px;
+  font-weight: 850;
+  letter-spacing: -0.02em;
+  text-transform: uppercase;
+}
+
+.health-mode {
+  padding: 3px 10px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.health-mode.mode-api-ready {
+  color: #03120e;
+  background: var(--emerald);
+}
+
+.health-mode.mode-demo {
+  color: #03120e;
+  background: var(--amber);
+}
+
+.health-mode.mode-loading {
+  color: var(--muted);
+  background: var(--surface-2);
+}
+
+.health-meta {
+  display: flex;
+  gap: 18px;
+  align-items: center;
+  margin-bottom: 24px;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.health-error {
+  padding: 12px 16px;
+  background: rgba(239, 118, 95, 0.12);
+  border: 1px solid var(--coral);
+  border-radius: 6px;
+  color: var(--coral);
+  font-size: 13px;
+}
+
+.health-refresh {
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 4px 10px;
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.health-refresh:hover {
+  border-color: var(--emerald);
+  color: var(--emerald);
+}
+
+.health-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 16px;
+}
+
+.health-provider {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+}
+
+.health-provider.off {
+  opacity: 0.55;
+}
+
+.health-provider header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.health-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.dot-on {
+  background: var(--emerald);
+  box-shadow: 0 0 6px rgba(0, 222, 165, 0.5);
+}
+
+.dot-off {
+  background: var(--muted-2);
+}
+
+.health-provider header strong {
+  font-size: 14px;
+  font-weight: 850;
+  letter-spacing: -0.01em;
+}
+
+.health-badge {
+  margin-left: auto;
+  padding: 2px 7px;
+  border-radius: 4px;
+  background: var(--surface-2);
+  color: var(--muted-2);
+  font-size: 10px;
+  font-family: var(--font-ui);
+}
+
+.health-purpose {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+.health-usage-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.health-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted-2);
+}
+
+.health-usage-bar {
+  position: relative;
+  display: block;
+  height: 22px;
+  border-radius: 4px;
+  background: var(--surface-3);
+  overflow: hidden;
+}
+
+.health-usage-fill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.4s ease;
+}
+
+.level-low .health-usage-fill {
+  background: var(--emerald);
+}
+
+.level-mid .health-usage-fill {
+  background: var(--amber);
+}
+
+.level-high .health-usage-fill {
+  background: var(--coral);
+}
+
+.health-usage-label {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text);
+  mix-blend-mode: difference;
+}
+
+.health-resets {
+  font-size: 10px;
+  color: var(--muted-2);
+}
+
+.health-no-usage {
+  font-size: 11px;
+  color: var(--muted-2);
+}
+
+@media (max-width: 600px) {
+  .health-grid {
+    grid-template-columns: 1fr;
   }
 }
 

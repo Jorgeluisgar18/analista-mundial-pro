@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { DateMatchFinder } from "@/components/home/DateMatchFinder";
+import { HealthPanel } from "@/components/health/HealthPanel";
 import { ResponsibleGamingNotice } from "@/components/shared/ResponsibleGamingNotice";
 
 export default function Home() {
@@ -19,6 +20,7 @@ export default function Home() {
           <a href="#partidos">Partidos</a>
           <a href="#metodologia">Metodología</a>
           <a href="#fuentes">Transparencia</a>
+          <a href="#salud">Estado</a>
         </nav>
       </header>
       <main>
@@ -100,6 +102,7 @@ export default function Home() {
             </p>
           </article>
         </section>
+        <HealthPanel />
       </main>
       <footer className="home-footer">
         <ResponsibleGamingNotice />

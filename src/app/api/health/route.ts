@@ -3,6 +3,13 @@ import { getProviderStatus } from "@/lib/providers/providerConfig";
 import { hasConfiguredFootballProvider } from "@/lib/providers/providerConfig";
 import { prisma } from "@/lib/db/prisma";
 
+const usageProviderByStatusId = {
+  "api-football": "API-Football",
+  "football-data": "Football-Data.org",
+  "odds-api": "The Odds API",
+  "open-meteo": "Open-Meteo",
+} as const;
+
 export async function GET() {
   const providerStatus = getProviderStatus();
   const databaseProbe = await prisma.apiUsage
@@ -32,15 +39,10 @@ export async function GET() {
       label: p.label,
       configured: p.configured,
       purpose: p.purpose,
-      usage: usage.find((u) =>
-        p.id === "api-football"
-          ? u.provider === "api-football"
-          : p.id === "football-data"
-            ? u.provider === "football-data"
-            : p.id === "odds-api"
-              ? u.provider === "the-odds-api"
-            : false,
-      ) ?? null,
+      usage:
+        usage.find(
+          (u) => u.provider === usageProviderByStatusId[p.id],
+        ) ?? null,
     })),
     database: databaseProbe.status,
     databaseRecords:

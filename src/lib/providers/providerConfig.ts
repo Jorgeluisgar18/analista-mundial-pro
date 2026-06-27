@@ -1,7 +1,12 @@
 import type { ProviderEnvironment } from "@/lib/providers/providerRegistry";
 
 export interface ProviderStatus {
-  id: "api-football" | "football-data" | "odds-api" | "open-meteo";
+  id:
+    | "api-football"
+    | "football-data"
+    | "the-sportsdb"
+    | "odds-api"
+    | "open-meteo";
   label: string;
   envName: keyof ProviderEnvironment | "OPEN_METEO_NO_KEY";
   configured: boolean;
@@ -38,6 +43,15 @@ export function getProviderStatus(
       docsUrl: "https://www.football-data.org/documentation/quickstart",
       purpose:
         "Calendarios y resultados de ligas europeas top y competiciones UEFA.",
+    },
+    {
+      id: "the-sportsdb",
+      label: "TheSportsDB",
+      envName: "THE_SPORTSDB_API_KEY",
+      configured: hasSecret(env.THE_SPORTSDB_API_KEY),
+      docsUrl: "https://www.thesportsdb.com/documentation",
+      purpose:
+        "Enriquecimiento gratuito secundario: equipos, eventos, estadios, badges y contexto no crítico.",
     },
     {
       id: "odds-api",

@@ -7,6 +7,7 @@ import { prisma } from "@/lib/db/prisma";
 const usageProviderByStatusId = {
   "api-football": "API-Football",
   "football-data": "Football-Data.org",
+  "the-sportsdb": "TheSportsDB",
   "odds-api": "The Odds API",
   "open-meteo": "Open-Meteo",
 } as const;

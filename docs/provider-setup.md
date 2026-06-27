@@ -11,6 +11,9 @@ DATABASE_URL="postgresql://USER:PASSWORD@HOST.neon.tech/neondb?sslmode=require&c
 DIRECT_URL=""
 FOOTBALL_API_KEY=""
 FOOTBALL_DATA_API_KEY=""
+THE_SPORTSDB_API_KEY=""
+THE_SPORTSDB_BASE_URL="https://www.thesportsdb.com/api/v1/json"
+THE_SPORTSDB_TIMEOUT_MS="8000"
 ODDS_API_KEY=""
 ```
 
@@ -24,6 +27,7 @@ ODDS_API_KEY=""
 | Netlify Database/Neon | `NETLIFY_DB_URL` | Fallback automático de runtime en Netlify cuando `DATABASE_URL` no está configurada. |
 | API-FOOTBALL / API-Sports | `FOOTBALL_API_KEY` | Fixtures, ligas, equipos, detalles de partido y cobertura amplia. |
 | Football-Data.org | `FOOTBALL_DATA_API_KEY` | Calendarios/resultados de ligas europeas top y competiciones UEFA. |
+| TheSportsDB | `THE_SPORTSDB_API_KEY` | Enriquecimiento gratuito secundario para eventos, equipos, estadios, badges y contexto no crítico. |
 | The Odds API | `ODDS_API_KEY` | Cuotas para value betting, comparación de mercados y surebets. |
 | Open-Meteo | No requiere clave | Clima estimado para sede/ciudad. |
 

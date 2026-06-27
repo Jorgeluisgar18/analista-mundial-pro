@@ -9,6 +9,7 @@ describe("providerConfig", () => {
     const status = getProviderStatus({
       FOOTBALL_API_KEY: "api-football-secret",
       FOOTBALL_DATA_API_KEY: "",
+      THE_SPORTSDB_API_KEY: "sportsdb-secret",
       ODDS_API_KEY: "odds-secret",
     });
 
@@ -25,6 +26,11 @@ describe("providerConfig", () => {
           configured: false,
         }),
         expect.objectContaining({
+          id: "the-sportsdb",
+          envName: "THE_SPORTSDB_API_KEY",
+          configured: true,
+        }),
+        expect.objectContaining({
           id: "odds-api",
           envName: "ODDS_API_KEY",
           configured: true,
@@ -32,6 +38,7 @@ describe("providerConfig", () => {
       ]),
     );
     expect(JSON.stringify(status)).not.toContain("api-football-secret");
+    expect(JSON.stringify(status)).not.toContain("sportsdb-secret");
     expect(JSON.stringify(status)).not.toContain("odds-secret");
   });
 

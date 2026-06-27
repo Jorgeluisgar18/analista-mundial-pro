@@ -7,6 +7,9 @@ import type { ProviderUsageEvent } from "@/lib/providers/types";
 export interface ProviderEnvironment {
   FOOTBALL_API_KEY?: string;
   FOOTBALL_DATA_API_KEY?: string;
+  THE_SPORTSDB_API_KEY?: string;
+  THE_SPORTSDB_BASE_URL?: string;
+  THE_SPORTSDB_TIMEOUT_MS?: string;
   ODDS_API_KEY?: string;
 }
 
@@ -16,6 +19,9 @@ export function createProviderRegistry(
   const resolvedEnv: ProviderEnvironment = env ?? {
     FOOTBALL_API_KEY: process.env.FOOTBALL_API_KEY,
     FOOTBALL_DATA_API_KEY: process.env.FOOTBALL_DATA_API_KEY,
+    THE_SPORTSDB_API_KEY: process.env.THE_SPORTSDB_API_KEY,
+    THE_SPORTSDB_BASE_URL: process.env.THE_SPORTSDB_BASE_URL,
+    THE_SPORTSDB_TIMEOUT_MS: process.env.THE_SPORTSDB_TIMEOUT_MS,
     ODDS_API_KEY: process.env.ODDS_API_KEY,
   };
   const usageReporter = async (event: ProviderUsageEvent) => {

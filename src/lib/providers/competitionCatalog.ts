@@ -6,6 +6,7 @@ export interface SupportedCompetition {
   kind: CompetitionKind;
   aliases: string[];
   footballDataCode?: string;
+  apiFootballLeagueId?: number;
 }
 
 export const supportedCompetitions: SupportedCompetition[] = [
@@ -15,6 +16,7 @@ export const supportedCompetitions: SupportedCompetition[] = [
     kind: "NATIONAL",
     aliases: ["fifa world cup", "world cup", "mundial"],
     footballDataCode: "WC",
+    apiFootballLeagueId: 1,
   },
   {
     slug: "premier-league",
@@ -90,6 +92,13 @@ export function resolveFootballDataCompetition(value?: string) {
   const competition = findSupportedCompetition(value);
   if (competition?.footballDataCode) return competition.footballDataCode;
   if (value && /^[A-Z0-9]+$/i.test(value)) return value.toUpperCase();
+  return undefined;
+}
+
+export function resolveApiFootballLeague(value?: string) {
+  const competition = findSupportedCompetition(value);
+  if (competition?.apiFootballLeagueId) return competition.apiFootballLeagueId;
+  if (value && /^\d+$/.test(value)) return Number(value);
   return undefined;
 }
 

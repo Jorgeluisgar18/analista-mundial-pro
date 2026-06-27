@@ -5,7 +5,10 @@ import type {
   UsageReporter,
 } from "@/lib/providers/types";
 import { emitUsage } from "@/lib/providers/types";
-import { matchesCompetition } from "@/lib/providers/competitionCatalog";
+import {
+  matchesCompetition,
+  resolveApiFootballLeague,
+} from "@/lib/providers/competitionCatalog";
 import type { MatchDataset, NormalizedMatch } from "@/types/domain";
 
 interface ApiFootballFixture {
@@ -96,8 +99,9 @@ export class ApiFootballProvider implements FootballProvider {
   ): Promise<ProviderResult<NormalizedMatch[]>> {
     const url = new URL("https://v3.football.api-sports.io/fixtures");
     url.searchParams.set("date", date);
-    if (competition && /^\d+$/.test(competition)) {
-      url.searchParams.set("league", competition);
+    const league = resolveApiFootballLeague(competition);
+    if (league) {
+      url.searchParams.set("league", String(league));
     }
     const response = await this.fetcher(url, {
       headers: { "x-apisports-key": this.apiKey },

@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { ApiFootballProvider } from "@/lib/providers/apiFootball";
 import { FootballDataProvider } from "@/lib/providers/footballData";
 import {
+  resolveApiFootballLeague,
   resolveFootballDataCompetition,
   supportedCompetitions,
 } from "@/lib/providers/competitionCatalog";
@@ -42,6 +43,9 @@ describe("catálogo de competiciones", () => {
     );
     expect(resolveFootballDataCompetition("premier-league")).toBe("PL");
     expect(resolveFootballDataCompetition("champions-league")).toBe("CL");
+    expect(resolveApiFootballLeague("wc-2026")).toBe(1);
+    expect(resolveApiFootballLeague("123")).toBe(123);
+    expect(resolveApiFootballLeague("premier-league")).toBeUndefined();
   });
 });
 
@@ -69,11 +73,33 @@ describe("filtros por proveedor", () => {
       "2026-08-15",
       "premier-league",
     );
-    const requestedUrl = new URL(String(fetcher.mock.calls[0]?.[0]));
+    const requestedUrl = new URL(String(fetcher.mock.calls.at(0)?.[0]));
 
     expect(requestedUrl.searchParams.has("league")).toBe(false);
     expect(result.data).toHaveLength(1);
     expect(result.data[0].competition.name).toBe("Premier League");
+  });
+
+  it("API-Football usa IDs seguros conocidos para reducir búsquedas amplias", async () => {
+    const fetcher = vi.fn(async () =>
+      Response.json({
+        response: [
+          apiFixture(1, {
+            id: 1,
+            name: "FIFA World Cup",
+            country: "World",
+          }),
+        ],
+      }),
+    );
+    const provider = new ApiFootballProvider("test", fetcher as typeof fetch);
+
+    const result = await provider.listMatches("2026-06-15", "wc-2026");
+    const requestedUrl = new URL(String(fetcher.mock.calls.at(0)?.[0]));
+
+    expect(requestedUrl.searchParams.get("league")).toBe("1");
+    expect(result.data).toHaveLength(1);
+    expect(result.data[0].competition.name).toBe("FIFA World Cup");
   });
 
   it("Football-Data traduce el slug al código competitions", async () => {
@@ -84,7 +110,7 @@ describe("filtros por proveedor", () => {
     );
 
     await provider.listMatches("2026-08-15", "premier-league");
-    const requestedUrl = new URL(String(fetcher.mock.calls[0]?.[0]));
+    const requestedUrl = new URL(String(fetcher.mock.calls.at(0)?.[0]));
 
     expect(requestedUrl.searchParams.get("competitions")).toBe("PL");
   });

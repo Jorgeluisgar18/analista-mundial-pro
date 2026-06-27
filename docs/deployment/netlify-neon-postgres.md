@@ -58,6 +58,8 @@ npx prisma migrate deploy
 
 Netlify Database ya aplicó la baseline inicial durante el setup. No edites ni repitas esa migración aplicada. Los cambios futuros de esquema deben usar solo nombres de migración nuevos. Prisma sigue siendo el historial canónico de migraciones locales en `prisma/migrations/`.
 
+La migración nueva `20260627113000_provider_observability` existe también bajo `netlify/database/migrations/` para que Netlify Database pueda crear la tabla de telemetría durante el próximo deploy. No recrea la baseline histórica y usa SQL idempotente para evitar fallos si la tabla ya existe.
+
 Para cargar el seed mínimo:
 
 ```powershell

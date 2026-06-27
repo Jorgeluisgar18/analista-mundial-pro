@@ -20,16 +20,21 @@ interface MatchSearchResponse {
   }>;
 }
 
+const INITIAL_VISIBLE_MATCHES = 20;
+const VISIBLE_MATCH_INCREMENT = 20;
+
 export function DateMatchFinder({ initialDate }: { initialDate: string }) {
   const [date, setDate] = useState(initialDate);
   const [competition, setCompetition] = useState("all");
   const [result, setResult] = useState<MatchSearchResponse | null>(null);
+  const [visibleCount, setVisibleCount] = useState(INITIAL_VISIBLE_MATCHES);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
   async function searchMatches() {
     setLoading(true);
     setError("");
+    setVisibleCount(INITIAL_VISIBLE_MATCHES);
     try {
       const params = new URLSearchParams({ date, competition });
       const response = await fetch(`/api/matches?${params}`);
@@ -44,6 +49,11 @@ export function DateMatchFinder({ initialDate }: { initialDate: string }) {
       setLoading(false);
     }
   }
+
+  const visibleMatches = result?.matches.slice(0, visibleCount) ?? [];
+  const hiddenMatchCount = result
+    ? Math.max(0, result.matches.length - visibleMatches.length)
+    : 0;
 
   return (
     <section className="finder" aria-labelledby="finder-title">
@@ -92,6 +102,11 @@ export function DateMatchFinder({ initialDate }: { initialDate: string }) {
           {loading ? "Consultando…" : "Buscar partidos"}
         </button>
       </div>
+      {loading ? (
+        <p className="finder-loading" role="status">
+          Consultando proveedores sin exponer claves en el navegador…
+        </p>
+      ) : null}
       {error ? <p className="form-error">{error}</p> : null}
       {result ? (
         <div className="search-result" aria-live="polite">
@@ -100,31 +115,49 @@ export function DateMatchFinder({ initialDate }: { initialDate: string }) {
               {result.mode === "demo" ? "Modo demostración" : "Datos de API"}
             </span>
             <span>{result.source}</span>
-            <span>{result.matches.length} partidos</span>
+            <span>
+              {result.matches.length} partidos encontrados
+              {hiddenMatchCount > 0 ? ` · mostrando ${visibleMatches.length}` : ""}
+            </span>
           </div>
           {result.matches.length ? (
-            <div className="match-list">
-              {result.matches.map((match) => (
-                <Link
-                  className="match-row"
-                  href={`/match/${match.id}`}
-                  key={match.id}
+            <>
+              <div className="match-list">
+                {visibleMatches.map((match) => (
+                  <Link
+                    className="match-row"
+                    href={`/match/${match.id}`}
+                    key={match.id}
+                  >
+                    <span className="match-time">{match.time}</span>
+                    <span className="match-teams">
+                      <strong>
+                        {match.homeTeam.name} vs {match.awayTeam.name}
+                      </strong>
+                      <small>
+                        {match.competition.name} ·{" "}
+                        {match.competition.stage ?? "Fase no disponible"}
+                      </small>
+                    </span>
+                    <span className="match-venue">{match.venue}</span>
+                    <ArrowIcon />
+                  </Link>
+                ))}
+              </div>
+              {hiddenMatchCount > 0 ? (
+                <button
+                  className="secondary-button load-more-matches"
+                  type="button"
+                  onClick={() =>
+                    setVisibleCount(
+                      (currentCount) => currentCount + VISIBLE_MATCH_INCREMENT,
+                    )
+                  }
                 >
-                  <span className="match-time">{match.time}</span>
-                  <span className="match-teams">
-                    <strong>
-                      {match.homeTeam.name} vs {match.awayTeam.name}
-                    </strong>
-                    <small>
-                      {match.competition.name} ·{" "}
-                      {match.competition.stage ?? "Fase no disponible"}
-                    </small>
-                  </span>
-                  <span className="match-venue">{match.venue}</span>
-                  <ArrowIcon />
-                </Link>
-              ))}
-            </div>
+                  Mostrar 20 más
+                </button>
+              ) : null}
+            </>
           ) : (
             <div className="empty-state empty-state-diagnostic">
               <div>

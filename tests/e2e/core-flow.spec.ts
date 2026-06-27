@@ -42,6 +42,43 @@ test("busca y analiza un partido demo", async ({ page }) => {
   ).toBeVisible();
 });
 
+test("la búsqueda muestra estado visible en lugar de quedar en blanco", async ({
+  page,
+}) => {
+  let releaseMatchesResponse!: () => void;
+  const delayedMatchesResponse = new Promise<void>((resolve) => {
+    releaseMatchesResponse = resolve;
+  });
+
+  await page.route("**/api/matches?**", async (route) => {
+    await delayedMatchesResponse;
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        mode: "demo",
+        source: "Datos demostrativos locales",
+        warnings: [],
+        matches: [],
+      }),
+    });
+  });
+
+  await page.goto("/");
+  await page.getByLabel("Fecha").fill("2026-06-15");
+  await page.getByRole("button", { name: "Buscar partidos" }).click();
+  await expect(page.getByRole("status")).toContainText(
+    "Consultando proveedores sin exponer claves en el navegador",
+  );
+
+  releaseMatchesResponse();
+  await expect(
+    page
+      .getByText(/partidos encontrados|Modo demostración|Datos de API/)
+      .first(),
+  ).toBeVisible();
+});
+
 test("modifica manualmente un partido cuando Postgres está configurado", async ({
   page,
 }) => {

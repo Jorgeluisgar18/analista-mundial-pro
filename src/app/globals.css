@@ -534,6 +534,12 @@ textarea:focus-visible {
   border-top: 1px solid var(--line-strong);
 }
 
+.finder-loading {
+  margin-top: 12px;
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
 .result-meta {
   display: flex;
   flex-wrap: wrap;
@@ -560,6 +566,12 @@ textarea:focus-visible {
 
 .match-list {
   border-top: 1px solid var(--line);
+}
+
+.load-more-matches {
+  justify-content: center;
+  width: 100%;
+  margin-top: 1rem;
 }
 
 .match-row {

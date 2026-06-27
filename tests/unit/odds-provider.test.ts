@@ -2,6 +2,11 @@ import { describe, expect, it, vi } from "vitest";
 import { demoDataset } from "@/data/demo";
 import { TheOddsApiProvider } from "@/lib/providers/oddsApi";
 
+function firstRequestedUrl(fetcher: ReturnType<typeof vi.fn>) {
+  const calls = fetcher.mock.calls as unknown as Array<[URL | Request | string]>;
+  return String(calls[0][0]);
+}
+
 describe("The Odds API provider", () => {
   it("selecciona la competición y normaliza outcomes al dominio interno", async () => {
     const fetcher = vi.fn(async () =>
@@ -49,7 +54,7 @@ describe("The Odds API provider", () => {
     const provider = new TheOddsApiProvider("test-key", fetcher);
 
     const result = await provider.getOdds(match);
-    const requestedUrl = String(fetcher.mock.calls[0][0]);
+    const requestedUrl = firstRequestedUrl(fetcher);
 
     expect(requestedUrl).toContain("/sports/soccer_epl/odds");
     expect(result.data.map((odd) => odd.outcome)).toEqual([

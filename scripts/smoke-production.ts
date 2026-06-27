@@ -28,7 +28,9 @@ async function main() {
   assertObject(health, "health");
 
   if (health.database !== "connected") {
-    throw new Error(`database is not connected: ${JSON.stringify(health)}`);
+    throw new Error(
+      `database is not connected: ${String(health.database ?? "unknown")}`,
+    );
   }
 
   const providers = await readJson("/api/provider-status");

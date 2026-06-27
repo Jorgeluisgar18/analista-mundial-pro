@@ -35,6 +35,7 @@ interface HealthData {
   providers: ProviderInfo[];
   database: "connected" | "no-data";
   telemetry?: ProviderTelemetry[];
+  telemetryStatus?: "connected" | "unavailable";
 }
 
 function UsageBar({ used, limit }: { used: number; limit: number }) {

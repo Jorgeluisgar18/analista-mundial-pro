@@ -31,10 +31,22 @@ export async function GET() {
     databaseProbe.status === "connected"
       ? await getApiUsageSnapshot().catch(() => [])
       : [];
-  const telemetry =
+  const telemetryProbe =
     databaseProbe.status === "connected"
-      ? await getProviderTelemetrySnapshot().catch(() => [])
-      : [];
+      ? await getProviderTelemetrySnapshot()
+          .then((records) => ({
+            status: "connected" as const,
+            records,
+          }))
+          .catch(() => ({
+            status: "unavailable" as const,
+            records: [],
+          }))
+      : {
+          status: "unavailable" as const,
+          records: [],
+        };
+  const telemetry = telemetryProbe.records;
   const apiReady = hasConfiguredFootballProvider();
 
   return Response.json({
@@ -55,6 +67,7 @@ export async function GET() {
         ) ?? null,
     })),
     telemetry,
+    telemetryStatus: telemetryProbe.status,
     database: databaseProbe.status,
     databaseRecords:
       databaseProbe.status === "connected" ? databaseProbe.records : 0,

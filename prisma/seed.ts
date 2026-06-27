@@ -1,10 +1,16 @@
 import "dotenv/config";
-import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
+import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "../generated/prisma/client";
 
-const adapter = new PrismaBetterSqlite3({
-  url: process.env.DATABASE_URL ?? "file:./prisma/dev.db",
-});
+const databaseUrl = process.env.DATABASE_URL?.trim();
+
+if (!databaseUrl || databaseUrl.startsWith("file:")) {
+  throw new Error(
+    "DATABASE_URL debe apuntar a Neon/Postgres para ejecutar prisma db seed.",
+  );
+}
+
+const adapter = new PrismaPg(databaseUrl);
 const prisma = new PrismaClient({ adapter });
 
 async function main() {

@@ -1,6 +1,7 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, expect, it, vi } from "vitest";
 import { demoDataset } from "@/data/demo";
 import { prisma } from "@/lib/db/prisma";
+import { describeWithDatabase } from "../helpers/database";
 
 vi.mock("server-only", () => ({}));
 
@@ -27,7 +28,7 @@ afterEach(async () => {
   });
 });
 
-describe("analysis persistence", () => {
+describeWithDatabase("analysis persistence", () => {
   it("crea el partido externo antes de persistir snapshot y análisis", async () => {
     const analysisServiceModule = await import(
       "@/lib/services/analysisService"

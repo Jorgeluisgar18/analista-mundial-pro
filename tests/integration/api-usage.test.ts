@@ -1,5 +1,6 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, expect, it, vi } from "vitest";
 import { prisma } from "@/lib/db/prisma";
+import { describeWithDatabase } from "../helpers/database";
 
 vi.mock("server-only", () => ({}));
 
@@ -9,7 +10,7 @@ afterEach(async () => {
   await prisma.apiUsage.deleteMany({ where: { provider } });
 });
 
-describe("API usage telemetry", () => {
+describeWithDatabase("API usage telemetry", () => {
   it("incrementa llamadas y respeta el consumo informado por el proveedor", async () => {
     const usageModule = await import("@/lib/services/apiUsageService");
     const recordApiUsage = Reflect.get(

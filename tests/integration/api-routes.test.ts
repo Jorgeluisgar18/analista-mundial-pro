@@ -6,6 +6,7 @@ import MatchPage from "@/app/match/[id]/page";
 import { analyzeMatch } from "@/lib/analysis/analysisEngine";
 import { demoDataset } from "@/data/demo";
 import { prisma } from "@/lib/db/prisma";
+import { itWithDatabase } from "../helpers/database";
 
 vi.mock("server-only", () => ({}));
 
@@ -118,7 +119,7 @@ describe("API routes", () => {
     }
   });
 
-  it("aplica una baja estructurada antes de recalcular el análisis", async () => {
+  itWithDatabase("aplica una baja estructurada antes de recalcular el análisis", async () => {
     const baseline = analyzeMatch(demoDataset);
     const response = await createOverride(
       new Request("http://local/api/match/demo-col-bra/overrides", {
@@ -155,7 +156,7 @@ describe("API routes", () => {
     }
   });
 
-  it("mantiene el recálculo manual al volver a cargar la página", async () => {
+  itWithDatabase("mantiene el recálculo manual al volver a cargar la página", async () => {
     const match = await prisma.match.findUniqueOrThrow({
       where: { externalId: "demo-col-bra" },
     });

@@ -7,7 +7,8 @@ Analista Mundial Pro funciona en modo demo sin claves, pero para usar partidos r
 Copia `.env.example` como `.env` y completa solo las claves que tengas:
 
 ```env
-DATABASE_URL="file:./prisma/dev.db"
+DATABASE_URL="postgresql://USER:PASSWORD@HOST.neon.tech/neondb?sslmode=require&channel_binding=require"
+DIRECT_URL=""
 FOOTBALL_API_KEY=""
 FOOTBALL_DATA_API_KEY=""
 ODDS_API_KEY=""
@@ -19,6 +20,7 @@ ODDS_API_KEY=""
 
 | Proveedor | Variable | Uso |
 | --- | --- | --- |
+| Neon Postgres | `DATABASE_URL` | Persistencia durable para snapshots, cuotas, imports y overrides. |
 | API-FOOTBALL / API-Sports | `FOOTBALL_API_KEY` | Fixtures, ligas, equipos, detalles de partido y cobertura amplia. |
 | Football-Data.org | `FOOTBALL_DATA_API_KEY` | Calendarios/resultados de ligas europeas top y competiciones UEFA. |
 | The Odds API | `ODDS_API_KEY` | Cuotas para value betting, comparación de mercados y surebets. |

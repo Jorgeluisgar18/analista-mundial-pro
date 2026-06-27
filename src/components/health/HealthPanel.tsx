@@ -67,6 +67,28 @@ export function HealthPanel() {
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
 
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadInitialHealth() {
+      try {
+        const res = await fetch("/api/health");
+        if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+        const data = (await res.json()) as HealthData;
+        if (!cancelled) setHealth(data);
+      } catch (e: unknown) {
+        if (!cancelled) {
+          setErr(e instanceof Error ? e.message : "Error al cargar estado");
+        }
+      }
+    }
+
+    void loadInitialHealth();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const fetchHealth = useCallback(async () => {
     setLoading(true);
     setErr("");
@@ -80,8 +102,6 @@ export function HealthPanel() {
       setLoading(false);
     }
   }, []);
-
-  useEffect(() => { fetchHealth(); }, [fetchHealth]);
 
   return (
     <section className="health-panel" id="salud">

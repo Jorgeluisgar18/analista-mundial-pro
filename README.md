@@ -16,7 +16,7 @@ No genera análisis en vivo ni promete resultados. Las probabilidades son apoyo 
 - Detector matemático de surebets sin denominarlas apuestas seguras.
 - Estados de evidencia: confirmado, esperado, inferido, conflicto y no disponible.
 - Cambios manuales auditables con recálculo.
-- SQLite/Prisma para snapshots, análisis, cuotas, overrides y versiones.
+- Neon Postgres/Prisma para snapshots, análisis, cuotas, overrides y versiones.
 - Exportación HTML autónoma.
 - Diseño responsive y accesible.
 
@@ -29,7 +29,7 @@ No genera análisis en vivo ni promete resultados. Las probabilidades son apoyo 
 
 ```bash
 npm install
-npx prisma migrate dev
+npx prisma migrate deploy
 npm run db:seed
 ```
 
@@ -40,7 +40,8 @@ npm run db:seed
 Copia `.env.example` como `.env`:
 
 ```dotenv
-DATABASE_URL="file:./prisma/dev.db"
+DATABASE_URL="postgresql://USER:PASSWORD@HOST.neon.tech/neondb?sslmode=require&channel_binding=require"
+DIRECT_URL=""
 FOOTBALL_API_KEY=""
 FOOTBALL_DATA_API_KEY=""
 ODDS_API_KEY=""
@@ -49,6 +50,8 @@ OPENAI_API_KEY=""
 
 Todas las claves son opcionales. Ninguna se incluye en el bundle del navegador.
 
+- `DATABASE_URL`: cadena de conexión Neon/Postgres. Requerida para persistencia real.
+- `DIRECT_URL`: opcional para flujos de migración si Neon entrega una cadena directa separada.
 - `FOOTBALL_API_KEY`: [API-Football](https://www.api-football.com/)
 - `FOOTBALL_DATA_API_KEY`: [Football-Data.org](https://www.football-data.org/)
 - `ODDS_API_KEY`: [The Odds API](https://the-odds-api.com/)
@@ -58,6 +61,7 @@ Consulta los límites vigentes de cada proveedor. La aplicación evita sondeos c
 
 Para validar la configuración sin revelar secretos, abre `/api/provider-status`.
 La guía visual está en `/docs/provider-setup` y el documento de referencia en `docs/provider-setup.md`.
+La guía de despliegue con Neon está en `docs/deployment/netlify-neon-postgres.md`.
 
 En el plan gratuito de API-FOOTBALL, la aplicación protege una reserva diaria antes de gastar las últimas solicitudes disponibles y vuelve a demo/cache con advertencias visibles.
 

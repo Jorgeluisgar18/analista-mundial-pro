@@ -1,7 +1,8 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, expect, it, vi } from "vitest";
 import { demoDataset } from "@/data/demo";
 import { createMatchSnapshotCache } from "@/lib/cache/matchSnapshotCache";
 import { prisma } from "@/lib/db/prisma";
+import { describeWithDatabase } from "../helpers/database";
 
 vi.mock("server-only", () => ({}));
 
@@ -107,7 +108,7 @@ afterEach(async () => {
   });
 });
 
-describe("matchSnapshotCache", () => {
+describeWithDatabase("matchSnapshotCache", () => {
   it("devuelve un snapshot persistido cuando sigue fresco", async () => {
     await createCachedSnapshot({
       fetchedAt: "2026-07-10T18:45:00.000Z",

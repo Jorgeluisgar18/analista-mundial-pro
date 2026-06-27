@@ -1,10 +1,27 @@
 import { getApiUsageSnapshot } from "@/lib/services/apiUsageService";
 import { getProviderStatus } from "@/lib/providers/providerConfig";
 import { hasConfiguredFootballProvider } from "@/lib/providers/providerConfig";
+import { prisma } from "@/lib/db/prisma";
 
 export async function GET() {
   const providerStatus = getProviderStatus();
-  const usage = await getApiUsageSnapshot().catch(() => []);
+  const databaseProbe = await prisma.apiUsage
+    .count()
+    .then((records) => ({
+      status: "connected" as const,
+      records,
+    }))
+    .catch((error: unknown) => ({
+      status: "unavailable" as const,
+      error:
+        error instanceof Error
+          ? error.message
+          : "Database health probe failed",
+    }));
+  const usage =
+    databaseProbe.status === "connected"
+      ? await getApiUsageSnapshot().catch(() => [])
+      : [];
   const apiReady = hasConfiguredFootballProvider();
 
   return Response.json({
@@ -22,9 +39,13 @@ export async function GET() {
             ? u.provider === "football-data"
             : p.id === "odds-api"
               ? u.provider === "the-odds-api"
-              : false,
+            : false,
       ) ?? null,
     })),
-    database: usage.length > 0 ? "connected" : "no-data",
+    database: databaseProbe.status,
+    databaseRecords:
+      databaseProbe.status === "connected" ? databaseProbe.records : 0,
+    databaseError:
+      databaseProbe.status === "unavailable" ? databaseProbe.error : null,
   });
 }

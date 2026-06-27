@@ -120,6 +120,11 @@ export function DateMatchFinder({ initialDate }: { initialDate: string }) {
               {hiddenMatchCount > 0 ? ` · mostrando ${visibleMatches.length}` : ""}
             </span>
           </div>
+          <div className="result-quality-chips" aria-label="Calidad de datos">
+            <span>Origen: {result.mode === "api" ? "API" : "Demo"}</span>
+            <span>Fuente: {result.source}</span>
+            <span>Filtro: {competition === "all" ? "Global" : competition}</span>
+          </div>
           {result.matches.length ? (
             <>
               <div className="match-list">

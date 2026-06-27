@@ -52,10 +52,19 @@ Todas las claves son opcionales. Ninguna se incluye en el bundle del navegador.
 
 - `DATABASE_URL`: cadena de conexión Neon/Postgres. Requerida para persistencia real.
 - `DIRECT_URL`: opcional para flujos de migración si Neon entrega una cadena directa separada.
+- `NETLIFY_DB_URL`: fallback de Netlify Database/Neon inyectado por Netlify; no se configura manualmente salvo indicación del hosting.
 - `FOOTBALL_API_KEY`: [API-Football](https://www.api-football.com/)
 - `FOOTBALL_DATA_API_KEY`: [Football-Data.org](https://www.football-data.org/)
 - `ODDS_API_KEY`: [The Odds API](https://the-odds-api.com/)
 - `OPENAI_API_KEY`: reservado para redacción opcional futura; el análisis actual es determinista y funciona sin esta clave.
+
+Prioridad runtime de base de datos:
+
+1. `DATABASE_URL`, cuando está configurada y apunta a Postgres.
+2. `NETLIFY_DB_URL` de Netlify Database mediante `@netlify/database`.
+3. Persistencia no-op solo para local/demo sin Postgres.
+
+El modo no-op no guarda snapshots, usos de API, imports ni overrides; producción debe reportar Postgres conectado.
 
 Consulta los límites vigentes de cada proveedor. La aplicación evita sondeos continuos y prioriza actualización bajo demanda.
 
@@ -64,6 +73,15 @@ La guía visual está en `/docs/provider-setup` y el documento de referencia en 
 La guía de despliegue con Neon está en `docs/deployment/netlify-neon-postgres.md`.
 
 En el plan gratuito de API-FOOTBALL, la aplicación protege una reserva diaria antes de gastar las últimas solicitudes disponibles y vuelve a demo/cache con advertencias visibles.
+
+## Verificación post-deploy
+
+Después de desplegar en producción, revisa:
+
+- `/api/health`: debe reportar base de datos conectada.
+- `/api/provider-status`: debe mostrar la configuración esperada de proveedores sin revelar secretos.
+- `/api/usage`: debe devolver consumo/estado sin secretos.
+- `/api/matches?date=YYYY-MM-DD`: debe devolver una respuesta estructurada.
 
 ## Ejecución
 

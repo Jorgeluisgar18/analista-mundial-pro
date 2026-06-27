@@ -26,6 +26,16 @@ Notas:
   - `ODDS_API_KEY`
   - `OPENAI_API_KEY`, solo cuando se apruebe el módulo de agentes.
 
+## Prioridad de base de datos en runtime
+
+La app resuelve la persistencia en este orden:
+
+1. `DATABASE_URL`, cuando está configurada y apunta a Postgres.
+2. `NETLIFY_DB_URL` de Netlify Database, leída mediante `@netlify/database`.
+3. Persistencia no-op solo para entornos locales/demo sin Postgres.
+
+Producción debe usar Postgres real mediante la primera o segunda opción. El modo no-op evita caídas en demo/build, pero no guarda snapshots, usos de API, imports ni overrides.
+
 ## Migraciones
 
 El historial activo de Prisma ahora es PostgreSQL:
@@ -46,7 +56,7 @@ Para aplicar migraciones con Prisma a Neon directo:
 npx prisma migrate deploy
 ```
 
-Para Netlify Database, la misma baseline SQL existe también en `netlify/database/migrations/` y Netlify puede aplicarla durante el deploy.
+Netlify Database ya aplicó la baseline inicial durante el setup. No edites ni repitas esa migración aplicada. Los cambios futuros de esquema deben usar solo nombres de migración nuevos. Prisma sigue siendo el historial canónico de migraciones locales en `prisma/migrations/`.
 
 Para cargar el seed mínimo:
 
@@ -65,7 +75,7 @@ npm run build
 npm test
 ```
 
-Sin `DATABASE_URL`, la app puede compilar y mostrar modo demo/no persistente, pero no debe considerarse lista para datos reales.
+Sin `DATABASE_URL` ni `NETLIFY_DB_URL`, la app puede compilar y mostrar modo demo/no persistente, pero no debe considerarse lista para datos reales.
 
 ## Verificación en Netlify
 
@@ -74,12 +84,16 @@ Después de desplegar:
 ```powershell
 Invoke-WebRequest https://TU-SITIO.netlify.app/api/health
 Invoke-WebRequest https://TU-SITIO.netlify.app/api/provider-status
+Invoke-WebRequest https://TU-SITIO.netlify.app/api/usage
+Invoke-WebRequest "https://TU-SITIO.netlify.app/api/matches?date=YYYY-MM-DD"
 ```
 
 Resultado esperado:
 
 - `/api/health` debe reportar base de datos conectada cuando Neon esté configurado.
-- API-Football debe aparecer configurado si `FOOTBALL_API_KEY` está en Netlify.
+- `/api/provider-status` debe mostrar la configuración esperada de proveedores sin exponer valores secretos.
+- `/api/usage` debe devolver consumo/estado sin secretos.
+- `/api/matches?date=YYYY-MM-DD` debe devolver una respuesta estructurada para la fecha consultada.
 - Ninguna variable secreta debe aparecer en respuestas JSON ni en HTML.
 
 ## Riesgos conocidos

@@ -21,10 +21,21 @@ ODDS_API_KEY=""
 | Proveedor | Variable | Uso |
 | --- | --- | --- |
 | Neon Postgres | `DATABASE_URL` | Persistencia durable para snapshots, cuotas, imports y overrides. |
+| Netlify Database/Neon | `NETLIFY_DB_URL` | Fallback automático de runtime en Netlify cuando `DATABASE_URL` no está configurada. |
 | API-FOOTBALL / API-Sports | `FOOTBALL_API_KEY` | Fixtures, ligas, equipos, detalles de partido y cobertura amplia. |
 | Football-Data.org | `FOOTBALL_DATA_API_KEY` | Calendarios/resultados de ligas europeas top y competiciones UEFA. |
 | The Odds API | `ODDS_API_KEY` | Cuotas para value betting, comparación de mercados y surebets. |
 | Open-Meteo | No requiere clave | Clima estimado para sede/ciudad. |
+
+## Prioridad de base de datos
+
+En runtime, la app usa la primera opción disponible:
+
+1. `DATABASE_URL`, cuando está configurada y apunta a Postgres.
+2. `NETLIFY_DB_URL` de Netlify Database mediante `@netlify/database`.
+3. Persistencia no-op solo para local/demo sin Postgres.
+
+El modo no-op es defensivo y no debe considerarse producción: no guarda snapshots, uso de APIs, imports ni overrides.
 
 ## Comprobación
 

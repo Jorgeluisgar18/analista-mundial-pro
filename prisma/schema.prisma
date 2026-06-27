@@ -186,3 +186,16 @@ model ApiUsage {
 
   @@unique([provider, periodKey])
 }
+
+model ProviderTelemetry {
+  id         String   @id @default(cuid())
+  provider   String
+  operation  String
+  status     String
+  latencyMs  Int
+  errorCode  String?
+  occurredAt DateTime @default(now())
+
+  @@index([provider, occurredAt])
+  @@index([operation, occurredAt])
+}

@@ -12,12 +12,21 @@ interface ProviderUsage {
   updatedAt: string;
 }
 
+interface ProviderTelemetry {
+  provider: string;
+  total: number;
+  failures: number;
+  averageLatencyMs: number;
+  lastObservedAt: string | null;
+}
+
 interface ProviderInfo {
   id: string;
   label: string;
   configured: boolean;
   purpose: string;
   usage: ProviderUsage | null;
+  telemetry: ProviderTelemetry | null;
 }
 
 interface HealthData {
@@ -25,6 +34,7 @@ interface HealthData {
   checkedAt: string;
   providers: ProviderInfo[];
   database: "connected" | "no-data";
+  telemetry?: ProviderTelemetry[];
 }
 
 function UsageBar({ used, limit }: { used: number; limit: number }) {
@@ -57,6 +67,21 @@ function ProviderCard({ provider }: { provider: ProviderInfo }) {
         </div>
       ) : (
         provider.configured && <em className="health-no-usage">Sin registros de uso aún</em>
+      )}
+      {provider.telemetry ? (
+        <div className="health-usage-row">
+          <span className="health-label">Fiabilidad 24h</span>
+          <span className="health-usage-label">
+            {provider.telemetry.failures}/{provider.telemetry.total} fallos
+          </span>
+          <span className="health-resets">
+            Latencia media: {provider.telemetry.averageLatencyMs} ms
+          </span>
+        </div>
+      ) : (
+        provider.configured && (
+          <em className="health-no-usage">Sin telemetría reciente</em>
+        )
       )}
     </article>
   );

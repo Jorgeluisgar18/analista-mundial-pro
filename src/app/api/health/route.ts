@@ -1,4 +1,5 @@
 import { getApiUsageSnapshot } from "@/lib/services/apiUsageService";
+import { getProviderTelemetrySnapshot } from "@/lib/services/providerTelemetryService";
 import { getProviderStatus } from "@/lib/providers/providerConfig";
 import { hasConfiguredFootballProvider } from "@/lib/providers/providerConfig";
 import { prisma } from "@/lib/db/prisma";
@@ -29,6 +30,10 @@ export async function GET() {
     databaseProbe.status === "connected"
       ? await getApiUsageSnapshot().catch(() => [])
       : [];
+  const telemetry =
+    databaseProbe.status === "connected"
+      ? await getProviderTelemetrySnapshot().catch(() => [])
+      : [];
   const apiReady = hasConfiguredFootballProvider();
 
   return Response.json({
@@ -43,7 +48,12 @@ export async function GET() {
         usage.find(
           (u) => u.provider === usageProviderByStatusId[p.id],
         ) ?? null,
+      telemetry:
+        telemetry.find(
+          (item) => item.provider === usageProviderByStatusId[p.id],
+        ) ?? null,
     })),
+    telemetry,
     database: databaseProbe.status,
     databaseRecords:
       databaseProbe.status === "connected" ? databaseProbe.records : 0,

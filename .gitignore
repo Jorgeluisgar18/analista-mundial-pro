@@ -16,6 +16,7 @@ generated/prisma/
 test-results/
 playwright-report/
 *.tsbuildinfo
+deploy-*.zip
 .vercel/
 .netlify/
 .DS_Store

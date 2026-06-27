@@ -13,7 +13,7 @@ const contentSecurityPolicy = [
   "style-src 'self' 'unsafe-inline'",
   isDev
     ? "script-src 'self' 'unsafe-inline' 'unsafe-eval'"
-    : "script-src 'self'",
+    : "script-src 'self' 'unsafe-inline'",
   `connect-src 'self'${isDev ? " ws: wss:" : ""}`,
 ].join("; ");
 

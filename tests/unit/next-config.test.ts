@@ -20,5 +20,8 @@ describe("Next security configuration", () => {
     expect(headers.get("Content-Security-Policy")).toContain(
       "frame-ancestors 'none'",
     );
+    expect(headers.get("Content-Security-Policy")).toContain(
+      "script-src 'self' 'unsafe-inline'",
+    );
   });
 });

@@ -98,6 +98,12 @@ Resultado esperado:
 - `/api/matches?date=YYYY-MM-DD` debe devolver una respuesta estructurada para la fecha consultada.
 - Ninguna variable secreta debe aparecer en respuestas JSON ni en HTML.
 
+## Verificado en producción
+
+**2026-06-29:** `/api/health` reporta `database: connected`, `databaseRecords: 2`, `databaseError: null`.
+Smoke test (`npm run smoke:production`) pasa con `ok: true`, `database: connected`, `matchCount: 2`.
+Neon está funcionando correctamente en el entorno de producción de Netlify.
+
 ## Riesgos conocidos
 
 - Si `DATABASE_URL` no está configurada, `src/lib/db/prisma.ts` usa un cliente no persistente defensivo para evitar caídas durante build/demo.

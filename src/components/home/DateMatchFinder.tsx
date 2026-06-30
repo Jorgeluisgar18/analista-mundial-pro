@@ -3,6 +3,10 @@
 import Link from "next/link";
 import { useState } from "react";
 import { supportedCompetitions } from "@/lib/providers/competitionCatalog";
+import {
+  APP_TIME_ZONE_ABBREVIATION,
+  APP_TIME_ZONE_LABEL,
+} from "@/lib/time/colombia";
 import type { NormalizedMatch } from "@/types/domain";
 
 interface MatchSearchResponse {
@@ -34,16 +38,21 @@ export function DateMatchFinder({ initialDate }: { initialDate: string }) {
   async function searchMatches() {
     setLoading(true);
     setError("");
+    setResult(null);
     setVisibleCount(INITIAL_VISIBLE_MATCHES);
     try {
       const params = new URLSearchParams({ date, competition });
       const response = await fetch(`/api/matches?${params}`);
       const body = await response.json();
-      if (!response.ok) throw new Error(body.detail ?? "No fue posible consultar.");
+      if (!response.ok) {
+        throw new Error(body.detail ?? "No fue posible consultar.");
+      }
       setResult(body);
     } catch (caught) {
       setError(
-        caught instanceof Error ? caught.message : "Error de consulta inesperado.",
+        caught instanceof Error
+          ? caught.message
+          : "Error de consulta inesperado.",
       );
     } finally {
       setLoading(false);
@@ -63,13 +72,15 @@ export function DateMatchFinder({ initialDate }: { initialDate: string }) {
           <h2 id="finder-title">Selecciona la jornada que quieres estudiar</h2>
         </div>
         <p>
-          El modo demostración permite probar el flujo sin claves. Los datos
-          reales se consultan únicamente desde el servidor.
+          Las fechas se interpretan en horario Colombia. Los datos reales se
+          consultan desde el servidor; si no hay cobertura, se muestra una
+          muestra local claramente marcada.
         </p>
       </div>
+
       <div className="finder-controls">
         <label>
-          <span>Fecha</span>
+          <span>Fecha en {APP_TIME_ZONE_LABEL}</span>
           <input
             aria-label="Fecha"
             type="date"
@@ -102,29 +113,38 @@ export function DateMatchFinder({ initialDate }: { initialDate: string }) {
           {loading ? "Consultando…" : "Buscar partidos"}
         </button>
       </div>
+
       {loading ? (
         <p className="finder-loading" role="status">
           Consultando proveedores sin exponer claves en el navegador…
         </p>
       ) : null}
       {error ? <p className="form-error">{error}</p> : null}
+
       {result ? (
         <div className="search-result" aria-live="polite">
           <div className="result-meta">
             <span className={`origin-label origin-${result.mode}`}>
-              {result.mode === "demo" ? "Modo demostración" : "Datos de API"}
+              {result.mode === "demo" ? "Muestra local" : "Datos reales"}
             </span>
             <span>{result.source}</span>
             <span>
               {result.matches.length} partidos encontrados
-              {hiddenMatchCount > 0 ? ` · mostrando ${visibleMatches.length}` : ""}
+              {hiddenMatchCount > 0
+                ? ` · mostrando ${visibleMatches.length}`
+                : ""}
             </span>
           </div>
+
           <div className="result-quality-chips" aria-label="Calidad de datos">
-            <span>Origen: {result.mode === "api" ? "API" : "Demo"}</span>
+            <span>
+              Origen: {result.mode === "api" ? "API real" : "Respaldo local"}
+            </span>
             <span>Fuente: {result.source}</span>
             <span>Filtro: {competition === "all" ? "Global" : competition}</span>
+            <span>Horario: {APP_TIME_ZONE_ABBREVIATION}</span>
           </div>
+
           {result.matches.length ? (
             <>
               <div className="match-list">
@@ -134,7 +154,9 @@ export function DateMatchFinder({ initialDate }: { initialDate: string }) {
                     href={`/match/${match.id}`}
                     key={match.id}
                   >
-                    <span className="match-time">{match.time}</span>
+                    <span className="match-time">
+                      {match.time} {APP_TIME_ZONE_ABBREVIATION}
+                    </span>
                     <span className="match-teams">
                       <strong>
                         {match.homeTeam.name} vs {match.awayTeam.name}
@@ -149,13 +171,15 @@ export function DateMatchFinder({ initialDate }: { initialDate: string }) {
                   </Link>
                 ))}
               </div>
+
               {hiddenMatchCount > 0 ? (
                 <button
                   className="secondary-button load-more-matches"
                   type="button"
                   onClick={() =>
                     setVisibleCount(
-                      (currentCount) => currentCount + VISIBLE_MATCH_INCREMENT,
+                      (currentCount) =>
+                        currentCount + VISIBLE_MATCH_INCREMENT,
                     )
                   }
                 >
@@ -171,12 +195,13 @@ export function DateMatchFinder({ initialDate }: { initialDate: string }) {
                 </span>
                 <h3>No encontramos partidos para esta fecha y competición.</h3>
                 <p>
-                  El modo demo solo cubre partidos de muestra, como el
+                  La muestra local solo cubre partidos de referencia, como el
                   2026-06-15 en FIFA World Cup. Para calendarios reales de
                   ligas top, Mundial y competiciones UEFA, configura al menos
                   una API de fútbol real.
                 </p>
               </div>
+
               {result.providerStatus?.length ? (
                 <div className="provider-checklist" aria-label="Estado de APIs">
                   {result.providerStatus.map((provider) => (
@@ -201,6 +226,7 @@ export function DateMatchFinder({ initialDate }: { initialDate: string }) {
                   ))}
                 </div>
               ) : null}
+
               <div className="empty-actions">
                 <Link className="secondary-button" href="/docs/provider-setup">
                   Ver guía de APIs
@@ -213,11 +239,12 @@ export function DateMatchFinder({ initialDate }: { initialDate: string }) {
                     setCompetition("wc-2026");
                   }}
                 >
-                  Usar fecha demo
+                  Usar muestra local
                 </button>
               </div>
             </div>
           )}
+
           {result.warnings.length ? (
             <details className="data-warnings">
               <summary>Notas sobre la consulta</summary>

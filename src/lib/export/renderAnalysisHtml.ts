@@ -1,3 +1,7 @@
+import {
+  APP_TIME_ZONE_ABBREVIATION,
+  formatTimestampInAppTimeZone,
+} from "@/lib/time/colombia";
 import type { AnalysisResult, Prediction } from "@/types/domain";
 
 function escapeHtml(value: unknown) {
@@ -65,7 +69,7 @@ export function renderAnalysisHtml(analysis: AnalysisResult) {
   <header>
     <div class="kicker">${escapeHtml(analysis.match.competition.name)} · ${escapeHtml(analysis.match.competition.stage ?? "")}</div>
     <h1>${escapeHtml(analysis.match.homeTeam.name)} × ${escapeHtml(analysis.match.awayTeam.name)}</h1>
-    <p>${escapeHtml(analysis.match.date)} · ${escapeHtml(analysis.match.time)} · ${escapeHtml(analysis.match.venue)} · Snapshot ${escapeHtml(analysis.generatedAt)}</p>
+    <p>${escapeHtml(analysis.match.date)} · ${escapeHtml(analysis.match.time)} ${APP_TIME_ZONE_ABBREVIATION} · ${escapeHtml(analysis.match.venue)} · Snapshot ${escapeHtml(formatTimestampInAppTimeZone(analysis.generatedAt))}</p>
     <div class="probabilities">
       <div>Local<strong>${analysis.mainProbabilities.home.toFixed(1)}%</strong></div>
       <div>Empate<strong>${analysis.mainProbabilities.draw.toFixed(1)}%</strong></div>
@@ -80,7 +84,7 @@ export function renderAnalysisHtml(analysis: AnalysisResult) {
       ${analysis.sources
         .map(
           (source) =>
-            `<div class="source"><strong>${escapeHtml(source.label)}</strong><small>${escapeHtml(source.status)} · ${escapeHtml(source.observedAt)} · ${escapeHtml(source.detail)}</small></div>`,
+            `<div class="source"><strong>${escapeHtml(source.label)}</strong><small>${escapeHtml(source.status)} · ${escapeHtml(formatTimestampInAppTimeZone(source.observedAt))} · ${escapeHtml(source.detail)}</small></div>`,
         )
         .join("")}
     </div>

@@ -2,7 +2,7 @@ import { getApiUsageSnapshot } from "@/lib/services/apiUsageService";
 import { getProviderTelemetrySnapshot } from "@/lib/services/providerTelemetryService";
 import { getProviderStatus } from "@/lib/providers/providerConfig";
 import { hasConfiguredFootballProvider } from "@/lib/providers/providerConfig";
-import { prisma } from "@/lib/db/prisma";
+import { getDatabaseRuntimeStatus, prisma } from "@/lib/db/prisma";
 
 const usageProviderByStatusId = {
   "api-football": "API-Football",
@@ -14,19 +14,28 @@ const usageProviderByStatusId = {
 
 export async function GET() {
   const providerStatus = getProviderStatus();
-  const databaseProbe = await prisma.apiUsage
-    .count()
-    .then((records) => ({
-      status: "connected" as const,
-      records,
-    }))
-    .catch((error: unknown) => ({
-      status: "unavailable" as const,
-      error:
-        error instanceof Error
-          ? error.message
-          : "Database health probe failed",
-    }));
+  const databaseRuntime = getDatabaseRuntimeStatus();
+  const databaseProbe =
+    databaseRuntime.status === "configured"
+      ? await prisma.apiUsage
+          .count()
+          .then((records) => ({
+            status: "connected" as const,
+            records,
+          }))
+          .catch((error: unknown) => ({
+            status: "unavailable" as const,
+            records: 0,
+            error:
+              error instanceof Error
+                ? error.message
+                : "Database health probe failed",
+          }))
+      : {
+          status: "unavailable" as const,
+          records: 0,
+          error: databaseRuntime.error,
+        };
   const usage =
     databaseProbe.status === "connected"
       ? await getApiUsageSnapshot().catch(() => [])

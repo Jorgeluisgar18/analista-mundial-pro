@@ -1,4 +1,4 @@
-import { demoDataset, demoMatches } from "@/data/demo";
+import { demoMatches, getDemoDatasetById } from "@/data/demo";
 import { cacheDecision } from "@/lib/cache/cachePolicy";
 import { apiQuotaDecision } from "@/lib/providers/apiQuotaPolicy";
 import {
@@ -100,24 +100,27 @@ export function createMatchService({
       const missingProviderWarning = missingFootballProviderWarning(env);
       return {
         mode: "demo" as const,
-        source: "Datos demostrativos locales",
+        source: "Muestra local de respaldo",
         fetchedAt: new Date().toISOString(),
         warnings: [
           ...warnings,
           ...(missingProviderWarning ? [missingProviderWarning] : []),
-          "Sin claves activas o cobertura disponible: se muestran datos demostrativos.",
+          "Sin cobertura real disponible: se muestra una muestra local claramente identificada.",
         ],
         providerStatus: providerStatus(),
         matches,
       };
     },
 
-    async getById(id: string): Promise<MatchDataset | null> {
-      if (id === demoDataset.match.id) return structuredClone(demoDataset);
-      const cache =
-        snapshotCache ?? (injectedProviders ? undefined : await getDefaultSnapshotCache());
-      const cached = await cache?.getFreshDataset(id);
-      if (cached) return structuredClone(cached);
+    async getById(id: string, bypassCache?: boolean): Promise<MatchDataset | null> {
+      const demoDataset = getDemoDatasetById(id);
+      if (demoDataset) return demoDataset;
+      if (!bypassCache) {
+        const cache =
+          snapshotCache ?? (injectedProviders ? undefined : await getDefaultSnapshotCache());
+        const cached = await cache?.getFreshDataset(id);
+        if (cached) return structuredClone(cached);
+      }
 
       for (const provider of providers.football) {
         const quotaWarning = await providerQuotaWarning(provider.id);

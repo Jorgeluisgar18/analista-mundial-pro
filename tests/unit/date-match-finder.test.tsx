@@ -40,7 +40,7 @@ describe("DateMatchFinder", () => {
         ok: true,
         json: async () => ({
           mode: "demo",
-          source: "Datos demostrativos locales",
+          source: "Muestra local de respaldo",
           warnings: [],
           matches: demoMatches,
         }),
@@ -51,6 +51,7 @@ describe("DateMatchFinder", () => {
       screen.getByRole("button", { name: /buscar partidos/i }),
     );
     expect(await screen.findByText(/Colombia vs Brasil/i)).toBeVisible();
+    expect(screen.getAllByText(/COT/i).length).toBeGreaterThan(0);
   });
 
   it("limita resultados masivos y permite mostrar más partidos", async () => {
@@ -61,7 +62,7 @@ describe("DateMatchFinder", () => {
         ok: true,
         json: async () => ({
           mode: "demo",
-          source: "Datos demostrativos locales",
+          source: "Muestra local de respaldo",
           warnings: [],
           matches: buildManyMatches(80),
         }),
@@ -92,9 +93,9 @@ describe("DateMatchFinder", () => {
         ok: true,
         json: async () => ({
           mode: "demo",
-          source: "Datos demostrativos locales",
+          source: "Muestra local de respaldo",
           warnings: [
-            "Sin claves activas o cobertura disponible: se muestran datos demostrativos.",
+            "Sin cobertura real disponible: se muestra una muestra local claramente identificada.",
           ],
           matches: [],
           providerStatus: [
@@ -117,10 +118,43 @@ describe("DateMatchFinder", () => {
     );
 
     expect(await screen.findByText(/no encontramos partidos/i)).toBeVisible();
-    expect(screen.getByText(/modo demo solo cubre/i)).toBeVisible();
+    expect(screen.getByText(/muestra local solo cubre/i)).toBeVisible();
     expect(screen.getByText(/FOOTBALL_DATA_API_KEY/i)).toBeVisible();
     expect(
       screen.getByRole("link", { name: /ver guía de apis/i }),
     ).toHaveAttribute("href", "/docs/provider-setup");
+  });
+  it("limpia resultados anteriores cuando una nueva busqueda falla", async () => {
+    const user = userEvent.setup();
+    vi.stubGlobal(
+      "fetch",
+      vi
+        .fn()
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({
+            mode: "demo",
+            source: "Muestra local de respaldo",
+            warnings: [],
+            matches: demoMatches,
+          }),
+        })
+        .mockResolvedValueOnce({
+          ok: false,
+          json: async () => ({
+            detail: "Usa el formato YYYY-MM-DD.",
+          }),
+        }),
+    );
+
+    render(<DateMatchFinder initialDate="2026-06-15" />);
+    await user.click(screen.getByRole("button", { name: /buscar partidos/i }));
+    expect(await screen.findByText(/Colombia vs Brasil/i)).toBeVisible();
+
+    await user.clear(screen.getByLabelText("Fecha"));
+    await user.click(screen.getByRole("button", { name: /buscar partidos/i }));
+
+    expect(await screen.findByText(/Usa el formato YYYY-MM-DD/i)).toBeVisible();
+    expect(screen.queryByText(/Colombia vs Brasil/i)).not.toBeInTheDocument();
   });
 });

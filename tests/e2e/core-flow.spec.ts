@@ -57,7 +57,7 @@ test("la búsqueda muestra estado visible en lugar de quedar en blanco", async (
       contentType: "application/json",
       body: JSON.stringify({
         mode: "demo",
-        source: "Datos demostrativos locales",
+        source: "Muestra local de respaldo",
         warnings: [],
         matches: [],
       }),
@@ -74,7 +74,7 @@ test("la búsqueda muestra estado visible en lugar de quedar en blanco", async (
   releaseMatchesResponse();
   await expect(
     page
-      .getByText(/partidos encontrados|Modo demostración|Datos de API/)
+      .getByText(/partidos encontrados|Muestra local|Datos reales/)
       .first(),
   ).toBeVisible();
 });

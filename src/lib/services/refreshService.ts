@@ -2,7 +2,7 @@ import "server-only";
 import { getAnalysis } from "@/lib/services/analysisService";
 
 export async function refreshMatch(matchId: string) {
-  const refreshed = await getAnalysis(matchId, { persist: true });
+  const refreshed = await getAnalysis(matchId, { persist: true, bypassCache: true });
   if (!refreshed) return null;
   return {
     ...refreshed,

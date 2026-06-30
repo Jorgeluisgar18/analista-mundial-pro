@@ -9,6 +9,10 @@ import {
   matchesCompetition,
   resolveApiFootballLeague,
 } from "@/lib/providers/competitionCatalog";
+import {
+  APP_TIME_ZONE,
+  normalizeKickoffForAppTimeZone,
+} from "@/lib/time/colombia";
 import type { MatchDataset, NormalizedMatch } from "@/types/domain";
 
 interface ApiFootballFixture {
@@ -99,6 +103,7 @@ export class ApiFootballProvider implements FootballProvider {
   ): Promise<ProviderResult<NormalizedMatch[]>> {
     const url = new URL("https://v3.football.api-sports.io/fixtures");
     url.searchParams.set("date", date);
+    url.searchParams.set("timezone", APP_TIME_ZONE);
     const league = resolveApiFootballLeague(competition);
     if (league) {
       url.searchParams.set("league", String(league));
@@ -123,12 +128,12 @@ export class ApiFootballProvider implements FootballProvider {
       }),
     );
     const matches = fixtures.map<NormalizedMatch>((item) => {
-      const kickoff = new Date(item.fixture.date);
+      const kickoff = normalizeKickoffForAppTimeZone(item.fixture.date);
       return {
         id: String(item.fixture.id),
-        date: kickoff.toISOString().slice(0, 10),
-        time: kickoff.toISOString().slice(11, 16),
-        kickoff: kickoff.toISOString(),
+        date: kickoff.date,
+        time: kickoff.time,
+        kickoff: kickoff.kickoff,
         status: normalizeStatus(item.fixture.status.short),
         homeTeam: {
           id: String(item.teams.home.id),
@@ -153,7 +158,7 @@ export class ApiFootballProvider implements FootballProvider {
         venue: item.fixture.venue.name ?? "Dato no disponible",
         city: item.fixture.venue.city ?? "Dato no disponible",
         country: item.league.country ?? "Dato no disponible",
-        timezone: "UTC",
+        timezone: kickoff.timezone,
         dataOrigin: "API",
         fetchedAt: new Date().toISOString(),
       };
@@ -275,12 +280,12 @@ export class ApiFootballProvider implements FootballProvider {
     };
 
     const normalizedMatch: NormalizedMatch = (() => {
-      const kickoff = new Date(fixture.fixture.date);
+      const kickoff = normalizeKickoffForAppTimeZone(fixture.fixture.date);
       return {
         id: String(fixture.fixture.id),
-        date: kickoff.toISOString().slice(0, 10),
-        time: kickoff.toISOString().slice(11, 16),
-        kickoff: kickoff.toISOString(),
+        date: kickoff.date,
+        time: kickoff.time,
+        kickoff: kickoff.kickoff,
         status: normalizeStatus(fixture.fixture.status.short),
         homeTeam: {
           id: String(fixture.teams.home.id),
@@ -309,7 +314,7 @@ export class ApiFootballProvider implements FootballProvider {
         venue: fixture.fixture.venue.name ?? "Dato no disponible",
         city: fixture.fixture.venue.city ?? "Dato no disponible",
         country: fixture.league.country ?? "Dato no disponible",
-        timezone: "UTC",
+        timezone: kickoff.timezone,
         dataOrigin: "API",
         fetchedAt: new Date().toISOString(),
       };

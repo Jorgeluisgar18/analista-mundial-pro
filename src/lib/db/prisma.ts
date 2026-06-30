@@ -60,6 +60,24 @@ function createClient() {
   }
 }
 
+export function getDatabaseRuntimeStatus() {
+  const client = createClient();
+  if (client) {
+    return {
+      status: "configured" as const,
+      error: null,
+    };
+  }
+
+  return {
+    status: "unavailable" as const,
+    error:
+      _initError instanceof Error
+        ? _initError.message
+        : "DATABASE_URL no está configurada con una conexión Postgres/Neon.",
+  };
+}
+
 /**
  * Proxy that forwards Prisma calls when the DB is available and returns safe
  * defaults when it is not. This keeps build/demo routes alive, but production

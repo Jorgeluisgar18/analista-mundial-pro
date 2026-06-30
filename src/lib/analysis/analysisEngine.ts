@@ -673,7 +673,7 @@ export function analyzeMatch(
       lineupConfirmed: lineupsConfirmed,
       note:
         dataset.match.dataOrigin === "DEMO"
-          ? "Datos demostrativos: no representan información actual."
+          ? "Muestra local: no representa información actual."
           : "Snapshot reproducible de fuentes consultadas.",
     },
   };

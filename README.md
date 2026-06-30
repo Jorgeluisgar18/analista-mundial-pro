@@ -188,3 +188,10 @@ tests            unitarias, integración y e2e
 ## Advertencia
 
 Este sistema es de apoyo analítico y no garantiza ganancias. Las apuestas deportivas implican riesgo de pérdida de dinero. No apuestes dinero que no puedas perder.
+
+## Empalme multi-IA
+
+Si trabajas con varias IAs en este repo, lee primero:
+
+- `docs/handoff/2026-06-29-complejidad-empalme-produccion.md` — clasificación de tareas, reglas del owner y bitácora.
+- `AGENTS.md` — reglas obligatorias para agentes.

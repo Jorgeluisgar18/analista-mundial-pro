@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { GET as getMatches } from "@/app/api/matches/route";
 import { GET as getProviderStatus } from "@/app/api/provider-status/route";
 import { POST as createOverride } from "@/app/api/match/[id]/overrides/route";
+import { GET as getHistory } from "@/app/api/match/[id]/history/route";
 import MatchPage from "@/app/match/[id]/page";
 import { analyzeMatch } from "@/lib/analysis/analysisEngine";
 import { demoDataset } from "@/data/demo";
@@ -25,6 +26,8 @@ describe("API routes", () => {
     expect(response.status).toBe(200);
     const body = await response.json();
     expect(body.matches[0].id).toBe("demo-col-bra");
+    expect(body.matches[0].timezone).toBe("America/Bogota");
+    expect(body.matches[0].time).toBe("17:00");
     expect(body.mode).toBe("demo");
   });
 
@@ -185,5 +188,41 @@ describe("API routes", () => {
     } finally {
       await prisma.manualOverride.delete({ where: { id: override.id } });
     }
+  });
+  it("devuelve historial vacio para partidos demo validos sin exigir DB", async () => {
+    const response = await getHistory(
+      new Request("http://local/api/match/demo-col-bra/history"),
+      { params: Promise.resolve({ id: "demo-col-bra" }) },
+    );
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body.analyses).toEqual([]);
+    expect(body.overrides).toEqual([]);
+  });
+
+  it("permite recalcular manualmente un partido demo sin persistencia", async () => {
+    const response = await createOverride(
+      new Request("http://local/api/match/demo-col-bra/overrides", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          type: "absence",
+          description: "Delantero titular descartado por prueba QA",
+          teamId: demoDataset.match.homeTeam.id,
+          impact: "high",
+          area: "attack",
+        }),
+      }),
+      { params: Promise.resolve({ id: "demo-col-bra" }) },
+    );
+    const body = await response.json();
+
+    expect(response.status).toBe(201);
+    expect(body.override.id).toMatch(/^demo-manual-/);
+    expect(body.analysis.manuallyUpdated).toBe(true);
+    expect(body.analysis.expected.homeGoals).toBeLessThan(
+      analyzeMatch(demoDataset).expected.homeGoals,
+    );
   });
 });

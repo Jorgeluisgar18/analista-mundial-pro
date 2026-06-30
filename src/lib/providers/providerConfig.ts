@@ -22,6 +22,7 @@ export function getProviderStatus(
   env: ProviderEnvironment = {
     FOOTBALL_API_KEY: process.env.FOOTBALL_API_KEY,
     FOOTBALL_DATA_API_KEY: process.env.FOOTBALL_DATA_API_KEY,
+    THE_SPORTSDB_API_KEY: process.env.THE_SPORTSDB_API_KEY,
     ODDS_API_KEY: process.env.ODDS_API_KEY,
   },
 ): ProviderStatus[] {

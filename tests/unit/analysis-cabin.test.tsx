@@ -22,6 +22,7 @@ describe("AnalysisCabin", () => {
     expect(
       screen.getByRole("heading", { name: /mercado de goles/i }),
     ).toBeVisible();
+    expect(screen.getByText(/2026-06-15 · 17:00 COT/i)).toBeVisible();
   });
 
   it("muestra una surebet calculada con cuotas reales del snapshot", async () => {

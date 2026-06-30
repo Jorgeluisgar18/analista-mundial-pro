@@ -6,6 +6,10 @@ import type {
 } from "@/lib/providers/types";
 import { emitUsage } from "@/lib/providers/types";
 import { resolveFootballDataCompetition } from "@/lib/providers/competitionCatalog";
+import {
+  normalizeKickoffForAppTimeZone,
+  nextIsoDate,
+} from "@/lib/time/colombia";
 import type { MatchDataset, NormalizedMatch } from "@/types/domain";
 
 export class FootballDataProvider implements FootballProvider {
@@ -23,7 +27,7 @@ export class FootballDataProvider implements FootballProvider {
   ): Promise<ProviderResult<NormalizedMatch[]>> {
     const url = new URL("https://api.football-data.org/v4/matches");
     url.searchParams.set("dateFrom", date);
-    url.searchParams.set("dateTo", date);
+    url.searchParams.set("dateTo", nextIsoDate(date));
     const competitionCode = resolveFootballDataCompetition(competition);
     if (competitionCode) {
       url.searchParams.set("competitions", competitionCode);
@@ -53,13 +57,14 @@ export class FootballDataProvider implements FootballProvider {
       }>;
     };
     return {
-      data: (body.matches ?? []).map((item) => {
-        const kickoff = new Date(item.utcDate);
+      data: (body.matches ?? [])
+        .map((item) => {
+        const kickoff = normalizeKickoffForAppTimeZone(item.utcDate);
         return {
           id: String(item.id),
-          date: kickoff.toISOString().slice(0, 10),
-          time: kickoff.toISOString().slice(11, 16),
-          kickoff: kickoff.toISOString(),
+          date: kickoff.date,
+          time: kickoff.time,
+          kickoff: kickoff.kickoff,
           status:
             item.status === "FINISHED"
               ? "finished"
@@ -89,11 +94,12 @@ export class FootballDataProvider implements FootballProvider {
           venue: "Dato no disponible",
           city: "Dato no disponible",
           country: item.competition.area?.name ?? "Dato no disponible",
-          timezone: "UTC",
+          timezone: kickoff.timezone,
           dataOrigin: "API",
           fetchedAt: new Date().toISOString(),
         } satisfies NormalizedMatch;
-      }),
+      })
+        .filter((match) => match.date === date),
       meta: {
         source: "Football-Data.org",
         fetchedAt: new Date().toISOString(),

@@ -2,6 +2,7 @@ import { prisma } from "@/lib/db/prisma";
 import { checkRateLimit } from "@/lib/http/rateLimit";
 import { requireSameOrigin } from "@/lib/http/requestGuards";
 import { problem } from "@/lib/http/problem";
+import { applyDemoManualOverride } from "@/lib/overrides/demoOverrideService";
 import { getAnalysis } from "@/lib/services/analysisService";
 import { manualOverrideSchema } from "@/lib/validation/schemas";
 
@@ -34,6 +35,9 @@ export async function POST(
       issues: parsed.error.issues,
     });
   }
+  const demoResult = applyDemoManualOverride(id, parsed.data);
+  if (demoResult) return Response.json(demoResult, { status: 201 });
+
   const match = await prisma.match.findUnique({ where: { externalId: id } });
   if (!match) return problem(404, "Partido no encontrado", id);
   const override = await prisma.manualOverride.create({

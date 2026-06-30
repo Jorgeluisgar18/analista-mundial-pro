@@ -33,9 +33,10 @@ interface HealthData {
   mode: "demo" | "api-ready";
   checkedAt: string;
   providers: ProviderInfo[];
-  database: "connected" | "no-data";
+  database: "connected" | "unavailable";
   telemetry?: ProviderTelemetry[];
   telemetryStatus?: "connected" | "unavailable";
+  databaseError?: string | null;
 }
 
 function UsageBar({ used, limit }: { used: number; limit: number }) {
@@ -134,7 +135,7 @@ export function HealthPanel() {
       <h2 className="health-heading">
         Estado del sistema
         <span className={`health-mode mode-${health?.mode ?? "loading"}`}>
-          {health?.mode === "api-ready" ? "API activa" : health?.mode === "demo" ? "Modo demo" : "Cargando..."}
+          {health?.mode === "api-ready" ? "Datos reales listos" : health?.mode === "demo" ? "Respaldo local" : "Cargando..."}
         </span>
       </h2>
 
@@ -143,7 +144,7 @@ export function HealthPanel() {
       {health && (
         <>
           <div className="health-meta">
-            <span>BD: <strong>{health.database === "connected" ? "Conectada" : "Sin datos"}</strong></span>
+            <span>BD: <strong>{health.database === "connected" ? "Neon/Postgres conectada" : "Sin persistencia"}</strong></span>
             <span>Verificado: {new Date(health.checkedAt).toLocaleTimeString()}</span>
             <button type="button" className="health-refresh" onClick={fetchHealth} aria-label="Actualizar estado del sistema">↻</button>
             {loading && <span className="health-loading" aria-label="Cargando estado del sistema">Cargando...</span>}

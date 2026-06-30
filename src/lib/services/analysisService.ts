@@ -203,7 +203,7 @@ async function persistAnalysis(
 }
 
 interface AnalysisMatchService {
-  getById(id: string): Promise<MatchDataset | null>;
+  getById(id: string, bypassCache?: boolean): Promise<MatchDataset | null>;
 }
 
 export function createAnalysisService({
@@ -216,9 +216,9 @@ export function createAnalysisService({
   return {
     async getAnalysis(
       matchId: string,
-      options: { manuallyUpdated?: boolean; persist?: boolean } = {},
+      options: { manuallyUpdated?: boolean; persist?: boolean; bypassCache?: boolean } = {},
     ) {
-      const dataset = await matchService.getById(matchId);
+      const dataset = await matchService.getById(matchId, options.bypassCache);
       if (!dataset) return null;
       const dbMatch = await database.match.findUnique({
         where: { externalId: matchId },

@@ -80,6 +80,7 @@ describe("filtros por proveedor", () => {
     );
     const requestedUrl = firstRequestedUrl(fetcher);
 
+    expect(requestedUrl.searchParams.get("timezone")).toBe("America/Bogota");
     expect(requestedUrl.searchParams.has("league")).toBe(false);
     expect(result.data).toHaveLength(1);
     expect(result.data[0].competition.name).toBe("Premier League");
@@ -103,6 +104,7 @@ describe("filtros por proveedor", () => {
     const requestedUrl = firstRequestedUrl(fetcher);
 
     expect(requestedUrl.searchParams.get("league")).toBe("1");
+    expect(requestedUrl.searchParams.get("timezone")).toBe("America/Bogota");
     expect(result.data).toHaveLength(1);
     expect(result.data[0].competition.name).toBe("FIFA World Cup");
   });
@@ -118,5 +120,51 @@ describe("filtros por proveedor", () => {
     const requestedUrl = firstRequestedUrl(fetcher);
 
     expect(requestedUrl.searchParams.get("competitions")).toBe("PL");
+    expect(requestedUrl.searchParams.get("dateFrom")).toBe("2026-08-15");
+    expect(requestedUrl.searchParams.get("dateTo")).toBe("2026-08-16");
+  });
+
+  it("Football-Data conserva solo partidos que caen en el día Colombia solicitado", async () => {
+    const fetcher = vi.fn(async () =>
+      Response.json({
+        matches: [
+          {
+            id: 10,
+            utcDate: "2026-08-16T02:30:00Z",
+            status: "SCHEDULED",
+            stage: "Jornada 1",
+            competition: {
+              id: 2021,
+              name: "Premier League",
+              area: { name: "England" },
+            },
+            homeTeam: { id: 1, name: "Home", tla: "HOM" },
+            awayTeam: { id: 2, name: "Away", tla: "AWA" },
+          },
+          {
+            id: 11,
+            utcDate: "2026-08-16T12:00:00Z",
+            status: "SCHEDULED",
+            stage: "Jornada 1",
+            competition: {
+              id: 2021,
+              name: "Premier League",
+              area: { name: "England" },
+            },
+            homeTeam: { id: 3, name: "Later Home", tla: "LHO" },
+            awayTeam: { id: 4, name: "Later Away", tla: "LAW" },
+          },
+        ],
+      }),
+    );
+    const provider = new FootballDataProvider("test", fetcher as typeof fetch);
+
+    const result = await provider.listMatches("2026-08-15", "premier-league");
+
+    expect(result.data).toHaveLength(1);
+    expect(result.data[0]?.id).toBe("10");
+    expect(result.data[0]?.date).toBe("2026-08-15");
+    expect(result.data[0]?.time).toBe("21:30");
+    expect(result.data[0]?.timezone).toBe("America/Bogota");
   });
 });

@@ -1,11 +1,24 @@
-import type { MatchDataset, NormalizedMatch } from "@/types/domain";
+import { normalizeKickoffForAppTimeZone } from "@/lib/time/colombia";
+import type {
+  MatchDataset,
+  NormalizedMatch,
+  NormalizedOdds,
+  TeamRef,
+} from "@/types/domain";
+
+const colombiaBrazilKickoff = normalizeKickoffForAppTimeZone(
+  "2026-06-15T18:00:00-04:00",
+);
+const franceGermanyKickoff = normalizeKickoffForAppTimeZone(
+  "2026-06-15T21:00:00-04:00",
+);
 
 export const demoMatches: NormalizedMatch[] = [
   {
     id: "demo-col-bra",
-    date: "2026-06-15",
-    time: "18:00",
-    kickoff: "2026-06-15T18:00:00-04:00",
+    date: colombiaBrazilKickoff.date,
+    time: colombiaBrazilKickoff.time,
+    kickoff: colombiaBrazilKickoff.kickoff,
     status: "preliminary",
     homeTeam: {
       id: "col",
@@ -30,15 +43,15 @@ export const demoMatches: NormalizedMatch[] = [
     venue: "MetLife Stadium",
     city: "East Rutherford",
     country: "Estados Unidos",
-    timezone: "America/New_York",
+    timezone: colombiaBrazilKickoff.timezone,
     dataOrigin: "DEMO",
     fetchedAt: "2026-06-25T14:00:00-05:00",
   },
   {
     id: "demo-fra-ger",
-    date: "2026-06-15",
-    time: "21:00",
-    kickoff: "2026-06-15T21:00:00-04:00",
+    date: franceGermanyKickoff.date,
+    time: franceGermanyKickoff.time,
+    kickoff: franceGermanyKickoff.kickoff,
     status: "scheduled",
     homeTeam: {
       id: "fra",
@@ -63,7 +76,7 @@ export const demoMatches: NormalizedMatch[] = [
     venue: "SoFi Stadium",
     city: "Inglewood",
     country: "Estados Unidos",
-    timezone: "America/Los_Angeles",
+    timezone: franceGermanyKickoff.timezone,
     dataOrigin: "DEMO",
     fetchedAt: "2026-06-25T14:00:00-05:00",
   },
@@ -244,28 +257,28 @@ export const demoDataset: MatchDataset = {
   ],
   odds: [
     {
-      bookmaker: "Mercado demo",
+      bookmaker: "Mercado de referencia",
       market: "1X2",
       outcome: "Colombia",
       odd: 3.45,
       observedAt: "2026-06-25T13:45:00-05:00",
     },
     {
-      bookmaker: "Mercado demo",
+      bookmaker: "Mercado de referencia",
       market: "1X2",
       outcome: "Empate",
       odd: 3.25,
       observedAt: "2026-06-25T13:45:00-05:00",
     },
     {
-      bookmaker: "Mercado demo",
+      bookmaker: "Mercado de referencia",
       market: "1X2",
       outcome: "Brasil",
       odd: 2.1,
       observedAt: "2026-06-25T13:45:00-05:00",
     },
     {
-      bookmaker: "Mercado demo",
+      bookmaker: "Mercado de referencia",
       market: "Goles",
       outcome: "Más de 2.5",
       odd: 1.95,
@@ -276,7 +289,7 @@ export const demoDataset: MatchDataset = {
     value: "Dato no disponible en la fuente actual",
     status: "unavailable",
     sourceType: "provider",
-    source: "Modo demostración",
+    source: "Muestra local",
     observedAt: "2026-06-25T14:00:00-05:00",
   },
   weather: {
@@ -332,3 +345,74 @@ export const demoDataset: MatchDataset = {
     },
   ],
 };
+
+function replaceTeamNames(value: string, homeName: string, awayName: string) {
+  return value
+    .replaceAll("Colombia", homeName)
+    .replaceAll("Brasil", awayName);
+}
+
+function adaptDemoContext(
+  context: MatchDataset["context"],
+  homeName: string,
+  awayName: string,
+): MatchDataset["context"] {
+  return {
+    homeNeed: replaceTeamNames(context.homeNeed, homeName, awayName),
+    awayNeed: replaceTeamNames(context.awayNeed, homeName, awayName),
+    homeMotivation: replaceTeamNames(context.homeMotivation, homeName, awayName),
+    awayMotivation: replaceTeamNames(context.awayMotivation, homeName, awayName),
+    pressure: replaceTeamNames(context.pressure, homeName, awayName),
+    tacticalSummary: replaceTeamNames(context.tacticalSummary, homeName, awayName),
+  };
+}
+
+function adaptDemoTeamId(
+  teamId: string,
+  homeTeam: TeamRef,
+  awayTeam: TeamRef,
+) {
+  return teamId === demoDataset.match.homeTeam.id ? homeTeam.id : awayTeam.id;
+}
+
+function adaptDemoOdds(
+  odds: NormalizedOdds[],
+  homeName: string,
+  awayName: string,
+) {
+  return odds.map((odd) => ({
+    ...odd,
+    outcome:
+      odd.outcome === demoDataset.match.homeTeam.name
+        ? homeName
+        : odd.outcome === demoDataset.match.awayTeam.name
+          ? awayName
+          : odd.outcome,
+  }));
+}
+
+export function getDemoDatasetById(id: string): MatchDataset | null {
+  const match = demoMatches.find((demoMatch) => demoMatch.id === id);
+  if (!match) return null;
+
+  const dataset = structuredClone(demoDataset);
+  dataset.match = structuredClone(match);
+
+  if (match.id === demoDataset.match.id) return dataset;
+
+  const homeName = match.homeTeam.name;
+  const awayName = match.awayTeam.name;
+
+  dataset.context = adaptDemoContext(dataset.context, homeName, awayName);
+  dataset.lineups = dataset.lineups.map((lineup) => ({
+    ...lineup,
+    teamId: adaptDemoTeamId(lineup.teamId, match.homeTeam, match.awayTeam),
+    starters: [],
+    confirmed: false,
+  }));
+  dataset.players = [];
+  dataset.availability = [];
+  dataset.odds = adaptDemoOdds(dataset.odds, homeName, awayName);
+
+  return dataset;
+}

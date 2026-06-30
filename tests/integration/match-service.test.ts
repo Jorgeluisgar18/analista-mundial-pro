@@ -23,6 +23,18 @@ describe("matchService", () => {
     expect(result.matches).toEqual([]);
   });
 
+  it("permite abrir el detalle de cada partido demo listado", async () => {
+    const service = createMatchService({ env: {} });
+    const listed = await service.listByDate("2026-06-15");
+
+    for (const match of listed.matches) {
+      const detail = await service.getById(match.id);
+      expect(detail?.match.id).toBe(match.id);
+      expect(detail?.match.homeTeam.name).toBe(match.homeTeam.name);
+      expect(detail?.match.awayTeam.name).toBe(match.awayTeam.name);
+    }
+  });
+
   it("protege la cuota gratis de API-Football y evita llamar al proveedor cuando queda reserva baja", async () => {
     mockedGetApiUsageSnapshot.mockResolvedValueOnce([
       {

@@ -28,10 +28,17 @@ function predictionRows(predictions: Prediction[]) {
     .join("");
 }
 
+function groupPredictionsByCategory(predictions: Prediction[]) {
+  return predictions.reduce<Record<string, Prediction[]>>((groups, prediction) => {
+    const group = groups[prediction.category] ?? [];
+    group.push(prediction);
+    groups[prediction.category] = group;
+    return groups;
+  }, {});
+}
+
 export function renderAnalysisHtml(analysis: AnalysisResult) {
-  const groups = Object.entries(
-    Object.groupBy(analysis.predictions, (prediction) => prediction.category),
-  )
+  const groups = Object.entries(groupPredictionsByCategory(analysis.predictions))
     .map(
       ([category, predictions]) => `
         <section>

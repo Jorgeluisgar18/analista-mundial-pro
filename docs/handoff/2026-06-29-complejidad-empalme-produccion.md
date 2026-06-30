@@ -266,6 +266,7 @@ Smoke: `docs/qa/production-smoke.md`
 | 2026-06-30 | Codex | LeÃ­ AGENTS + secciÃ³n 9 del empalme, auditÃ© working directory, validÃ© secretos/encoding/Prisma/lint/test/build y preparÃ© rama local `codex/resolve-working-directory` para resolver P2-2 sin push/deploy. | **Lint:** OK. **Tests:** 31/35 files, 91 pass, 7 skip. **Build:** OK. Secret scan sin valores sensibles; solo nombres de variables. | Continuar con P1-4 cachÃ© holÃ­stico o P1-3 QA real despuÃ©s de confirmar commit local. |
 | 2026-06-30 | Codex | P1-4 caché holístico: refresh normal queda cache-aware, bypass explícito por query (`bypassCache=true` o `force=true`), tests para refreshService y bypass de matchService. | **Lint:** OK. **Tests:** 32/36 files, 94 pass, 7 skip. **Build:** OK. Sin push/deploy. | Siguiente: P1-3 QA casos reales o preparar revisión/PR local cuando owner autorice. |
 | 2026-06-30 | Codex | P1-3 QA riguroso: smoke prod, health, búsquedas D1-D5, ligas top, detalle real API, refresh prod, cabina local con Playwright CLI, override/export local y E2E. | **Prod:** DB connected, API-Football 5/100. **Local:** cabina COT OK. **E2E:** 8 passed, 1 skipped. Hallazgos: export prod 500, prod sin COT/copy nuevo, ligas top sin mapeo API-Football/Football-Data. | Priorizar deploy autorizado de rama local y luego retest export/COT; después mapear IDs API-Football ligas top o configurar Football-Data. |
+| 2026-06-30 | Codex | Bloque ligas + UI premium: mapeo API-Football para Premier League, Champions, Europa League, LaLiga, Bundesliga, Serie A y Ligue 1; limpieza de copy visible `demo/demostrativo`; mejora de tokens tipográficos, contraste, superficies, botones, tablas, sidebar y footer desktop. | **Lint:** OK. **Tests:** 32/36 files, 94 pass, 7 skip. **Build:** OK. **E2E:** 8 passed, 1 skipped. Sin push/deploy. | Siguiente: QA real post-commit/deploy autorizado; validar ligas top en producción con API-Football y monitorear cuota gratis. |
 ---
 
 ## 9. Prompts para Codex 5.5 High (prÃ³xima sesiÃ³n)
@@ -346,4 +347,4 @@ Tarea: P2-2 Commit organizado
 
 ---
 
-*Ãšltima actualizaciÃ³n: 2026-06-29 (v2) â€” mantener este archivo como fuente de verdad para empalme entre IAs.*
+*Ãšltima actualizaciÃ³n: 2026-06-30 (v3) â€” mantener este archivo como fuente de verdad para empalme entre IAs.*

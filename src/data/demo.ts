@@ -121,7 +121,7 @@ export const demoDataset: MatchDataset = {
         value: "4-2-3-1",
         status: "expected",
         sourceType: "provider",
-        source: "Demo scouting",
+        source: "Scouting de referencia",
         observedAt: "2026-06-25T13:30:00-05:00",
       },
       alternativeFormation: "4-3-3",
@@ -146,7 +146,7 @@ export const demoDataset: MatchDataset = {
         value: "4-3-3",
         status: "expected",
         sourceType: "provider",
-        source: "Demo scouting",
+        source: "Scouting de referencia",
         observedAt: "2026-06-25T13:30:00-05:00",
       },
       alternativeFormation: "4-2-3-1",
@@ -178,7 +178,7 @@ export const demoDataset: MatchDataset = {
         value: "En duda",
         status: "expected",
         sourceType: "provider",
-        source: "Datos demostrativos",
+        source: "Muestra local de referencia",
         observedAt: "2026-06-25T12:00:00-05:00",
       },
     },
@@ -296,7 +296,7 @@ export const demoDataset: MatchDataset = {
     value: "24 °C, humedad 56 %, viento 8 km/h",
     status: "expected",
     sourceType: "provider",
-    source: "Open-Meteo (demostración)",
+    source: "Open-Meteo (referencia local)",
     observedAt: "2026-06-25T13:45:00-05:00",
   },
   context: {
@@ -313,7 +313,7 @@ export const demoDataset: MatchDataset = {
   sources: [
     {
       id: "src-form",
-      label: "Histórico demostrativo",
+      label: "Histórico de referencia",
       type: "provider",
       status: "expected",
       observedAt: "2026-06-25T13:00:00-05:00",
@@ -321,7 +321,7 @@ export const demoDataset: MatchDataset = {
     },
     {
       id: "src-lineup",
-      label: "Alineaciones esperadas demo",
+      label: "Alineaciones esperadas de referencia",
       type: "provider",
       status: "expected",
       observedAt: "2026-06-25T13:30:00-05:00",
@@ -329,7 +329,7 @@ export const demoDataset: MatchDataset = {
     },
     {
       id: "src-weather",
-      label: "Open-Meteo demo",
+      label: "Open-Meteo de referencia",
       type: "provider",
       status: "expected",
       observedAt: "2026-06-25T13:45:00-05:00",
@@ -337,7 +337,7 @@ export const demoDataset: MatchDataset = {
     },
     {
       id: "src-odds",
-      label: "Cuotas demostrativas",
+      label: "Cuotas de referencia",
       type: "provider",
       status: "expected",
       observedAt: "2026-06-25T13:45:00-05:00",

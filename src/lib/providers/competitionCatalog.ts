@@ -24,6 +24,7 @@ export const supportedCompetitions: SupportedCompetition[] = [
     kind: "CLUB",
     aliases: ["premier league", "epl"],
     footballDataCode: "PL",
+    apiFootballLeagueId: 39,
   },
   {
     slug: "champions-league",
@@ -31,6 +32,7 @@ export const supportedCompetitions: SupportedCompetition[] = [
     kind: "CLUB",
     aliases: ["uefa champions league", "champions league"],
     footballDataCode: "CL",
+    apiFootballLeagueId: 2,
   },
   {
     slug: "europa-league",
@@ -38,6 +40,7 @@ export const supportedCompetitions: SupportedCompetition[] = [
     kind: "CLUB",
     aliases: ["uefa europa league", "europa league"],
     footballDataCode: "EL",
+    apiFootballLeagueId: 3,
   },
   {
     slug: "la-liga",
@@ -45,6 +48,7 @@ export const supportedCompetitions: SupportedCompetition[] = [
     kind: "CLUB",
     aliases: ["la liga", "laliga", "primera division"],
     footballDataCode: "PD",
+    apiFootballLeagueId: 140,
   },
   {
     slug: "bundesliga",
@@ -52,6 +56,7 @@ export const supportedCompetitions: SupportedCompetition[] = [
     kind: "CLUB",
     aliases: ["bundesliga"],
     footballDataCode: "BL1",
+    apiFootballLeagueId: 78,
   },
   {
     slug: "serie-a",
@@ -59,6 +64,7 @@ export const supportedCompetitions: SupportedCompetition[] = [
     kind: "CLUB",
     aliases: ["serie a"],
     footballDataCode: "SA",
+    apiFootballLeagueId: 135,
   },
   {
     slug: "ligue-1",
@@ -66,6 +72,7 @@ export const supportedCompetitions: SupportedCompetition[] = [
     kind: "CLUB",
     aliases: ["ligue 1"],
     footballDataCode: "FL1",
+    apiFootballLeagueId: 61,
   },
 ];
 

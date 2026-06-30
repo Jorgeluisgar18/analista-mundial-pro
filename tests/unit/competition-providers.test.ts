@@ -49,8 +49,14 @@ describe("catálogo de competiciones", () => {
     expect(resolveFootballDataCompetition("premier-league")).toBe("PL");
     expect(resolveFootballDataCompetition("champions-league")).toBe("CL");
     expect(resolveApiFootballLeague("wc-2026")).toBe(1);
+    expect(resolveApiFootballLeague("premier-league")).toBe(39);
+    expect(resolveApiFootballLeague("champions-league")).toBe(2);
+    expect(resolveApiFootballLeague("europa-league")).toBe(3);
+    expect(resolveApiFootballLeague("la-liga")).toBe(140);
+    expect(resolveApiFootballLeague("bundesliga")).toBe(78);
+    expect(resolveApiFootballLeague("serie-a")).toBe(135);
+    expect(resolveApiFootballLeague("ligue-1")).toBe(61);
     expect(resolveApiFootballLeague("123")).toBe(123);
-    expect(resolveApiFootballLeague("premier-league")).toBeUndefined();
   });
 });
 
@@ -81,7 +87,7 @@ describe("filtros por proveedor", () => {
     const requestedUrl = firstRequestedUrl(fetcher);
 
     expect(requestedUrl.searchParams.get("timezone")).toBe("America/Bogota");
-    expect(requestedUrl.searchParams.has("league")).toBe(false);
+    expect(requestedUrl.searchParams.get("league")).toBe("39");
     expect(result.data).toHaveLength(1);
     expect(result.data[0].competition.name).toBe("Premier League");
   });

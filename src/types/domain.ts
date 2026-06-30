@@ -34,6 +34,7 @@ export interface TeamRef {
   code: string;
   colors: [string, string];
   flag?: string;
+  logoUrl?: string;
 }
 
 export interface CompetitionRef {

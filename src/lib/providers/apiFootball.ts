@@ -31,8 +31,8 @@ interface ApiFootballFixture {
     season?: number;
   };
   teams: {
-    home: { id: number; name: string; code?: string };
-    away: { id: number; name: string; code?: string };
+    home: { id: number; name: string; code?: string; logo?: string };
+    away: { id: number; name: string; code?: string; logo?: string };
   };
 }
 
@@ -140,12 +140,14 @@ export class ApiFootballProvider implements FootballProvider {
           name: item.teams.home.name,
           code: item.teams.home.code ?? item.teams.home.name.slice(0, 3).toUpperCase(),
           colors: ["#00dea5", "#173a34"],
+          logoUrl: item.teams.home.logo,
         },
         awayTeam: {
           id: String(item.teams.away.id),
           name: item.teams.away.name,
           code: item.teams.away.code ?? item.teams.away.name.slice(0, 3).toUpperCase(),
           colors: ["#74a8ff", "#18314a"],
+          logoUrl: item.teams.away.logo,
         },
         competition: {
           id: String(item.league.id),
@@ -294,6 +296,7 @@ export class ApiFootballProvider implements FootballProvider {
             fixture.teams.home.code ??
             fixture.teams.home.name.slice(0, 3).toUpperCase(),
           colors: ["#00dea5", "#173a34"],
+          logoUrl: fixture.teams.home.logo,
         },
         awayTeam: {
           id: String(fixture.teams.away.id),
@@ -302,6 +305,7 @@ export class ApiFootballProvider implements FootballProvider {
             fixture.teams.away.code ??
             fixture.teams.away.name.slice(0, 3).toUpperCase(),
           colors: ["#71a9ff", "#18314a"],
+          logoUrl: fixture.teams.away.logo,
         },
         competition: {
           id: String(fixture.league.id),

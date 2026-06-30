@@ -21,8 +21,18 @@ function apiFixture(
     },
     league: { ...league, round: "Jornada 1", season: 2026 },
     teams: {
-      home: { id: id * 10, name: `Local ${id}`, code: "LOC" },
-      away: { id: id * 10 + 1, name: `Visitante ${id}`, code: "VIS" },
+      home: {
+        id: id * 10,
+        name: `Local ${id}`,
+        code: "LOC",
+        logo: `https://media.api-sports.io/football/teams/${id * 10}.png`,
+      },
+      away: {
+        id: id * 10 + 1,
+        name: `Visitante ${id}`,
+        code: "VIS",
+        logo: `https://media.api-sports.io/football/teams/${id * 10 + 1}.png`,
+      },
     },
   };
 }
@@ -90,6 +100,9 @@ describe("filtros por proveedor", () => {
     expect(requestedUrl.searchParams.get("league")).toBe("39");
     expect(result.data).toHaveLength(1);
     expect(result.data[0].competition.name).toBe("Premier League");
+    expect(result.data[0].homeTeam.logoUrl).toBe(
+      "https://media.api-sports.io/football/teams/10.png",
+    );
   });
 
   it("API-Football usa IDs seguros conocidos para reducir búsquedas amplias", async () => {
@@ -144,8 +157,18 @@ describe("filtros por proveedor", () => {
               name: "Premier League",
               area: { name: "England" },
             },
-            homeTeam: { id: 1, name: "Home", tla: "HOM" },
-            awayTeam: { id: 2, name: "Away", tla: "AWA" },
+            homeTeam: {
+              id: 1,
+              name: "Home",
+              tla: "HOM",
+              crest: "https://crests.football-data.org/1.png",
+            },
+            awayTeam: {
+              id: 2,
+              name: "Away",
+              tla: "AWA",
+              crest: "https://crests.football-data.org/2.png",
+            },
           },
           {
             id: 11,
@@ -172,5 +195,8 @@ describe("filtros por proveedor", () => {
     expect(result.data[0]?.date).toBe("2026-08-15");
     expect(result.data[0]?.time).toBe("21:30");
     expect(result.data[0]?.timezone).toBe("America/Bogota");
+    expect(result.data[0]?.homeTeam.logoUrl).toBe(
+      "https://crests.football-data.org/1.png",
+    );
   });
 });

@@ -632,6 +632,13 @@ textarea:focus-visible {
   display: block;
 }
 
+.match-teams-main {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
 .match-teams strong {
   font-family: var(--font-ui);
   font-size: 18px;
@@ -1169,16 +1176,57 @@ textarea:focus-visible {
   font-weight: 400;
 }
 
-.team-flag {
+.team-visual {
+  --team-primary: var(--emerald);
+  --team-secondary: #173a34;
+  position: relative;
   display: grid;
+  flex: 0 0 auto;
   place-items: center;
-  width: 64px;
-  height: 43px;
-  border: 1px solid var(--line-strong);
-  border-radius: 5px;
-  background: #0d211e;
-  font-size: 28px;
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.28);
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--team-primary) 42%, var(--line-strong));
+  background:
+    radial-gradient(circle at 28% 20%, color-mix(in srgb, var(--team-primary) 18%, transparent), transparent 52%),
+    linear-gradient(145deg, color-mix(in srgb, var(--team-secondary) 72%, #071014), rgba(6, 17, 21, 0.94));
+  box-shadow:
+    0 16px 34px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.team-visual--hero {
+  width: 72px;
+  height: 54px;
+  border-radius: 12px;
+  font-size: 30px;
+}
+
+.team-visual--compact {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  font-size: 18px;
+}
+
+.team-visual--image {
+  padding: 8px;
+  background:
+    radial-gradient(circle at 50% 10%, rgba(255, 255, 255, 0.16), transparent 48%),
+    rgba(4, 14, 18, 0.78);
+}
+
+.team-visual-image {
+  padding: 7px;
+  object-fit: contain;
+  filter: drop-shadow(0 7px 12px rgba(0, 0, 0, 0.36));
+}
+
+.team-visual-fallback {
+  position: relative;
+  z-index: 1;
+  color: var(--text-strong);
+  font-family: var(--font-display);
+  font-weight: 900;
+  letter-spacing: -0.03em;
 }
 
 .match-hero > p {
@@ -2455,10 +2503,11 @@ textarea:focus-visible {
     font-size: clamp(25px, 8vw, 38px);
   }
 
-  .team-flag {
-    width: 54px;
-    height: 37px;
-    font-size: 23px;
+  .team-visual--hero {
+    width: 58px;
+    height: 44px;
+    border-radius: 11px;
+    font-size: 24px;
   }
 
   .subsection-rail {

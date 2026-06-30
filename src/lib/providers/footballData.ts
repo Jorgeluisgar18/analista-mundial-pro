@@ -52,8 +52,8 @@ export class FootballDataProvider implements FootballProvider {
         status: string;
         stage?: string;
         competition: { id: number; name: string; area?: { name?: string } };
-        homeTeam: { id: number; name: string; tla?: string };
-        awayTeam: { id: number; name: string; tla?: string };
+        homeTeam: { id: number; name: string; tla?: string; crest?: string };
+        awayTeam: { id: number; name: string; tla?: string; crest?: string };
       }>;
     };
     return {
@@ -76,12 +76,14 @@ export class FootballDataProvider implements FootballProvider {
             name: item.homeTeam.name,
             code: item.homeTeam.tla ?? item.homeTeam.name.slice(0, 3).toUpperCase(),
             colors: ["#00dea5", "#173a34"],
+            logoUrl: item.homeTeam.crest,
           },
           awayTeam: {
             id: String(item.awayTeam.id),
             name: item.awayTeam.name,
             code: item.awayTeam.tla ?? item.awayTeam.name.slice(0, 3).toUpperCase(),
             colors: ["#74a8ff", "#18314a"],
+            logoUrl: item.awayTeam.crest,
           },
           competition: {
             id: String(item.competition.id),

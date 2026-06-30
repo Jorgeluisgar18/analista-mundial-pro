@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { TeamVisual } from "@/components/shared/TeamVisual";
 import { supportedCompetitions } from "@/lib/providers/competitionCatalog";
 import {
   APP_TIME_ZONE_ABBREVIATION,
@@ -158,9 +159,21 @@ export function DateMatchFinder({ initialDate }: { initialDate: string }) {
                       {match.time} {APP_TIME_ZONE_ABBREVIATION}
                     </span>
                     <span className="match-teams">
-                      <strong>
-                        {match.homeTeam.name} vs {match.awayTeam.name}
-                      </strong>
+                      <span className="match-teams-main">
+                        <TeamVisual
+                          team={match.homeTeam}
+                          competitionKind={match.competition.kind}
+                          side="home"
+                        />
+                        <strong>
+                          {match.homeTeam.name} vs {match.awayTeam.name}
+                        </strong>
+                        <TeamVisual
+                          team={match.awayTeam}
+                          competitionKind={match.competition.kind}
+                          side="away"
+                        />
+                      </span>
                       <small>
                         {match.competition.name} ·{" "}
                         {match.competition.stage ?? "Fase no disponible"}

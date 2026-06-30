@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { TeamVisual } from "@/components/shared/TeamVisual";
 import { APP_TIME_ZONE_ABBREVIATION } from "@/lib/time/colombia";
 import type { AnalysisResult } from "@/types/domain";
 
@@ -20,17 +21,23 @@ export function MatchHero({ analysis }: { analysis: AnalysisResult }) {
       </span>
       <div className="match-versus">
         <div>
-          <span className="team-flag">
-            {match.homeTeam.flag ?? match.homeTeam.code}
-          </span>
+          <TeamVisual
+            team={match.homeTeam}
+            competitionKind={match.competition.kind}
+            side="home"
+            size="hero"
+          />
           <strong>{match.homeTeam.name}</strong>
         </div>
         <i>×</i>
         <div>
           <strong>{match.awayTeam.name}</strong>
-          <span className="team-flag">
-            {match.awayTeam.flag ?? match.awayTeam.code}
-          </span>
+          <TeamVisual
+            team={match.awayTeam}
+            competitionKind={match.competition.kind}
+            side="away"
+            size="hero"
+          />
         </div>
       </div>
       <p>{matchMetaText(match)}</p>

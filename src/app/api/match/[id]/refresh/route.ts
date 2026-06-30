@@ -16,7 +16,11 @@ export async function POST(
   if (limitProblem) return limitProblem;
 
   const { id } = await context.params;
-  const result = await refreshMatch(id);
+  const url = new URL(request.url);
+  const bypassCache =
+    url.searchParams.get("bypassCache") === "true" ||
+    url.searchParams.get("force") === "true";
+  const result = await refreshMatch(id, { bypassCache });
   if (!result) return problem(404, "Partido no encontrado", id);
   return Response.json(result);
 }

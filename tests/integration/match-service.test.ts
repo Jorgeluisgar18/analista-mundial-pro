@@ -291,4 +291,58 @@ describe("matchService", () => {
     expect(result?.match.dataOrigin).toBe("CACHE");
     expect(providerCall).not.toHaveBeenCalled();
   });
+
+  it("permite saltar el snapshot persistente solo cuando bypassCache está activo", async () => {
+    const cachedDataset = structuredClone(demoDataset);
+    cachedDataset.match.id = "external-bypass-cache-test";
+    cachedDataset.match.dataOrigin = "CACHE";
+    const providerDataset = structuredClone(demoDataset);
+    providerDataset.match.id = cachedDataset.match.id;
+    providerDataset.match.dataOrigin = "API";
+    const providerCall = vi.fn();
+    const service = createMatchService({
+      snapshotCache: {
+        async getFreshDataset(id: string) {
+          return id === cachedDataset.match.id ? cachedDataset : null;
+        },
+      },
+      providers: {
+        football: [
+          {
+            id: "football-test",
+            async listMatches() {
+              return {
+                data: [],
+                meta: {
+                  source: "football-test",
+                  fetchedAt: new Date().toISOString(),
+                  isStale: false,
+                  warnings: [],
+                },
+              };
+            },
+            async getMatch() {
+              providerCall();
+              return {
+                data: providerDataset,
+                meta: {
+                  source: "football-test",
+                  fetchedAt: new Date().toISOString(),
+                  isStale: false,
+                  warnings: [],
+                },
+              };
+            },
+          },
+        ],
+      },
+    });
+
+    const cached = await service.getById(cachedDataset.match.id);
+    const bypassed = await service.getById(cachedDataset.match.id, true);
+
+    expect(cached?.match.dataOrigin).toBe("CACHE");
+    expect(bypassed?.match.dataOrigin).toBe("API");
+    expect(providerCall).toHaveBeenCalledTimes(1);
+  });
 });

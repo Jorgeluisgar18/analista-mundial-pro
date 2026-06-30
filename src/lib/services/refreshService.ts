@@ -1,18 +1,41 @@
 import "server-only";
-import { getAnalysis } from "@/lib/services/analysisService";
+import { getAnalysis as defaultGetAnalysis } from "@/lib/services/analysisService";
 
-export async function refreshMatch(matchId: string) {
-  const refreshed = await getAnalysis(matchId, { persist: true, bypassCache: true });
-  if (!refreshed) return null;
+interface RefreshOptions {
+  bypassCache?: boolean;
+}
+
+interface RefreshAnalysisService {
+  getAnalysis: typeof defaultGetAnalysis;
+}
+
+export function createRefreshService({
+  analysisService = { getAnalysis: defaultGetAnalysis },
+}: {
+  analysisService?: RefreshAnalysisService;
+} = {}) {
   return {
-    ...refreshed,
-    refreshedAt: new Date().toISOString(),
-    refreshedFields: [
-      "estado",
-      "alineaciones",
-      "bajas",
-      "cuotas",
-      "estadísticas",
-    ],
+    async refreshMatch(matchId: string, options: RefreshOptions = {}) {
+      const refreshed = await analysisService.getAnalysis(matchId, {
+        persist: true,
+        bypassCache: Boolean(options.bypassCache),
+      });
+      if (!refreshed) return null;
+
+      return {
+        ...refreshed,
+        refreshedAt: new Date().toISOString(),
+        refreshMode: options.bypassCache ? "provider" : "cache-aware",
+        refreshedFields: [
+          "estado",
+          "alineaciones",
+          "bajas",
+          "cuotas",
+          "estadísticas",
+        ],
+      };
+    },
   };
 }
+
+export const { refreshMatch } = createRefreshService();

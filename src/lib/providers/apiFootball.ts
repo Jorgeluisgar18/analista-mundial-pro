@@ -6,6 +6,7 @@ import type {
 } from "@/lib/providers/types";
 import { emitUsage } from "@/lib/providers/types";
 import {
+  findSupportedCompetition,
   matchesCompetition,
   resolveApiFootballLeague,
 } from "@/lib/providers/competitionCatalog";
@@ -41,6 +42,10 @@ function normalizeStatus(short: string): NormalizedMatch["status"] {
   if (["1H", "2H", "HT", "ET", "P"].includes(short)) return "live";
   if (["FT", "AET", "PEN"].includes(short)) return "finished";
   return "scheduled";
+}
+
+function shouldRetryWithoutLeague(competition?: string) {
+  return findSupportedCompetition(competition)?.slug === "wc-2026";
 }
 
 export class ApiFootballProvider implements FootballProvider {
@@ -97,14 +102,18 @@ export class ApiFootballProvider implements FootballProvider {
     return body.response ?? ([] as T);
   }
 
-  async listMatches(
+  private async fetchFixtures(
     date: string,
     competition?: string,
-  ): Promise<ProviderResult<NormalizedMatch[]>> {
+    league?: number,
+  ): Promise<{
+    fixtures: ApiFootballFixture[];
+    warnings: string[];
+    quota?: { remaining?: number; limit?: number };
+  }> {
     const url = new URL("https://v3.football.api-sports.io/fixtures");
     url.searchParams.set("date", date);
     url.searchParams.set("timezone", APP_TIME_ZONE);
-    const league = resolveApiFootballLeague(competition);
     if (league) {
       url.searchParams.set("league", String(league));
     }
@@ -121,12 +130,47 @@ export class ApiFootballProvider implements FootballProvider {
       response?: ApiFootballFixture[];
       errors?: Record<string, string>;
     };
-    const fixtures = (body.response ?? []).filter((item) =>
-      matchesCompetition(competition, {
-        id: String(item.league.id),
-        name: item.league.name,
-      }),
+    return {
+      fixtures: (body.response ?? []).filter((item) =>
+        matchesCompetition(competition, {
+          id: String(item.league.id),
+          name: item.league.name,
+        }),
+      ),
+      warnings: body.errors ? Object.values(body.errors) : [],
+      quota: {
+        remaining:
+          Number(response.headers.get("x-ratelimit-requests-remaining") ?? "") ||
+          undefined,
+        limit:
+          Number(response.headers.get("x-ratelimit-requests-limit") ?? "") ||
+          undefined,
+      },
+    };
+  }
+
+  async listMatches(
+    date: string,
+    competition?: string,
+  ): Promise<ProviderResult<NormalizedMatch[]>> {
+    const leagueId = resolveApiFootballLeague(competition);
+    let { fixtures, warnings, quota } = await this.fetchFixtures(
+      date,
+      competition,
+      leagueId,
     );
+
+    if (leagueId && fixtures.length === 0 && shouldRetryWithoutLeague(competition)) {
+      const fallback = await this.fetchFixtures(date, competition, undefined);
+      fixtures = fallback.fixtures;
+      warnings = [
+        ...warnings,
+        "API-Football: World Cup sin fixtures con league ID; se reintentó búsqueda amplia filtrada.",
+        ...fallback.warnings,
+      ];
+      quota = fallback.quota;
+    }
+
     const matches = fixtures.map<NormalizedMatch>((item) => {
       const kickoff = normalizeKickoffForAppTimeZone(item.fixture.date);
       return {
@@ -138,14 +182,18 @@ export class ApiFootballProvider implements FootballProvider {
         homeTeam: {
           id: String(item.teams.home.id),
           name: item.teams.home.name,
-          code: item.teams.home.code ?? item.teams.home.name.slice(0, 3).toUpperCase(),
+          code:
+            item.teams.home.code ??
+            item.teams.home.name.slice(0, 3).toUpperCase(),
           colors: ["#00dea5", "#173a34"],
           logoUrl: item.teams.home.logo,
         },
         awayTeam: {
           id: String(item.teams.away.id),
           name: item.teams.away.name,
-          code: item.teams.away.code ?? item.teams.away.name.slice(0, 3).toUpperCase(),
+          code:
+            item.teams.away.code ??
+            item.teams.away.name.slice(0, 3).toUpperCase(),
           colors: ["#74a8ff", "#18314a"],
           logoUrl: item.teams.away.logo,
         },
@@ -171,11 +219,8 @@ export class ApiFootballProvider implements FootballProvider {
         source: "API-Football",
         fetchedAt: new Date().toISOString(),
         isStale: false,
-        warnings: body.errors ? Object.values(body.errors) : [],
-        quota: {
-          remaining: Number(response.headers.get("x-ratelimit-requests-remaining") ?? "") || undefined,
-          limit: Number(response.headers.get("x-ratelimit-requests-limit") ?? "") || undefined,
-        },
+        warnings,
+        quota,
       },
     };
   }

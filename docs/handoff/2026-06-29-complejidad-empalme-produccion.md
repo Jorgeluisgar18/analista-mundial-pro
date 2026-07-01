@@ -253,6 +253,8 @@ Smoke: `docs/qa/production-smoke.md`
 | Tests integraciÃ³n DB | **7 skipped** â€” Prisma 7 ESM require() en vitest |
 | Build producciÃ³n | **14 rutas, 0 errores** âœ… |
 | Deploy producciÃ³n | **Realizado** (merge a master + push) âš ï¸ |
+| Mundial 2026 — API-Football league ID | **Bug detectado:** `wc-2026` mapea a `apiFootballLeagueId: 1` que no tiene fixtures en API-Football. **Fix pendiente:** `fetchFixtures()` reintenta sin league ID cuando el filtro retorna 0. Archivos: `apiFootball.ts`, `competitionCatalog.ts`. Pendiente de deploy con prÃ³ximo lote. |
+| Fallback API-Football y cuota gratis | **Hardening local:** fallback amplio acotado solo a `wc-2026`; ligas top no duplican llamadas cuando el league ID retorna 0. Test dedicado: `tests/unit/api-football-fallback.test.ts`. |
 
 ---
 
@@ -268,6 +270,8 @@ Smoke: `docs/qa/production-smoke.md`
 | 2026-06-30 | Codex | P1-3 QA riguroso: smoke prod, health, búsquedas D1-D5, ligas top, detalle real API, refresh prod, cabina local con Playwright CLI, override/export local y E2E. | **Prod:** DB connected, API-Football 5/100. **Local:** cabina COT OK. **E2E:** 8 passed, 1 skipped. Hallazgos: export prod 500, prod sin COT/copy nuevo, ligas top sin mapeo API-Football/Football-Data. | Priorizar deploy autorizado de rama local y luego retest export/COT; después mapear IDs API-Football ligas top o configurar Football-Data. |
 | 2026-06-30 | Codex | Bloque ligas + UI premium: mapeo API-Football para Premier League, Champions, Europa League, LaLiga, Bundesliga, Serie A y Ligue 1; limpieza de copy visible `demo/demostrativo`; mejora de tokens tipográficos, contraste, superficies, botones, tablas, sidebar y footer desktop. | **Lint:** OK. **Tests:** 32/36 files, 94 pass, 7 skip. **Build:** OK. **E2E:** 8 passed, 1 skipped. Sin push/deploy. | Siguiente: QA real post-commit/deploy autorizado; validar ligas top en producción con API-Football y monitorear cuota gratis. |
 | 2026-06-30 | Codex | Visual identity equipos/selecciones: nuevo `TeamVisual`, banderas reales para selecciones vía ISO/FlagCDN, escudos/logos desde API-Football (`logo`) y Football-Data (`crest`), CSP/Next Image configurado para dominios deportivos. | **Lint:** OK. **Tests:** 32/36 files, 94 pass, 7 skip. **Build:** OK. **E2E:** 8 passed, 1 skipped. Validado visualmente en lista y cabina local. Sin push/deploy. | Siguiente: al desplegar, validar que logos reales de API-Football/Football-Data carguen en producción bajo CSP de Netlify. |
+| 2026-06-30 | IA actual | Diagnóstico y fix para Mundial 2026: `wc-2026` → league ID `1` retorna 0 fixtures en API-Football. Fix: fallback sin league ID + filtro por nombre "World Cup". Build+test OK. No deploy (owner acumula cambios). | **Build:** OK. **Tests:** 32/36 files, 94 pass, 7 skip. **Prod:** `/${api/matches}?competition=wc-2026` → 0 (código viejo). API-Football 16/100 usados. Fix en local pendiente de deploy. | Codex: incluir fix WC en próximo deploy autorizado (P2-2). |
+| 2026-07-01 | Codex | Hardening OpenCode: limpiado ruido de `next-env.d.ts`, test TDD para fallback Mundial 2026 y protección de cuota, fallback sin league ID limitado a `wc-2026`, no a ligas top. | **Lint:** OK. **Tests:** 33/37 files, 96 pass, 7 skip. **Build:** OK. **E2E:** 8 passed, 1 skipped. Sin deploy. | Incluir en próximo lote autorizado; validar en producción que `wc-2026` retorne fixtures reales sin exceder cuota API-Football. |
 ---
 
 ## 9. Prompts para Codex 5.5 High (prÃ³xima sesiÃ³n)
@@ -314,6 +318,24 @@ Tarea: P1-3 QA casos reales
 6. NO git push ni netlify deploy
 ```
 
+### PX-1: Deploy acumulado (cuando owner autorice)
+
+```text
+Contexto: Analista Mundial Pro â€” el owner acumula cambios para desplegar de una sola vez.
+Incluye:
+- Fix Mundial 2026: `apiFootball.ts` fetchFixtures() fallback sin league ID + `competitionCatalog.ts` (si aplica)
+- P2-2: commit cambios locales acumulados (COT, overrides, health)
+- P1-4: cachÃ© holÃ­stico, P1-3: QA real, UI premium, TeamVisual, etc. (todo ya en master)
+
+Pasos:
+1. Revisar que working directory estÃ© limpio o resolver P2-2 primero
+2. Verificar que master tenga todos los cambios acumulados (Codex previos ya en master)
+3. Hacer merge a master, push a Netlify
+4. Validar producciÃ³n: smoke test, health, y wc-2026 retorna partidos reales
+5. Monitorear API-Football quota despuÃ©s del deploy
+Reglas: NO desplegar sin autorizaciÃ³n explÃ­cita del owner.
+```
+
 ### P2-2: Commit cambios locales acumulados (cuando owner autorice)
 
 ```text
@@ -348,4 +370,4 @@ Tarea: P2-2 Commit organizado
 
 ---
 
-*Ãšltima actualizaciÃ³n: 2026-06-30 (v3) â€” mantener este archivo como fuente de verdad para empalme entre IAs.*
+*Ãšltima actualizaciÃ³n: 2026-07-01 (v4) â€” mantener este archivo como fuente de verdad para empalme entre IAs.*

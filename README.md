@@ -1,197 +1,205 @@
 # Analista Mundial Pro
 
-Aplicación web personal y local-first para análisis estadístico, táctico y probabilístico de partidos de fútbol antes del inicio. Funciona sin claves mediante un modo demostración claramente identificado y está preparada para Mundial, ligas europeas y competiciones UEFA.
+Analista Mundial Pro es una aplicación web para preparar análisis de partidos de fútbol antes del inicio. La idea es combinar datos deportivos, contexto histórico, cuotas, alineaciones, forma reciente y modelos probabilísticos para entregar una lectura clara, útil y explicable.
 
-No genera análisis en vivo ni promete resultados. Las probabilidades son apoyo analítico, no certezas.
+Nació pensando en el Mundial 2026, pero la arquitectura está pensada para crecer hacia ligas europeas, Champions League y otras competiciones con buen mercado de datos.
 
-## Funciones
+> No es una app de análisis en vivo y no promete resultados. Las probabilidades son apoyo analítico, no certezas.
 
-- Búsqueda de partidos por fecha y competición.
-- Adaptadores server-only para API-Football, Football-Data.org, The Odds API y Open-Meteo.
-- Modo demo completo cuando no hay claves o cobertura.
-- Dashboard “Cabina editorial” con diez categorías y subsecciones detalladas.
-- Poisson, corrección Dixon–Coles, Elo, regresión logística y Monte Carlo.
-- Mercados de resultado, marcador, goles, corners, tarjetas, faltas, disparos, jugadores y fueras de juego.
-- Probabilidad, intervalo, confianza, cuota mínima, valor esperado, motivo y riesgo.
-- Detector matemático de surebets sin denominarlas apuestas seguras.
-- Estados de evidencia: confirmado, esperado, inferido, conflicto y no disponible.
-- Cambios manuales auditables con recálculo.
-- Neon Postgres/Prisma para snapshots, análisis, cuotas, overrides y versiones.
-- Exportación HTML autónoma.
-- Diseño responsive y accesible.
+## Qué hace
+
+- Busca partidos por fecha y competición.
+- Integra proveedores deportivos reales con fallback controlado.
+- Normaliza datos de múltiples fuentes para que el análisis sea consistente.
+- Genera informes prepartido con lectura ejecutiva, táctica, mercados, fuentes y señales de riesgo.
+- Usa modelos como Poisson, Dixon-Coles, simulación Monte Carlo, forma histórica y calibración.
+- Calcula probabilidades, confianza del modelo, valor esperado y señales de mercado.
+- Maneja alineaciones confirmadas, oficiales parciales, esperadas o no disponibles.
+- Muestra escudos, banderas y visualización táctica cuando los datos están disponibles.
+- Permite cambios manuales auditables para ajustar información de último momento.
+- Exporta informes en HTML.
+- Incluye pruebas unitarias, integración y e2e para cuidar la calidad.
+
+## Fuentes y proveedores
+
+El proyecto está preparado para trabajar con:
+
+- API-Football
+- Football-Data.org
+- Footballdata.io
+- TheSportsDB
+- The Odds API
+- OpenFootball como fuente abierta para contexto histórico
+- Neon Postgres para persistencia
+
+Todas las claves se leen desde variables de entorno del servidor. Ninguna clave debe vivir en el código ni llegar al navegador.
+
+## Enfoque del análisis
+
+El motor busca que cada porcentaje tenga contexto. No se trata de mostrar números bonitos repetidos, sino de explicar de dónde vienen:
+
+- producción ofensiva y defensiva;
+- forma reciente ponderada por recencia;
+- fuerza relativa del rival;
+- histórico disponible;
+- cuotas y margen del mercado;
+- alineaciones y disponibilidad;
+- calibración mediante métricas como Brier Score, Log Loss y RPS.
+
+Cuando faltan datos, la interfaz debe decirlo con claridad y bajar la confianza del modelo en vez de inventar certeza.
+
+## Stack
+
+- Next.js
+- React
+- TypeScript
+- Prisma
+- Neon Postgres
+- Netlify
+- Vitest
+- Playwright
+- Zod
 
 ## Requisitos
 
-- Node.js 20 o superior.
-- npm.
+- Node.js 20 o superior
+- npm
+- Una base Postgres/Neon si quieres persistencia real
+- Claves de proveedores si quieres datos reales en vez de fallback/demo
 
-## Instalación
+## Configuración local
+
+Instala dependencias:
 
 ```bash
 npm install
-npx prisma migrate deploy
-npm run db:seed
 ```
 
-`npm install` ejecuta también `prisma generate`.
+Copia el archivo de ejemplo:
 
-## Variables de entorno
+```bash
+cp .env.example .env.local
+```
 
-Copia `.env.example` como `.env`:
+Configura solo las variables que vayas a usar. Para desarrollo puedes arrancar sin todas las claves; la app debe degradar a cache, fallback o demo cuando un proveedor no esté disponible.
 
-```dotenv
-DATABASE_URL="postgresql://USER:PASSWORD@HOST.neon.tech/neondb?sslmode=require&channel_binding=require"
+Variables principales:
+
+```env
+DATABASE_URL=""
 DIRECT_URL=""
 FOOTBALL_API_KEY=""
 FOOTBALL_DATA_API_KEY=""
+FOOTBALLDATA_IO_API_KEY=""
+THE_SPORTS_DB_API_KEY=""
 ODDS_API_KEY=""
-OPENAI_API_KEY=""
 ```
 
-Todas las claves son opcionales. Ninguna se incluye en el bundle del navegador.
+Importante: no subas `.env.local`, `.env` ni tokens reales al repositorio.
 
-- `DATABASE_URL`: cadena de conexión Neon/Postgres. Requerida para persistencia real.
-- `DIRECT_URL`: opcional para flujos de migración si Neon entrega una cadena directa separada.
-- `NETLIFY_DB_URL`: fallback de Netlify Database/Neon inyectado por Netlify; no se configura manualmente salvo indicación del hosting.
-- `FOOTBALL_API_KEY`: [API-Football](https://www.api-football.com/)
-- `FOOTBALL_DATA_API_KEY`: [Football-Data.org](https://www.football-data.org/)
-- `ODDS_API_KEY`: [The Odds API](https://the-odds-api.com/)
-- `OPENAI_API_KEY`: reservado para redacción opcional futura; el análisis actual es determinista y funciona sin esta clave.
+## Base de datos
 
-Prioridad runtime de base de datos:
+Genera Prisma y aplica migraciones:
 
-1. `DATABASE_URL`, cuando está configurada y apunta a Postgres.
-2. `NETLIFY_DB_URL` de Netlify Database mediante `@netlify/database`.
-3. Persistencia no-op solo para local/demo sin Postgres.
+```bash
+npm run db:generate
+npm run db:migrate
+```
 
-El modo no-op no guarda snapshots, usos de API, imports ni overrides; producción debe reportar Postgres conectado.
+Para cargar datos iniciales:
 
-Consulta los límites vigentes de cada proveedor. La aplicación evita sondeos continuos y prioriza actualización bajo demanda.
+```bash
+npm run db:seed
+```
 
-Para validar la configuración sin revelar secretos, abre `/api/provider-status`.
-La guía visual está en `/docs/provider-setup` y el documento de referencia en `docs/provider-setup.md`.
-La guía de despliegue con Neon está en `docs/deployment/netlify-neon-postgres.md`.
+En producción, la app debe usar Neon/Postgres. Si no hay base configurada, algunos flujos funcionan en modo limitado sin persistencia.
 
-En el plan gratuito de API-FOOTBALL, la aplicación protege una reserva diaria antes de gastar las últimas solicitudes disponibles y vuelve a demo/cache con advertencias visibles.
-
-## Verificación post-deploy
-
-Después de desplegar en producción, revisa:
-
-- `/api/health`: debe reportar base de datos conectada.
-- `/api/provider-status`: debe mostrar la configuración esperada de proveedores sin revelar secretos.
-- `/api/usage`: debe devolver consumo/estado sin secretos.
-- `/api/matches?date=YYYY-MM-DD`: debe devolver una respuesta estructurada.
-
-## Ejecución
+## Ejecutar en desarrollo
 
 ```bash
 npm run dev
 ```
 
-Abre [http://localhost:3000](http://localhost:3000).
-
-## Uso
-
-1. Selecciona una fecha.
-2. Pulsa **Buscar partidos**.
-3. Elige un partido.
-4. Navega las categorías y subsecciones del informe.
-5. Pulsa **Actualizar datos** para consultar recursos vencidos.
-6. Usa **Cambios manuales** para registrar una novedad verificable.
-7. Pulsa **Exportar HTML** para guardar un informe autónomo.
-
-El ejemplo incluido usa la fecha `2026-06-15` y se rotula siempre como demostración.
-
-## Motor de análisis
-
-### Marcadores y goles
-
-- Intensidades ofensivas y defensivas.
-- Distribución de Poisson.
-- Corrección Dixon–Coles para marcadores bajos.
-- Matriz completa de resultados.
-
-### Ensamble 1X2
-
-- 60 % Dixon–Coles.
-- 20 % simulación Monte Carlo reproducible.
-- 20 % regresión logística regularizada mediante coeficientes versionados.
-
-El peso puede evolucionar por competición cuando exista una muestra histórica suficiente.
-
-### Valor esperado
+Luego abre:
 
 ```text
-EV = probabilidad_modelo × cuota_decimal − 1
+http://localhost:3000
 ```
 
-Se elimina primero el margen del mercado al comparar resultados mutuamente excluyentes.
-
-### Arbitraje aritmético
-
-```text
-Σ (1 / mejor_cuota_resultado) < 1
-```
-
-Una coincidencia se muestra como “oportunidad aritmética detectada”. Latencia, límites, reglas, comisiones y anulaciones pueden eliminarla antes de ejecutar.
-
-### Evaluación prevista
-
-- Brier Score.
-- Log loss.
-- Ranked Probability Score.
-- Calibración.
-- MAE para conteos.
-- ROI/yield como métricas económicas secundarias.
-
-Gradient boosting permanece desactivado hasta contar con suficiente historial temporal fuera de muestra. Activarlo sin datos sería sobreajuste, no ciencia.
-
-## Datos y evidencia
-
-La precedencia es:
-
-1. Fuente oficial reciente.
-2. Proveedor estructurado.
-3. Entrada manual con fuente.
-4. Inferencia.
-
-Cuando falte árbitro, clima, xG, lesiones, alineaciones o datos de jugadores, la interfaz muestra **“Dato no disponible en la fuente actual”** o bloquea el mercado afectado.
-
-No se implementa scraping de páginas que no autoricen acceso automatizado. Las fuentes oficiales se registran mediante enlaces verificables.
-
-## Comandos
+## Comandos útiles
 
 ```bash
-npm test          # Vitest
-npm run test:e2e  # Playwright
-npm run lint      # ESLint
-npm run build     # Compilación de producción
-npm run db:seed   # Datos locales iniciales
+npm run lint       # Revisión de estilo y errores estáticos
+npm test           # Pruebas unitarias e integración
+npm run test:e2e   # Pruebas de navegador con Playwright
+npm run build      # Build de producción
+npm run db:status  # Estado de migraciones Prisma
 ```
 
-## Estructura
+## Estructura del proyecto
 
 ```text
-src/app          páginas y rutas internas
-src/components   interfaz
-src/data         datos demo
-src/lib/analysis motor de análisis
-src/lib/models   modelos matemáticos
-src/lib/providers adaptadores externos
-src/lib/services orquestación
-src/types        dominio normalizado
-prisma           esquema, migraciones y seed
-tests            unitarias, integración y e2e
+src/app                 Rutas, páginas y endpoints internos
+src/components          Interfaz y componentes visuales
+src/components/analysis Cabina de análisis e informe del partido
+src/lib/analysis        Motor de análisis probabilístico
+src/lib/backtesting     Métricas y validación histórica
+src/lib/historical      Forma reciente y señales históricas
+src/lib/lineups         Alineaciones esperadas y parciales
+src/lib/providers       Adaptadores de proveedores externos
+src/lib/services        Orquestación entre datos, DB y análisis
+src/types               Tipos de dominio normalizados
+prisma                  Esquema, migraciones y seed
+tests                   Unitarias, integración y e2e
+docs                    Auditorías, handoff y documentación técnica
 ```
 
-## Advertencia
+## Calidad y QA
 
-Este sistema es de apoyo analítico y no garantiza ganancias. Las apuestas deportivas implican riesgo de pérdida de dinero. No apuestes dinero que no puedas perder.
+Antes de considerar estable un cambio importante, se recomienda correr:
 
-## Empalme multi-IA
+```bash
+npx tsc --noEmit
+npm run lint
+npm test
+npm run test:e2e
+npm run build
+```
 
-Si trabajas con varias IAs en este repo, lee primero:
+También es recomendable revisar manualmente:
 
-- `docs/handoff/2026-06-29-complejidad-empalme-produccion.md` — clasificación de tareas, reglas del owner y bitácora.
-- `AGENTS.md` — reglas obligatorias para agentes.
+- búsqueda por fecha;
+- estados vacíos;
+- análisis de un partido con datos reales;
+- análisis con datos incompletos;
+- actualización de alineaciones;
+- visualización responsive;
+- endpoints `/api/health`, `/api/provider-status` y `/api/usage`.
+
+## Seguridad
+
+Buenas prácticas del repo:
+
+- `.env`, `.env.local` y `.env.*` están ignorados.
+- `.env.example` solo debe contener nombres de variables o valores vacíos.
+- Las claves deben configurarse en local o en el panel del hosting.
+- Los endpoints de estado no deben revelar secretos.
+- Antes de hacer público el repositorio, conviene escanear el árbol actual y el historial Git.
+
+## Despliegue
+
+El proyecto está preparado para Netlify con Next.js. Si el sitio está conectado por Git, recuerda que un push a la rama de producción puede disparar builds si Netlify tiene los builds activos.
+
+Para evitar consumo accidental de créditos, puedes pausar builds en Netlify antes de subir cambios grandes y activarlos solo cuando quieras desplegar.
+
+## Documentación útil
+
+- `docs/provider-setup.md`: configuración de proveedores.
+- `docs/deployment/netlify-neon-postgres.md`: guía de despliegue con Neon.
+- `docs/qa/manual-search-matrix.md`: matriz de QA manual.
+- `docs/handoff/2026-06-29-complejidad-empalme-produccion.md`: empalme y bitácora técnica.
+- `docs/audits/claude/2026-07-06-claude-web-free.md`: guía para auditoría externa con Claude Web Free.
+
+## Aviso responsable
+
+Analista Mundial Pro es una herramienta de apoyo analítico. Las apuestas deportivas implican riesgo financiero. No existe modelo que garantice ganancias ni aciertos perfectos.

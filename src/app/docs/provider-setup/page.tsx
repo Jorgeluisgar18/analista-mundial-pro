@@ -113,7 +113,7 @@ export default function ProviderSetupPage() {
               nunca deben quedar en commits, issues ni documentación pública.
             </p>
           </div>
-          <pre aria-label="Plantilla de variables de entorno">{`DATABASE_URL="postgresql://USER:PASSWORD@HOST.neon.tech/neondb?sslmode=require"
+          <pre aria-label="Plantilla de variables de entorno">{`DATABASE_URL=""
 FOOTBALL_API_KEY=""
 FOOTBALL_DATA_API_KEY=""
 FOOTBALLDATA_IO_API_KEY=""

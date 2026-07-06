@@ -7,7 +7,7 @@ Analista Mundial Pro funciona en modo demo sin claves, pero para usar partidos r
 Copia `.env.example` como `.env` y completa solo las claves que tengas:
 
 ```env
-DATABASE_URL="postgresql://USER:PASSWORD@HOST.neon.tech/neondb?sslmode=require&channel_binding=require"
+DATABASE_URL=""
 DIRECT_URL=""
 FOOTBALL_API_KEY=""
 FOOTBALL_DATA_API_KEY=""

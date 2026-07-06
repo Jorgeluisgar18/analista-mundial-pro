@@ -284,7 +284,7 @@ Estado acordado el 2026-07-02:
 - Motivo operativo: créditos Netlify consumidos; evitar builds/deploys adicionales por ahora.
 - Antes del commit futuro, repetir verificación mínima:
   1. `git status --short`
-  2. secret scan sobre claves reales (`f94612028`, `fd_5ad757`, `sk-...` real, etc.)
+  2. secret scan sobre claves reales conocidas del entorno local, sin documentar prefijos ni valores en el repositorio.
   3. `npm test`
   4. `npm run test:e2e`
   5. `npm run lint`

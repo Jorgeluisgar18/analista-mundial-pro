@@ -9,9 +9,11 @@ Analista Mundial Pro usa Postgres como base durable para producción. Neon es la
 Configura estas variables en Netlify:
 
 ```env
-DATABASE_URL="postgresql://USER:PASSWORD@HOST.neon.tech/neondb?sslmode=require&channel_binding=require"
-DIRECT_URL="postgresql://USER:PASSWORD@HOST.neon.tech/neondb?sslmode=require&channel_binding=require"
+DATABASE_URL=""
+DIRECT_URL=""
 ```
+
+Pega los valores reales únicamente en el panel seguro de Netlify o en tu `.env.local`.
 
 Notas:
 

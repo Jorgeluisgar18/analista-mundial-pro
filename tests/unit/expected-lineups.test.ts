@@ -3,6 +3,45 @@ import { demoDataset } from "@/data/demo";
 import { withExpectedLineups } from "@/lib/lineups/expectedLineups";
 
 describe("expected lineups", () => {
+  it("creates expected player names for both teams when provider returns no lineup rows", () => {
+    const dataset = structuredClone(demoDataset);
+    dataset.match.homeTeam = {
+      ...dataset.match.homeTeam,
+      id: "home-empty-lineup",
+      name: "Local sin once",
+    };
+    dataset.match.awayTeam = {
+      ...dataset.match.awayTeam,
+      id: "away-empty-lineup",
+      name: "Visitante sin once",
+    };
+    dataset.lineups = [];
+    dataset.players = [];
+    dataset.availability = [];
+
+    const enriched = withExpectedLineups(dataset);
+
+    expect(enriched.lineups).toHaveLength(2);
+    for (const lineup of enriched.lineups) {
+      expect(lineup.status).toBe("expected");
+      expect(lineup.confirmed).toBe(false);
+      expect(lineup.formation.value).toBe("4-2-3-1");
+      expect(lineup.formation.status).toBe("expected");
+      expect(lineup.starters).toHaveLength(11);
+      expect(lineup.starters).toEqual(
+        expect.arrayContaining(["POR esperado", "DC esperado"]),
+      );
+    }
+    expect(enriched.sources).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: "expected-lineups",
+          status: "expected",
+        }),
+      ]),
+    );
+  });
+
   it("builds transparent expected starters when official lineups are unavailable", () => {
     const dataset = structuredClone(demoDataset);
     dataset.match.homeTeam.id = "home";

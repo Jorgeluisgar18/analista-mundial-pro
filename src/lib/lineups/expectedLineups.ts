@@ -86,6 +86,29 @@ function expectedStarters(dataset: MatchDataset, teamId: string) {
   return starters;
 }
 
+function expectedFormationEvidence(observedAt = new Date().toISOString()) {
+  return {
+    value: DEFAULT_FORMATION,
+    status: "expected" as const,
+    sourceType: "inferred" as const,
+    source: "Motor de alineación esperada",
+    observedAt,
+    note:
+      "Formación probable hasta que el proveedor publique el once oficial.",
+  };
+}
+
+function missingLineup(teamId: string): LineupProjection {
+  return {
+    teamId,
+    formation: expectedFormationEvidence(),
+    alternativeFormation: DEFAULT_ALTERNATIVE,
+    status: "expected",
+    confirmed: false,
+    starters: [],
+  };
+}
+
 function expectedLineupSource(): SourceRecord {
   return {
     id: "expected-lineups",
@@ -115,6 +138,18 @@ export function withExpectedLineups(dataset: MatchDataset): MatchDataset {
   let changed = false;
   let hasExpectedLineups = false;
   let hasPartialOfficialLineups = false;
+
+  const requiredTeamIds = [
+    next.match.homeTeam.id,
+    next.match.awayTeam.id,
+  ].filter(Boolean);
+  const existingTeamIds = new Set(next.lineups.map((lineup) => lineup.teamId));
+  for (const teamId of requiredTeamIds) {
+    if (!existingTeamIds.has(teamId)) {
+      next.lineups.push(missingLineup(teamId));
+      existingTeamIds.add(teamId);
+    }
+  }
 
   next.lineups = next.lineups.map((lineup) => {
     if (lineup.confirmed && lineup.starters.length >= 11) {

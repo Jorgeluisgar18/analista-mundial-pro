@@ -2284,15 +2284,77 @@ textarea:focus-visible {
   margin-top: 16px;
 }
 
-.availability-list article {
+.availability-header {
+  padding: 18px 20px;
+  border: 1px solid var(--line);
+  background: rgba(8, 23, 25, 0.8);
+}
+
+.availability-header h3 {
+  margin-top: 8px;
+  font-family: var(--font-ui);
+  font-size: 20px;
+}
+
+.availability-header p {
+  margin-top: 8px;
+  color: var(--muted);
+  font-family: var(--font-editorial);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.availability-team-grid {
   display: grid;
-  grid-template-columns: 90px 1fr auto;
-  align-items: center;
-  gap: 18px;
-  min-height: 92px;
-  padding: 16px 20px;
-  border-bottom: 1px solid var(--line);
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.availability-team-card {
+  padding: 18px;
+  border: 1px solid var(--line);
   background: var(--surface);
+}
+
+.availability-team-header {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 12px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--line);
+}
+
+.availability-team-header strong {
+  font-family: var(--font-ui);
+  font-size: 15px;
+}
+
+.availability-team-header small {
+  color: var(--muted);
+  font-family: var(--font-ui);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.availability-items {
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.availability-item {
+  display: grid;
+  grid-template-columns: 90px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 16px;
+  min-height: 82px;
+  padding: 14px;
+  border: 1px solid rgba(227, 255, 247, 0.08);
+  background: rgba(4, 13, 15, 0.52);
 }
 
 .availability-type {
@@ -2306,6 +2368,15 @@ textarea:focus-visible {
 .availability-list strong {
   font-family: var(--font-ui);
   font-size: 14px;
+}
+
+.availability-evidence {
+  color: var(--muted);
+  font-family: var(--font-ui);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .availability-list p,
@@ -3248,7 +3319,8 @@ textarea:focus-visible {
     grid-template-columns: 1fr;
   }
 
-  .availability-list article {
+  .availability-team-grid,
+  .availability-item {
     grid-template-columns: 1fr;
   }
 

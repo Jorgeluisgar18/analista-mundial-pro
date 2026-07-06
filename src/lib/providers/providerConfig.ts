@@ -4,6 +4,7 @@ export interface ProviderStatus {
   id:
     | "api-football"
     | "football-data"
+    | "footballdata-io"
     | "the-sportsdb"
     | "odds-api"
     | "open-meteo";
@@ -22,6 +23,7 @@ export function getProviderStatus(
   env: ProviderEnvironment = {
     FOOTBALL_API_KEY: process.env.FOOTBALL_API_KEY,
     FOOTBALL_DATA_API_KEY: process.env.FOOTBALL_DATA_API_KEY,
+    FOOTBALLDATA_IO_API_KEY: process.env.FOOTBALLDATA_IO_API_KEY,
     THE_SPORTSDB_API_KEY: process.env.THE_SPORTSDB_API_KEY,
     ODDS_API_KEY: process.env.ODDS_API_KEY,
   },
@@ -46,13 +48,22 @@ export function getProviderStatus(
         "Calendarios y resultados de ligas europeas top y competiciones UEFA.",
     },
     {
+      id: "footballdata-io",
+      label: "Footballdata.io",
+      envName: "FOOTBALLDATA_IO_API_KEY",
+      configured: hasSecret(env.FOOTBALLDATA_IO_API_KEY),
+      docsUrl: "https://footballdata.io/documentation/",
+      purpose:
+        "Proveedor complementario de fixtures, resultados, rankings FIFA y estadisticas con cuota mensual gratuita.",
+    },
+    {
       id: "the-sportsdb",
       label: "TheSportsDB",
       envName: "THE_SPORTSDB_API_KEY",
       configured: hasSecret(env.THE_SPORTSDB_API_KEY),
       docsUrl: "https://www.thesportsdb.com/documentation",
       purpose:
-        "Enriquecimiento gratuito secundario: equipos, eventos, estadios, badges y contexto no crítico.",
+        "Enriquecimiento gratuito secundario: equipos, eventos, estadios, badges y contexto no critico.",
     },
     {
       id: "odds-api",
@@ -61,7 +72,7 @@ export function getProviderStatus(
       configured: hasSecret(env.ODDS_API_KEY),
       docsUrl: "https://the-odds-api.com/liveapi/guides/v4/",
       purpose:
-        "Cuotas prepartido para value betting, comparación de mercados y surebets.",
+        "Cuotas prepartido para value betting, comparacion de mercados y surebets.",
     },
     {
       id: "open-meteo",
@@ -79,12 +90,13 @@ export function hasConfiguredFootballProvider(env?: ProviderEnvironment) {
   const status = getProviderStatus(env);
   return status.some(
     (provider) =>
-      ["api-football", "football-data"].includes(provider.id) &&
-      provider.configured,
+      ["api-football", "football-data", "footballdata-io"].includes(
+        provider.id,
+      ) && provider.configured,
   );
 }
 
 export function missingFootballProviderWarning(env?: ProviderEnvironment) {
   if (hasConfiguredFootballProvider(env)) return undefined;
-  return "No hay proveedor real de fútbol configurado. Agrega FOOTBALL_API_KEY o FOOTBALL_DATA_API_KEY para consultar calendarios reales.";
+  return "No hay proveedor real de futbol configurado. Agrega FOOTBALL_API_KEY, FOOTBALL_DATA_API_KEY o FOOTBALLDATA_IO_API_KEY para consultar calendarios reales.";
 }

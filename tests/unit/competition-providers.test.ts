@@ -10,11 +10,12 @@ import {
 function apiFixture(
   id: number,
   league: { id: number; name: string; country: string },
+  date = "2026-08-15T14:00:00Z",
 ) {
   return {
     fixture: {
       id,
-      date: "2026-08-15T14:00:00Z",
+      date,
       status: { short: "NS" },
       venue: { name: "Estadio", city: "Ciudad" },
       referee: null,
@@ -75,29 +76,38 @@ describe("filtros por proveedor", () => {
     const fetcher = vi.fn(async () =>
       Response.json({
         response: [
-          apiFixture(1, {
-            id: 39,
-            name: "Premier League",
-            country: "England",
-          }),
-          apiFixture(2, {
-            id: 140,
-            name: "La Liga",
-            country: "Spain",
-          }),
+          apiFixture(
+            1,
+            {
+              id: 39,
+              name: "Premier League",
+              country: "England",
+            },
+            "2024-08-15T14:00:00Z",
+          ),
+          apiFixture(
+            2,
+            {
+              id: 140,
+              name: "La Liga",
+              country: "Spain",
+            },
+            "2024-08-15T14:00:00Z",
+          ),
         ],
       }),
     );
     const provider = new ApiFootballProvider("test", fetcher as typeof fetch);
 
     const result = await provider.listMatches(
-      "2026-08-15",
+      "2024-08-15",
       "premier-league",
     );
     const requestedUrl = firstRequestedUrl(fetcher);
 
     expect(requestedUrl.searchParams.get("timezone")).toBe("America/Bogota");
     expect(requestedUrl.searchParams.get("league")).toBe("39");
+    expect(requestedUrl.searchParams.get("season")).toBe("2024");
     expect(result.data).toHaveLength(1);
     expect(result.data[0].competition.name).toBe("Premier League");
     expect(result.data[0].homeTeam.logoUrl).toBe(
@@ -122,7 +132,8 @@ describe("filtros por proveedor", () => {
     const result = await provider.listMatches("2026-06-15", "wc-2026");
     const requestedUrl = firstRequestedUrl(fetcher);
 
-    expect(requestedUrl.searchParams.get("league")).toBe("1");
+    expect(requestedUrl.searchParams.has("league")).toBe(false);
+    expect(requestedUrl.searchParams.has("season")).toBe(false);
     expect(requestedUrl.searchParams.get("timezone")).toBe("America/Bogota");
     expect(result.data).toHaveLength(1);
     expect(result.data[0].competition.name).toBe("FIFA World Cup");

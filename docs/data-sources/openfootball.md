@@ -1,6 +1,6 @@
 # OpenFootball
 
-OpenFootball is an offline historical/import source. It is useful for World Cup structure, historical fixtures, league seasons and backtesting. It is not a live source for injuries, confirmed lineups, odds, referees or last-hour updates.
+OpenFootball is an offline historical/import source and match device for historical enrichment. It is useful for World Cup structure, historical fixtures, league seasons, team-name matching and backtesting. It is not a live source for injuries, confirmed lineups, odds, referees or last-hour updates.
 
 Rules:
 

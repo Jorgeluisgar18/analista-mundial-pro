@@ -1,6 +1,13 @@
 import { AnalysisSection } from "@/components/analysis/AnalysisSection";
 import type { MatchDataset } from "@/types/domain";
 
+function lineupLabel(lineup: MatchDataset["lineups"][number]) {
+  if (lineup.status === "official-partial") return "Oficial parcial";
+  if (lineup.status === "unavailable") return "No disponible";
+  if (lineup.confirmed || lineup.status === "confirmed") return "Confirmada";
+  return "Esperada";
+}
+
 export function SquadsSection({
   dataset,
   subsection,
@@ -17,7 +24,7 @@ export function SquadsSection({
         {dataset.lineups.map((lineup) => (
           <article key={lineup.teamId}>
             <span className="evidence-label">
-              {lineup.confirmed ? "Confirmada" : "Esperada"}
+              {lineupLabel(lineup)}
             </span>
             <h3>
               {lineup.teamId === dataset.match.homeTeam.id

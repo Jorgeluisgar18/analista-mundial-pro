@@ -3,7 +3,10 @@ import { createHash } from "node:crypto";
 import { analyzeMatch } from "@/lib/analysis/analysisEngine";
 import { prisma } from "@/lib/db/prisma";
 import { applyManualOverrides } from "@/lib/overrides/applyManualOverrides";
+import { withExpectedLineups } from "@/lib/lineups/expectedLineups";
+import { normalizeDatasetMetadata } from "@/lib/providers/normalizeDataset";
 import { matchService as defaultMatchService } from "@/lib/services/matchService";
+import { createHistoricalSignalService } from "@/lib/services/historicalSignalService";
 import type { AnalysisResult, MatchDataset } from "@/types/domain";
 
 function hashDataset(dataset: MatchDataset) {
@@ -213,6 +216,7 @@ export function createAnalysisService({
   matchService?: AnalysisMatchService;
   database?: typeof prisma;
 } = {}) {
+  const historicalSignals = createHistoricalSignalService(database);
   return {
     async getAnalysis(
       matchId: string,
@@ -220,6 +224,7 @@ export function createAnalysisService({
     ) {
       const dataset = await matchService.getById(matchId, options.bypassCache);
       if (!dataset) return null;
+      const normalizedDataset = normalizeDatasetMetadata(dataset);
       const dbMatch = await database.match.findUnique({
         where: { externalId: matchId },
       });
@@ -230,7 +235,7 @@ export function createAnalysisService({
           })
         : [];
       const adjustedDataset = applyManualOverrides(
-        dataset,
+        normalizedDataset,
         storedOverrides.map((override) => ({
           type: override.type as
             | "absence"
@@ -251,17 +256,21 @@ export function createAnalysisService({
           value: override.value ?? undefined,
         })),
       );
+      await historicalSignals.ingestFinishedDataset(adjustedDataset);
+      const historicallyEnrichedDataset =
+        await historicalSignals.enrich(adjustedDataset);
+      const lineupReadyDataset = withExpectedLineups(historicallyEnrichedDataset);
       const manuallyUpdated =
         Boolean(options.manuallyUpdated) || storedOverrides.length > 0;
-      const result = analyzeMatch(adjustedDataset, { manuallyUpdated });
+      const result = analyzeMatch(lineupReadyDataset, { manuallyUpdated });
       if (options.persist !== false) {
         try {
-          await persistAnalysis(database, adjustedDataset, result);
+          await persistAnalysis(database, lineupReadyDataset, result);
         } catch (error) {
           console.warn("No se pudo persistir el análisis:", error);
         }
       }
-      return { dataset: adjustedDataset, analysis: result };
+      return { dataset: lineupReadyDataset, analysis: result };
     },
   };
 }

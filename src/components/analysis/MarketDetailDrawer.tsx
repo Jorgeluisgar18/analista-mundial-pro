@@ -72,8 +72,8 @@ export function MarketDetailDrawer({
       case "result":
         return {
           name: "Ensamble Ponderado 1X2",
-          equation: "P = 0.60 · DixonColes + 0.20 · MonteCarlo + 0.20 · RegresiónLogística",
-          desc: "Combina la matriz de goles Dixon-Coles, 12,000 simulaciones estocásticas de Monte Carlo y un modelo de regresión logística basado en el histórico Elo, puntos recientes de forma y balance de xG local/visitante.",
+          equation: "P = calibrar(0.60 · DixonColes + 0.20 · MonteCarlo + 0.20 · RegresiónLogística)",
+          desc: "Combina la matriz de goles Dixon-Coles, 12,000 simulaciones estocásticas de Monte Carlo, regresión logística con Elo/forma/xG y, si Neon tiene muestra suficiente, contrae la probabilidad hacia tasas históricas calibradas con Brier, Log Loss y RPS.",
         };
       case "score":
         return {

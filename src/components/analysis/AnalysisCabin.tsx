@@ -32,8 +32,9 @@ export function AnalysisCabin({
   dataset: MatchDataset;
 }) {
   const [analysis, setAnalysis] = useState(initialAnalysis);
-  const [activeSection, setActiveSection] = useState<string>("markets");
-  const [activeSubsection, setActiveSubsection] = useState("Goles");
+  const [currentDataset, setCurrentDataset] = useState(dataset);
+  const [activeSection, setActiveSection] = useState<string>("summary");
+  const [activeSubsection, setActiveSubsection] = useState("Panorama");
   const [updateOpen, setUpdateOpen] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [selectedPrediction, setSelectedPrediction] = useState<Prediction | null>(null);
@@ -49,7 +50,10 @@ export function AnalysisCabin({
     try {
       const res = await fetch(`/api/match/${analysis.match.id}/refresh`, { method: "POST" });
       const body = await res.json();
-      if (res.ok && body.analysis) setAnalysis(body.analysis);
+      if (res.ok && body.analysis) {
+        setAnalysis(body.analysis);
+        if (body.dataset) setCurrentDataset(body.dataset);
+      }
     } finally {
       setRefreshing(false);
     }
@@ -101,11 +105,23 @@ export function AnalysisCabin({
             ))}
           </nav>
           <div className="analysis-content">
+            <div className="analysis-guidance">
+              <span className="section-kicker">Ruta del informe</span>
+              <strong>
+                {currentNavigation.label.replace(/^\d+\s·\s/, "")} ·{" "}
+                {activeSubsection}
+              </strong>
+              <p>
+                Recorre el informe de izquierda a derecha: primero entiende la
+                lectura general, luego contexto y táctica, y solo después evalúa
+                mercados, valor y fuentes.
+              </p>
+            </div>
             <SectionContent
               activeSection={activeSection}
               activeSubsection={activeSubsection}
               analysis={analysis}
-              dataset={dataset}
+              dataset={currentDataset}
               onSelectPrediction={(p) => setSelectedPrediction(p)}
             />
           </div>
@@ -138,5 +154,3 @@ export function AnalysisCabin({
     </div>
   );
 }
-
-

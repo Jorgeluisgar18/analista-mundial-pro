@@ -54,7 +54,7 @@
 | P1-3 | QA casos reales por liga/competiciÃ³n/fecha | ðŸŸ¡ Matriz creada, no ejecutada |
 | P1-4 | OptimizaciÃ³n holÃ­stica de cachÃ© (matchService + snapshot + quota) | ðŸ”´ No iniciado |
 | P2-2 | Commit organizado de cambios locales acumulados | ðŸŸ¡ 26 archivos sin commit (COT, overrides demo, health, providers) |
-| P2-3 | ValidaciÃ³n local Neon con DATABASE_URL real | ðŸŸ¡ No verificado |
+| P2-3 | Validación local Neon con DATABASE_URL real | ✅ Verificado localmente el 2026-07-02 |
 | P2-4 | Ampliar E2E visuales/responsive (screenshots, mÃ¡s viewports) | ðŸŸ¡ Pendiente |
 | P2-5 | Consistencia de docs (migraciones Netlify, CSP stale, README) | ðŸŸ¡ Pendiente |
 | P2-6 | Plantilla QA manual bÃºsquedas clave | ðŸŸ¡ Creada en sesiÃ³n anterior, verificar |
@@ -272,6 +272,26 @@ Smoke: `docs/qa/production-smoke.md`
 | 2026-06-30 | Codex | Visual identity equipos/selecciones: nuevo `TeamVisual`, banderas reales para selecciones vía ISO/FlagCDN, escudos/logos desde API-Football (`logo`) y Football-Data (`crest`), CSP/Next Image configurado para dominios deportivos. | **Lint:** OK. **Tests:** 32/36 files, 94 pass, 7 skip. **Build:** OK. **E2E:** 8 passed, 1 skipped. Validado visualmente en lista y cabina local. Sin push/deploy. | Siguiente: al desplegar, validar que logos reales de API-Football/Football-Data carguen en producción bajo CSP de Netlify. |
 | 2026-06-30 | IA actual | Diagnóstico y fix para Mundial 2026: `wc-2026` → league ID `1` retorna 0 fixtures en API-Football. Fix: fallback sin league ID + filtro por nombre "World Cup". Build+test OK. No deploy (owner acumula cambios). | **Build:** OK. **Tests:** 32/36 files, 94 pass, 7 skip. **Prod:** `/${api/matches}?competition=wc-2026` → 0 (código viejo). API-Football 16/100 usados. Fix en local pendiente de deploy. | Codex: incluir fix WC en próximo deploy autorizado (P2-2). |
 | 2026-07-01 | Codex | Hardening OpenCode: limpiado ruido de `next-env.d.ts`, test TDD para fallback Mundial 2026 y protección de cuota, fallback sin league ID limitado a `wc-2026`, no a ligas top. | **Lint:** OK. **Tests:** 33/37 files, 96 pass, 7 skip. **Build:** OK. **E2E:** 8 passed, 1 skipped. Sin deploy. | Incluir en próximo lote autorizado; validar en producción que `wc-2026` retorne fixtures reales sin exceder cuota API-Football. |
+| 2026-07-02 | Codex | QA funcional + auditoría navegación/UI: validación local de búsquedas demo/vacías/reales, análisis real API-Football, mobile, anchors, rutas críticas y guía de proveedores. Fixes: `/docs/provider-setup` dejó de redirigir y ahora es página real; mobile actionbar reordenada para que `Partidos` no quede bloqueado por overlay dev; E2E actualizado para flujo actual. | **No commit, no push, no deploy.** **Tests:** `npm test` 103 pass, 7 skip. **E2E:** 9 pass, 1 skip. **Lint:** OK. **Build:** OK. Secret scan sin claves reales; falsos positivos `sk-` eran `mask-image`/`risk-`. | **Pendiente por créditos Netlify:** hacer un solo commit grande cuando owner autorice. No desplegar hasta recuperar/confirmar créditos Netlify. |
+| 2026-07-02 | Codex | Conexión Neon local: creado proyecto Neon para la app, configurado `.env.local` con `DATABASE_URL`/`DIRECT_URL`, Prisma CLI ahora carga `.env.local`, migraciones aplicadas y seed ejecutado. | **DB local:** connected. **`npm run db:status`:** up to date. **`/api/health`:** `database=connected`, `telemetryStatus=connected`. **Lint/build/tests focalizados:** OK. `.env.local` ignorado por Git. | Mantener secreto fuera del repo. En futuro commit incluir solo `prisma.config.ts` y `prisma/seed.ts`, no `.env.local`. |
+
+### Pendiente explícito: commit único grande, sin deploy por créditos Netlify
+
+Estado acordado el 2026-07-02:
+
+- El owner pidió dejar los cambios acumulados para **un solo commit grande más adelante**.
+- **No ejecutar `git commit`, `git push` ni deploy de Netlify** hasta autorización explícita.
+- Motivo operativo: créditos Netlify consumidos; evitar builds/deploys adicionales por ahora.
+- Antes del commit futuro, repetir verificación mínima:
+  1. `git status --short`
+  2. secret scan sobre claves reales (`f94612028`, `fd_5ad757`, `sk-...` real, etc.)
+  3. `npm test`
+  4. `npm run test:e2e`
+  5. `npm run lint`
+  6. `npm run build`
+- Commit sugerido cuando se autorice:
+  - `feat: consolidate real providers, premium UX and QA hardening`
+- Deploy sugerido: solo después de que el owner confirme créditos Netlify disponibles o una ventana controlada de deploy.
 ---
 
 ## 9. Prompts para Codex 5.5 High (prÃ³xima sesiÃ³n)
@@ -364,6 +384,7 @@ Tarea: P2-2 Commit organizado
 | `docs/qa/production-smoke.md` | Smoke post-deploy |
 | `docs/qa/manual-search-matrix.md` | Matriz QA manual |
 | `docs/data-sources/thesportsdb.md` | Plan TheSportsDB |
+| `docs/data-sources/odds-api.md` | IntegraciÃ³n The Odds API conservadora para plan gratis |
 | `docs/data-sources/openfootball.md` | Plan OpenFootball |
 | `docs/security/auth-workspace-decision.md` | Auth futura (no MVP) |
 | `docs/superpowers/plans/2026-06-27-master-audit-backlog-ui-agents-plan.md` | Backlog histÃ³rico |

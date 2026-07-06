@@ -35,6 +35,94 @@ describe("matchService", () => {
     }
   });
 
+  it("prefija IDs de proveedores reales y abre el detalle en el proveedor correcto", async () => {
+    const firstProviderDetailCall = vi.fn();
+    const secondProviderDetailCall = vi.fn();
+    const apiDataset = structuredClone(demoDataset);
+    apiDataset.match.id = "same-id";
+    apiDataset.match.homeTeam.name = "Equipo equivocado";
+    const expectedDataset = structuredClone(demoDataset);
+    expectedDataset.match.id = "same-id";
+    expectedDataset.match.homeTeam.name = "Equipo correcto";
+    const service = createMatchService({
+      providers: {
+        football: [
+          {
+            id: "api-football",
+            async listMatches() {
+              return {
+                data: [],
+                meta: {
+                  source: "API-Football",
+                  fetchedAt: new Date().toISOString(),
+                  isStale: false,
+                  warnings: [],
+                },
+              };
+            },
+            async getMatch(id: string) {
+              firstProviderDetailCall(id);
+              return {
+                data: apiDataset,
+                meta: {
+                  source: "API-Football",
+                  fetchedAt: new Date().toISOString(),
+                  isStale: false,
+                  warnings: [],
+                },
+              };
+            },
+          },
+          {
+            id: "footballdata-io",
+            async listMatches() {
+              return {
+                data: [
+                  {
+                    ...demoDataset.match,
+                    id: "same-id",
+                    homeTeam: {
+                      ...demoDataset.match.homeTeam,
+                      name: "Equipo correcto",
+                    },
+                  },
+                ],
+                meta: {
+                  source: "Footballdata.io",
+                  fetchedAt: new Date().toISOString(),
+                  isStale: false,
+                  warnings: [],
+                },
+              };
+            },
+            async getMatch(id: string) {
+              secondProviderDetailCall(id);
+              return {
+                data: expectedDataset,
+                meta: {
+                  source: "Footballdata.io",
+                  fetchedAt: new Date().toISOString(),
+                  isStale: false,
+                  warnings: [],
+                },
+              };
+            },
+          },
+        ],
+      },
+    });
+
+    const listed = await service.listByDate("2026-06-15");
+    expect(listed.matches[0]?.id).toBe("footballdata-io--same-id");
+
+    const detail = await service.getById("footballdata-io--same-id", true);
+
+    expect(firstProviderDetailCall).not.toHaveBeenCalled();
+    expect(secondProviderDetailCall).toHaveBeenCalledWith("same-id");
+    expect(detail?.match.id).toBe("footballdata-io--same-id");
+    expect(detail?.match.homeTeam.name).toBe("Equipo correcto");
+  });
+
   it("protege la cuota gratis de API-Football y evita llamar al proveedor cuando queda reserva baja", async () => {
     mockedGetApiUsageSnapshot.mockResolvedValueOnce([
       {
@@ -87,6 +175,47 @@ describe("matchService", () => {
     expect(providerCall).not.toHaveBeenCalled();
     expect(result.mode).toBe("demo");
     expect(result.warnings.join(" ")).toMatch(/plan gratuito/i);
+  });
+
+  it("conserva advertencias del proveedor aunque la respuesta venga sin partidos", async () => {
+    const service = createMatchService({
+      providers: {
+        football: [
+          {
+            id: "api-football",
+            async listMatches() {
+              return {
+                data: [],
+                meta: {
+                  source: "API-Football",
+                  fetchedAt: new Date().toISOString(),
+                  isStale: false,
+                  warnings: [
+                    "API-Football omitido para esta liga/temporada en plan gratuito; se intenta con proveedores complementarios.",
+                  ],
+                },
+              };
+            },
+            async getMatch() {
+              return {
+                data: null,
+                meta: {
+                  source: "API-Football",
+                  fetchedAt: new Date().toISOString(),
+                  isStale: false,
+                  warnings: [],
+                },
+              };
+            },
+          },
+        ],
+      },
+    });
+
+    const result = await service.listByDate("2026-07-01", "premier-league");
+
+    expect(result.warnings.join(" ")).toMatch(/omitido/i);
+    expect(result.warnings.join(" ")).toMatch(/API-Football: sin partidos/i);
   });
 
   it("incorpora el clima externo al dataset antes del análisis", async () => {
@@ -154,6 +283,91 @@ describe("matchService", () => {
       ]),
     );
   });
+  it("aplica proveedores de enriquecimiento al dataset antes de devolver el detalle", async () => {
+    const dataset = structuredClone(demoDataset);
+    dataset.match.id = "external-enrichment-test";
+    dataset.match.dataOrigin = "API";
+    dataset.match.homeTeam.logoUrl = undefined;
+    const service = createMatchService({
+      providers: {
+        football: [
+          {
+            id: "football-test",
+            async listMatches() {
+              return {
+                data: [],
+                meta: {
+                  source: "football-test",
+                  fetchedAt: new Date().toISOString(),
+                  isStale: false,
+                  warnings: [],
+                },
+              };
+            },
+            async getMatch() {
+              return {
+                data: dataset,
+                meta: {
+                  source: "football-test",
+                  fetchedAt: new Date().toISOString(),
+                  isStale: false,
+                  warnings: [],
+                },
+              };
+            },
+          },
+        ],
+        enrichment: [
+          {
+            id: "enrichment-test",
+            async enrich(inputDataset) {
+              return {
+                data: {
+                  ...inputDataset,
+                  match: {
+                    ...inputDataset.match,
+                    homeTeam: {
+                      ...inputDataset.match.homeTeam,
+                      logoUrl: "https://img.example/enriched.png",
+                    },
+                  },
+                  sources: [
+                    ...inputDataset.sources,
+                    {
+                      id: "enrichment-source",
+                      label: "Enrichment",
+                      type: "provider" as const,
+                      status: "confirmed" as const,
+                      observedAt: "2026-07-01T12:00:00.000Z",
+                      detail: "Contexto enriquecido.",
+                    },
+                  ],
+                },
+                meta: {
+                  source: "Enrichment",
+                  fetchedAt: "2026-07-01T12:00:00.000Z",
+                  isStale: false,
+                  warnings: [],
+                },
+              };
+            },
+          },
+        ],
+      },
+    });
+
+    const result = await service.getById("external-enrichment-test");
+
+    expect(result?.match.homeTeam.logoUrl).toBe(
+      "https://img.example/enriched.png",
+    );
+    expect(result?.sources).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: "enrichment-source" }),
+      ]),
+    );
+  });
+
   it("reutiliza clima y cuotas frescas para no gastar llamadas externas", async () => {
     const dataset = structuredClone(demoDataset);
     dataset.match.id = "external-cache-test";
@@ -241,6 +455,77 @@ describe("matchService", () => {
     );
     expect(weatherCall).not.toHaveBeenCalled();
     expect(oddsCall).not.toHaveBeenCalled();
+  });
+
+  it("omite The Odds API cuando la reserva mensual local está comprometida", async () => {
+    mockedGetApiUsageSnapshot
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([
+        {
+          provider: "The Odds API",
+          used: 480,
+          limit: 500,
+          period: "month",
+          periodKey: "2026-07",
+          resetsAt: "2026-08-01T00:00:00.000Z",
+          updatedAt: "2026-07-01T12:00:00.000Z",
+        },
+      ]);
+    const dataset = structuredClone(demoDataset);
+    dataset.match.id = "external-odds-quota-test";
+    dataset.match.dataOrigin = "API";
+    dataset.odds = [];
+    const oddsCall = vi.fn();
+    const service = createMatchService({
+      providers: {
+        football: [
+          {
+            id: "football-test",
+            async listMatches() {
+              return {
+                data: [],
+                meta: {
+                  source: "football-test",
+                  fetchedAt: new Date().toISOString(),
+                  isStale: false,
+                  warnings: [],
+                },
+              };
+            },
+            async getMatch() {
+              return {
+                data: dataset,
+                meta: {
+                  source: "football-test",
+                  fetchedAt: new Date().toISOString(),
+                  isStale: false,
+                  warnings: [],
+                },
+              };
+            },
+          },
+        ],
+        odds: {
+          id: "the-odds-api",
+          async getOdds() {
+            oddsCall();
+            throw new Error("No debió consultar odds con reserva baja");
+          },
+        },
+      },
+    });
+
+    const result = await service.getById("external-odds-quota-test");
+
+    expect(oddsCall).not.toHaveBeenCalled();
+    expect(result?.sources).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: "odds-quota-guard",
+          detail: expect.stringMatching(/plan gratuito/i),
+        }),
+      ]),
+    );
   });
 
   it("devuelve el snapshot persistente fresco antes de invocar el proveedor principal", async () => {

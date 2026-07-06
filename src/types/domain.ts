@@ -59,6 +59,7 @@ export interface NormalizedMatch {
   timezone: string;
   dataOrigin: DataOrigin;
   fetchedAt: string;
+  scoreFullTime?: [number, number];
 }
 
 export interface TeamForm {
@@ -106,6 +107,7 @@ export interface LineupProjection {
   teamId: string;
   formation: Evidence<string>;
   alternativeFormation?: string;
+  status?: "confirmed" | "official-partial" | "expected" | "unavailable";
   confirmed: boolean;
   starters: string[];
 }
@@ -137,6 +139,38 @@ export interface MatchDataset {
     tacticalSummary: string;
   };
   sources: SourceRecord[];
+  historical?: {
+    homeForm?: {
+      matches: number;
+      weightedPointsPerGame: number;
+      strengthAdjustedPointsPerGame: number;
+      goalsFor: number;
+      goalsAgainst: number;
+      cleanSheetRate: number;
+      source: "historical";
+    };
+    awayForm?: {
+      matches: number;
+      weightedPointsPerGame: number;
+      strengthAdjustedPointsPerGame: number;
+      goalsFor: number;
+      goalsAgainst: number;
+      cleanSheetRate: number;
+      source: "historical";
+    };
+    calibration?: {
+      sampleSize: number;
+      brier: number;
+      logLoss: number;
+      rps: number;
+      empirical: {
+        home: number;
+        draw: number;
+        away: number;
+      };
+      confidenceMultiplier: number;
+    };
+  };
 }
 
 export interface SourceRecord {
@@ -234,6 +268,15 @@ export interface AnalysisResult {
     freshness: number;
     agreement: number;
     lineupConfirmed: boolean;
+    note: string;
+  };
+  calibration: {
+    sampleSize: number;
+    brier?: number;
+    logLoss?: number;
+    rps?: number;
+    applied: boolean;
+    confidenceMultiplier: number;
     note: string;
   };
 }

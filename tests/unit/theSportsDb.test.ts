@@ -1,5 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { TheSportsDbClient } from "@/lib/providers/theSportsDb";
+import { TheSportsDbEnrichmentProvider } from "@/lib/providers/theSportsDb";
+import { demoDataset } from "@/data/demo";
 
 describe("TheSportsDB client", () => {
   it("treats null event roots as an empty result", async () => {
@@ -25,6 +27,72 @@ describe("TheSportsDB client", () => {
 
     await expect(client.eventsByDay("2026-06-27")).rejects.toThrow(
       "TheSportsDB rate limit reached",
+    );
+  });
+
+  it("enriquece un dataset con badges de equipos y detalle de evento", async () => {
+    const fetcher = vi.fn(async (input: URL | Request | string) => {
+      const url = new URL(String(input));
+      if (url.pathname.endsWith("/eventsday.php")) {
+        return Response.json({
+          events: [
+            {
+              idEvent: "tsdb-event-1",
+              strEvent: "Colombia vs Brazil",
+              strHomeTeam: "Colombia",
+              strAwayTeam: "Brazil",
+              dateEvent: "2026-06-15",
+              strVenue: "MetLife Stadium",
+              strCity: "East Rutherford",
+              strCountry: "United States",
+              strThumb: "https://img.example/event.jpg",
+            },
+          ],
+        });
+      }
+      if (url.pathname.endsWith("/searchteams.php")) {
+        const team = url.searchParams.get("t");
+        return Response.json({
+          teams: [
+            {
+              idTeam: team === "Colombia" ? "1" : "2",
+              strTeam: team === "Brasil" ? "Brazil" : team,
+              strTeamBadge:
+                team === "Colombia"
+                  ? "https://img.example/colombia.png"
+                  : "https://img.example/brazil.png",
+              strCountry: team === "Colombia" ? "Colombia" : "Brazil",
+              strStadium:
+                team === "Colombia" ? "Estadio Metropolitano" : "Maracana",
+            },
+          ],
+        });
+      }
+      return Response.json({});
+    });
+    const provider = new TheSportsDbEnrichmentProvider({
+      apiKey: "123",
+      baseUrl: "https://www.thesportsdb.com/api/v1/json",
+      timeoutMs: 8000,
+      fetcher: fetcher as typeof fetch,
+    });
+
+    const result = await provider.enrich(structuredClone(demoDataset));
+
+    expect(result.data.match.homeTeam.logoUrl).toBe(
+      "https://img.example/colombia.png",
+    );
+    expect(result.data.match.awayTeam.logoUrl).toBe(
+      "https://img.example/brazil.png",
+    );
+    expect(result.data.sources).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: "thesportsdb-enrichment",
+          status: "confirmed",
+          detail: expect.stringContaining("escudos"),
+        }),
+      ]),
     );
   });
 });

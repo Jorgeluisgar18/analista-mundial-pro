@@ -45,6 +45,11 @@ export interface WeatherProvider {
   ): Promise<ProviderResult<Evidence<string>>>;
 }
 
+export interface MatchEnrichmentProvider {
+  readonly id: string;
+  enrich(dataset: MatchDataset): Promise<ProviderResult<MatchDataset>>;
+}
+
 export type UsagePeriod = "minute" | "day" | "month" | "fair-use";
 
 export interface ProviderUsageEvent {

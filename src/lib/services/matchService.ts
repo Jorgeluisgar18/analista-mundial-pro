@@ -11,7 +11,9 @@ import {
 } from "@/lib/providers/providerConfig";
 import type {
   FootballProvider,
+  MatchEnrichmentProvider,
   OddsProvider,
+  ProviderResult,
   WeatherProvider,
 } from "@/lib/providers/types";
 import type { MatchDataset } from "@/types/domain";
@@ -40,25 +42,53 @@ export function createMatchService({
     football: FootballProvider[];
     odds?: OddsProvider;
     weather?: WeatherProvider;
+    enrichment?: MatchEnrichmentProvider[];
   };
   now?: () => Date;
   snapshotCache?: Pick<MatchSnapshotCache, "getFreshDataset">;
 } = {}) {
   const providers = injectedProviders ?? createProviderRegistry(env);
   const providerStatus = () => getProviderStatus(env);
+  const scopedId = (providerId: string, id: string) =>
+    id.includes("--") || id.includes(":") ? id : `${providerId}--${id}`;
+  const splitScopedId = (id: string) => {
+    const separator = id.includes("--") ? id.indexOf("--") : id.indexOf(":");
+    const separatorLength = id.includes("--") ? 2 : 1;
+    if (separator <= 0) return { providerId: undefined, rawId: id };
+    return {
+      providerId: id.slice(0, separator),
+      rawId: id.slice(separator + separatorLength),
+    };
+  };
+  const scopeDataset = (dataset: MatchDataset, providerId: string, requestedId?: string) => {
+    const next = structuredClone(dataset);
+    next.match.id = requestedId ?? scopedId(providerId, next.match.id);
+    return next;
+  };
 
   async function providerQuotaWarning(providerId: string) {
-    if (providerId !== "api-football") return undefined;
     const { getApiUsageSnapshot } = await import(
       "@/lib/services/apiUsageService"
     );
-    const usage = (await getApiUsageSnapshot()).find(
-      (record) => record.provider === "API-Football" && record.period === "day",
+    const usage = await getApiUsageSnapshot();
+    const target =
+      providerId === "api-football"
+        ? { provider: "API-Football", period: "day" as const, reserve: 10 }
+        : providerId === "footballdata-io"
+          ? { provider: "Footballdata.io", period: "month" as const, reserve: 100 }
+        : providerId === "the-odds-api"
+          ? { provider: "The Odds API", period: "month" as const, reserve: 25 }
+          : undefined;
+    if (!target) return undefined;
+
+    const record = usage.find(
+      (item) =>
+        item.provider === target.provider && item.period === target.period,
     );
-    const decision = apiQuotaDecision(usage);
+    const decision = apiQuotaDecision(record, { reserve: target.reserve });
     return decision.shouldCall
       ? undefined
-      : `API-Football omitido para proteger el plan gratuito. ${decision.reason}`;
+      : `${target.provider} omitido para proteger el plan gratuito. ${decision.reason}`;
   }
 
   return {
@@ -79,9 +109,13 @@ export function createMatchService({
               fetchedAt: result.meta.fetchedAt,
               warnings: result.meta.warnings,
               providerStatus: providerStatus(),
-              matches: result.data,
+              matches: result.data.map((match) => ({
+                ...match,
+                id: scopedId(provider.id, match.id),
+              })),
             };
           }
+          warnings.push(...result.meta.warnings);
           warnings.push(`${result.meta.source}: sin partidos.`);
         } catch (error) {
           warnings.push(
@@ -115,6 +149,7 @@ export function createMatchService({
     async getById(id: string, bypassCache?: boolean): Promise<MatchDataset | null> {
       const demoDataset = getDemoDatasetById(id);
       if (demoDataset) return demoDataset;
+      const requested = splitScopedId(id);
       if (!bypassCache) {
         const cache =
           snapshotCache ?? (injectedProviders ? undefined : await getDefaultSnapshotCache());
@@ -123,11 +158,15 @@ export function createMatchService({
       }
 
       for (const provider of providers.football) {
+        if (requested.providerId && provider.id !== requested.providerId) {
+          continue;
+        }
         const quotaWarning = await providerQuotaWarning(provider.id);
         if (quotaWarning) continue;
         try {
-          const result = await provider.getMatch(id);
+          const result = await provider.getMatch(requested.rawId);
           if (result.data) {
+            result.data = scopeDataset(result.data, provider.id, requested.providerId ? id : undefined);
             const weatherSource = result.data.sources.find(
               (source) => source.id === "weather-provider",
             );
@@ -191,7 +230,10 @@ export function createMatchService({
               observedAt: oddsSource?.observedAt ?? latestOddObservedAt,
               now: now(),
             });
-            if (providers.odds && oddsDecision.shouldRefresh) {
+            const oddsQuotaWarning = providers.odds
+              ? await providerQuotaWarning(providers.odds.id)
+              : undefined;
+            if (providers.odds && oddsDecision.shouldRefresh && !oddsQuotaWarning) {
               try {
                 const odds = await providers.odds.getOdds(result.data.match);
                 result.data.odds = odds.data;
@@ -203,18 +245,31 @@ export function createMatchService({
                   observedAt: odds.meta.fetchedAt,
                   detail: odds.data.length
                     ? "Snapshot de cuotas bajo demanda."
-                    : "Cuotas no disponibles para el partido.",
+                    : (odds.meta.warnings[0] ??
+                      "Cuotas no disponibles para el partido."),
                 });
-              } catch {
+              } catch (error) {
                 result.data.sources.push({
                   id: "odds-provider-error",
                   label: "Proveedor de cuotas",
                   type: "provider",
                   status: "unavailable",
                   observedAt: new Date().toISOString(),
-                  detail: "No fue posible consultar cuotas en este momento.",
+                  detail:
+                    error instanceof Error
+                      ? error.message
+                      : "No fue posible consultar cuotas en este momento.",
                 });
               }
+            } else if (providers.odds && oddsQuotaWarning) {
+              result.data.sources.push({
+                id: "odds-quota-guard",
+                label: "The Odds API",
+                type: "provider",
+                status: "unavailable",
+                observedAt: new Date().toISOString(),
+                detail: oddsQuotaWarning,
+              });
             } else if (providers.odds && oddsSource) {
               result.data.sources.push({
                 id: "odds-cache-hit",
@@ -224,6 +279,23 @@ export function createMatchService({
                 observedAt: oddsSource.observedAt,
                 detail: `Cuotas reutilizadas por caché: ${oddsDecision.reason}`,
               });
+            }
+            for (const enrichmentProvider of providers.enrichment ?? []) {
+              try {
+                const enriched: ProviderResult<MatchDataset> =
+                  await enrichmentProvider.enrich(result.data);
+                result.data = enriched.data;
+              } catch {
+                result.data.sources.push({
+                  id: `${enrichmentProvider.id}-error`,
+                  label: "Proveedor de enriquecimiento",
+                  type: "provider",
+                  status: "unavailable",
+                  observedAt: new Date().toISOString(),
+                  detail:
+                    "No fue posible enriquecer contexto visual/secundario en este momento.",
+                });
+              }
             }
             return result.data;
           }

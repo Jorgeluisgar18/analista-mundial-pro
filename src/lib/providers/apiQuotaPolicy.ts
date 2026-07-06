@@ -14,10 +14,10 @@ export function apiQuotaDecision(
   usage: ApiUsageSnapshotRecord | undefined,
   { reserve = 10 }: { reserve?: number } = {},
 ) {
-  if (!usage || usage.period !== "day") {
+  if (!usage) {
     return {
       shouldCall: true,
-      reason: "Sin telemetría diaria previa; se permite una consulta controlada.",
+      reason: "Sin telemetría previa; se permite una consulta controlada.",
     };
   }
 
@@ -26,13 +26,13 @@ export function apiQuotaDecision(
     return {
       shouldCall: false,
       remaining,
-      reason: `Reserva diaria protegida: quedan ${remaining}/${usage.limit} requests y la reserva configurada es ${reserve}.`,
+      reason: `Reserva ${usage.period} protegida: quedan ${remaining}/${usage.limit} requests y la reserva configurada es ${reserve}.`,
     };
   }
 
   return {
     shouldCall: true,
     remaining,
-    reason: `Quedan ${remaining}/${usage.limit} requests, por encima de la reserva ${reserve}.`,
+    reason: `Quedan ${remaining}/${usage.limit} requests (${usage.period}), por encima de la reserva ${reserve}.`,
   };
 }

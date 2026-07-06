@@ -9,6 +9,7 @@ describe("providerConfig", () => {
     const status = getProviderStatus({
       FOOTBALL_API_KEY: "api-football-secret",
       FOOTBALL_DATA_API_KEY: "",
+      FOOTBALLDATA_IO_API_KEY: "footballdata-io-secret",
       THE_SPORTSDB_API_KEY: "sportsdb-secret",
       ODDS_API_KEY: "odds-secret",
     });
@@ -26,6 +27,11 @@ describe("providerConfig", () => {
           configured: false,
         }),
         expect.objectContaining({
+          id: "footballdata-io",
+          envName: "FOOTBALLDATA_IO_API_KEY",
+          configured: true,
+        }),
+        expect.objectContaining({
           id: "the-sportsdb",
           envName: "THE_SPORTSDB_API_KEY",
           configured: true,
@@ -38,6 +44,7 @@ describe("providerConfig", () => {
       ]),
     );
     expect(JSON.stringify(status)).not.toContain("api-football-secret");
+    expect(JSON.stringify(status)).not.toContain("footballdata-io-secret");
     expect(JSON.stringify(status)).not.toContain("sportsdb-secret");
     expect(JSON.stringify(status)).not.toContain("odds-secret");
   });
@@ -47,12 +54,19 @@ describe("providerConfig", () => {
       hasConfiguredFootballProvider({
         FOOTBALL_API_KEY: "",
         FOOTBALL_DATA_API_KEY: "",
+        FOOTBALLDATA_IO_API_KEY: "",
       }),
     ).toBe(false);
 
     expect(
       hasConfiguredFootballProvider({
         FOOTBALL_DATA_API_KEY: "token",
+      }),
+    ).toBe(true);
+
+    expect(
+      hasConfiguredFootballProvider({
+        FOOTBALLDATA_IO_API_KEY: "token",
       }),
     ).toBe(true);
   });

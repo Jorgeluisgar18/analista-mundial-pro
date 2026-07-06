@@ -35,6 +35,17 @@ interface ApiFootballFixture {
     home: { id: number; name: string; code?: string; logo?: string };
     away: { id: number; name: string; code?: string; logo?: string };
   };
+  goals?: {
+    home?: number | null;
+    away?: number | null;
+  };
+}
+
+function scoreFullTime(item: ApiFootballFixture): [number, number] | undefined {
+  return typeof item.goals?.home === "number" &&
+    typeof item.goals?.away === "number"
+    ? [item.goals.home, item.goals.away]
+    : undefined;
 }
 
 function normalizeStatus(short: string): NormalizedMatch["status"] {
@@ -46,6 +57,23 @@ function normalizeStatus(short: string): NormalizedMatch["status"] {
 
 function shouldRetryWithoutLeague(competition?: string) {
   return findSupportedCompetition(competition)?.slug === "wc-2026";
+}
+
+function seasonFromDate(date: string) {
+  return Number(date.slice(0, 4));
+}
+
+function shouldUseBroadDateSearch(competition?: string) {
+  return findSupportedCompetition(competition)?.slug === "wc-2026";
+}
+
+function shouldSkipApiFootballFreeSeason(date: string, competition?: string) {
+  const supported = findSupportedCompetition(competition);
+  return Boolean(
+    supported &&
+      supported.kind === "CLUB" &&
+      seasonFromDate(date) > 2024,
+  );
 }
 
 export class ApiFootballProvider implements FootballProvider {
@@ -116,6 +144,7 @@ export class ApiFootballProvider implements FootballProvider {
     url.searchParams.set("timezone", APP_TIME_ZONE);
     if (league) {
       url.searchParams.set("league", String(league));
+      url.searchParams.set("season", String(seasonFromDate(date)));
     }
     const response = await this.fetcher(url, {
       headers: { "x-apisports-key": this.apiKey },
@@ -153,7 +182,23 @@ export class ApiFootballProvider implements FootballProvider {
     date: string,
     competition?: string,
   ): Promise<ProviderResult<NormalizedMatch[]>> {
-    const leagueId = resolveApiFootballLeague(competition);
+    if (shouldSkipApiFootballFreeSeason(date, competition)) {
+      return {
+        data: [],
+        meta: {
+          source: "API-Football",
+          fetchedAt: new Date().toISOString(),
+          isStale: false,
+          warnings: [
+            "API-Football omitido para esta liga/temporada en plan gratuito; se intenta con proveedores complementarios.",
+          ],
+        },
+      };
+    }
+
+    const leagueId = shouldUseBroadDateSearch(competition)
+      ? undefined
+      : resolveApiFootballLeague(competition);
     let { fixtures, warnings, quota } = await this.fetchFixtures(
       date,
       competition,
@@ -211,6 +256,7 @@ export class ApiFootballProvider implements FootballProvider {
         timezone: kickoff.timezone,
         dataOrigin: "API",
         fetchedAt: new Date().toISOString(),
+        scoreFullTime: scoreFullTime(item),
       };
     });
     return {
@@ -366,6 +412,7 @@ export class ApiFootballProvider implements FootballProvider {
         timezone: kickoff.timezone,
         dataOrigin: "API",
         fetchedAt: new Date().toISOString(),
+        scoreFullTime: scoreFullTime(fixture),
       };
     })();
 

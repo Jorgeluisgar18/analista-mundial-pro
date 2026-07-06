@@ -1,11 +1,14 @@
 import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { AnalysisCabin } from "@/components/analysis/AnalysisCabin";
 import { analyzeMatch } from "@/lib/analysis/analysisEngine";
 import { demoDataset } from "@/data/demo";
 
 afterEach(cleanup);
+afterEach(() => {
+  vi.restoreAllMocks();
+});
 
 describe("AnalysisCabin", () => {
   it("abre Mercados y selecciona Goles", async () => {
@@ -119,6 +122,42 @@ describe("AnalysisCabin", () => {
     expect(screen.getAllByText(/River Azul/i).length).toBeGreaterThan(0);
   });
 
+  it("explica riesgos de porteros segÃºn el volumen real del rival", async () => {
+    const dataset = structuredClone(demoDataset);
+    dataset.match.homeTeam.name = "Local Volumen";
+    dataset.match.awayTeam.name = "Visitante Bajo";
+    dataset.home.shots = 18.2;
+    dataset.home.shotsOnTarget = 6.4;
+    dataset.away.shots = 6.1;
+    dataset.away.shotsOnTarget = 1.9;
+
+    render(
+      <AnalysisCabin
+        initialAnalysis={analyzeMatch(dataset)}
+        dataset={dataset}
+      />,
+    );
+
+    await userEvent.click(
+      screen.getByRole("button", {
+        name: (name) => name.startsWith("07") && /porteros/i.test(name),
+      }),
+    );
+
+    expect(
+      screen.getByText((text) =>
+        text.includes("Local Volumen concentra") &&
+        text.includes("remates"),
+      ),
+    ).toBeVisible();
+    expect(
+      screen.queryByText((text) =>
+        text.includes("Visitante Bajo concentra") &&
+        text.includes("remates"),
+      ),
+    ).not.toBeInTheDocument();
+  });
+
   it("abre cambios manuales como diálogo modal y permite cerrar con Escape", async () => {
     render(
       <AnalysisCabin
@@ -167,5 +206,142 @@ describe("AnalysisCabin", () => {
 
     await userEvent.keyboard("{Escape}");
     expect(screen.queryByRole("dialog", { name: /Más de 2.5 goles/i })).not.toBeInTheDocument();
+  });
+
+  it("ofrece una salida clara para volver al buscador de partidos", () => {
+    render(
+      <AnalysisCabin
+        initialAnalysis={analyzeMatch(demoDataset)}
+        dataset={demoDataset}
+      />,
+    );
+
+    const desktopLink = screen.getByRole("link", { name: /cambiar partido/i });
+    const mobileLink = screen.getByRole("link", { name: /volver al buscador de partidos/i });
+
+    expect(desktopLink).toHaveAttribute("href", "/#partidos");
+    expect(mobileLink).toHaveAttribute("href", "/#partidos");
+  });
+
+  it("actualiza también el dataset visual cuando el refresh devuelve nuevas alineaciones", async () => {
+    const user = userEvent.setup();
+    const initialDataset = structuredClone(demoDataset);
+    const refreshedDataset = structuredClone(demoDataset);
+    refreshedDataset.lineups[0].formation.value = "3-4-3";
+    refreshedDataset.lineups[0].confirmed = true;
+    refreshedDataset.lineups[0].starters = [
+      "Arquero nuevo",
+      "Central A",
+      "Central B",
+      "Central C",
+      "Carrilero D",
+      "Interior E",
+      "Interior F",
+      "Carrilero G",
+      "Extremo H",
+      "Nueve I",
+      "Extremo J",
+    ];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          dataset: refreshedDataset,
+          analysis: analyzeMatch(refreshedDataset),
+        }),
+      }),
+    );
+
+    render(
+      <AnalysisCabin
+        initialAnalysis={analyzeMatch(initialDataset)}
+        dataset={initialDataset}
+      />,
+    );
+
+    await user.click(
+      screen.getByRole("button", { name: (name) => name === "Actualizar datos" }),
+    );
+    await user.click(
+      screen.getByRole("button", {
+        name: (name) => name.startsWith("03") && /táctica/i.test(name),
+      }),
+    );
+
+    expect(await screen.findByText("3-4-3")).toBeVisible();
+    expect(screen.getByText("Arquero nuevo")).toBeVisible();
+  });
+
+  it("muestra una formación completa en campo con los 11 titulares", async () => {
+    const dataset = structuredClone(demoDataset);
+    dataset.lineups[0].formation.value = "4-2-3-1";
+    dataset.lineups[0].starters = [
+      "Portero",
+      "LD",
+      "DFC 1",
+      "DFC 2",
+      "LI",
+      "Pivote 1",
+      "Pivote 2",
+      "ED",
+      "MCO",
+      "EI",
+      "DC",
+    ];
+
+    render(
+      <AnalysisCabin
+        initialAnalysis={analyzeMatch(dataset)}
+        dataset={dataset}
+      />,
+    );
+
+    await userEvent.click(
+      screen.getByRole("button", {
+        name: (name) => name.startsWith("03") && /táctica/i.test(name),
+      }),
+    );
+
+    expect(screen.getAllByLabelText(/campo táctico/i).length).toBeGreaterThan(0);
+    for (const player of dataset.lineups[0].starters) {
+      expect(screen.getByText(player)).toBeVisible();
+    }
+  });
+
+  it("distingue una alineación oficial parcial de una esperada", async () => {
+    const dataset = structuredClone(demoDataset);
+    dataset.lineups[0].status = "official-partial";
+    dataset.lineups[0].confirmed = false;
+    dataset.lineups[0].formation.status = "confirmed";
+    dataset.lineups[0].starters = [
+      "Arquero oficial",
+      "Lateral oficial",
+      "Complemento esperado",
+      "DFC esperado 1",
+      "DFC esperado 2",
+      "LI esperado",
+      "MC esperado 1",
+      "MC esperado 2",
+      "ED esperado",
+      "MCO esperado",
+      "DC esperado",
+    ];
+
+    render(
+      <AnalysisCabin
+        initialAnalysis={analyzeMatch(dataset)}
+        dataset={dataset}
+      />,
+    );
+
+    await userEvent.click(
+      screen.getByRole("button", {
+        name: (name) => name.startsWith("04") && /plantillas/i.test(name),
+      }),
+    );
+
+    expect(screen.getByText("Oficial parcial")).toBeVisible();
+    expect(screen.getByText("Arquero oficial")).toBeVisible();
   });
 });

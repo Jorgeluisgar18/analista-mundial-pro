@@ -54,6 +54,12 @@ export class FootballDataProvider implements FootballProvider {
         competition: { id: number; name: string; area?: { name?: string } };
         homeTeam: { id: number; name: string; tla?: string; crest?: string };
         awayTeam: { id: number; name: string; tla?: string; crest?: string };
+        score?: {
+          fullTime?: {
+            home?: number | null;
+            away?: number | null;
+          };
+        };
       }>;
     };
     return {
@@ -99,6 +105,11 @@ export class FootballDataProvider implements FootballProvider {
           timezone: kickoff.timezone,
           dataOrigin: "API",
           fetchedAt: new Date().toISOString(),
+          scoreFullTime:
+            typeof item.score?.fullTime?.home === "number" &&
+            typeof item.score?.fullTime?.away === "number"
+              ? [item.score.fullTime.home, item.score.fullTime.away]
+              : undefined,
         } satisfies NormalizedMatch;
       })
         .filter((match) => match.date === date),

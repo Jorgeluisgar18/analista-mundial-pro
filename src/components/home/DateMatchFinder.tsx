@@ -36,13 +36,16 @@ export function DateMatchFinder({ initialDate }: { initialDate: string }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  async function searchMatches() {
+  async function searchMatches(nextDate = date, nextCompetition = competition) {
     setLoading(true);
     setError("");
     setResult(null);
     setVisibleCount(INITIAL_VISIBLE_MATCHES);
     try {
-      const params = new URLSearchParams({ date, competition });
+      const params = new URLSearchParams({
+        date: nextDate,
+        competition: nextCompetition,
+      });
       const response = await fetch(`/api/matches?${params}`);
       const body = await response.json();
       if (!response.ok) {
@@ -58,6 +61,12 @@ export function DateMatchFinder({ initialDate }: { initialDate: string }) {
     } finally {
       setLoading(false);
     }
+  }
+
+  function applyPreset(nextDate: string, nextCompetition: string) {
+    setDate(nextDate);
+    setCompetition(nextCompetition);
+    void searchMatches(nextDate, nextCompetition);
   }
 
   const visibleMatches = result?.matches.slice(0, visibleCount) ?? [];
@@ -85,6 +94,7 @@ export function DateMatchFinder({ initialDate }: { initialDate: string }) {
           <input
             aria-label="Fecha"
             type="date"
+            suppressHydrationWarning
             value={date}
             onChange={(event) => setDate(event.target.value)}
           />
@@ -107,17 +117,17 @@ export function DateMatchFinder({ initialDate }: { initialDate: string }) {
         <button
           className="primary-button"
           type="button"
-          onClick={searchMatches}
+          onClick={() => searchMatches()}
           disabled={loading}
         >
           <SearchIcon />
-          {loading ? "Consultando…" : "Buscar partidos"}
+          {loading ? "Consultando..." : "Buscar partidos"}
         </button>
       </div>
 
       {loading ? (
         <p className="finder-loading" role="status">
-          Consultando proveedores sin exponer claves en el navegador…
+          Consultando proveedores sin exponer claves en el navegador...
         </p>
       ) : null}
       {error ? <p className="form-error">{error}</p> : null}
@@ -148,6 +158,23 @@ export function DateMatchFinder({ initialDate }: { initialDate: string }) {
 
           {result.matches.length ? (
             <>
+              <div className="result-next-step">
+                <div>
+                  <span className="section-kicker">Siguiente paso</span>
+                  <strong>Abre un partido para entrar al informe completo.</strong>
+                  <p>
+                    Primero verás resumen ejecutivo, probabilidades, contexto,
+                    táctica, plantillas, mercados y fuentes. Si faltan datos, el
+                    análisis lo marcará como esperado o no disponible.
+                  </p>
+                </div>
+                <Link
+                  className="secondary-button"
+                  href={`/match/${result.matches[0].id}`}
+                >
+                  Abrir primer análisis
+                </Link>
+              </div>
               <div className="match-list">
                 {visibleMatches.map((match) => (
                   <Link
@@ -180,7 +207,10 @@ export function DateMatchFinder({ initialDate }: { initialDate: string }) {
                       </small>
                     </span>
                     <span className="match-venue">{match.venue}</span>
-                    <ArrowIcon />
+                    <span className="match-action">
+                      Abrir análisis
+                      <ArrowIcon />
+                    </span>
                   </Link>
                 ))}
               </div>
@@ -208,10 +238,10 @@ export function DateMatchFinder({ initialDate }: { initialDate: string }) {
                 </span>
                 <h3>No encontramos partidos para esta fecha y competición.</h3>
                 <p>
-                  La muestra local solo cubre partidos de referencia, como el
-                  2026-06-15 en FIFA World Cup. Para calendarios reales de
-                  ligas top, Mundial y competiciones UEFA, configura al menos
-                  una API de fútbol real.
+                  No se mezclan competiciones: si pides Premier y una fuente
+                  devuelve Mundial, el sistema lo filtra. Prueba otra jornada,
+                  abre Champions disponible o revisa las notas para saber qué
+                  proveedor respondió.
                 </p>
               </div>
 
@@ -247,12 +277,18 @@ export function DateMatchFinder({ initialDate }: { initialDate: string }) {
                 <button
                   className="ghost-button"
                   type="button"
-                  onClick={() => {
-                    setDate("2026-06-15");
-                    setCompetition("wc-2026");
-                  }}
+                  onClick={() => applyPreset("2026-07-01", "wc-2026")}
                 >
-                  Usar muestra local
+                  Probar Mundial con datos reales
+                </button>
+                <button
+                  className="ghost-button"
+                  type="button"
+                  onClick={() =>
+                    applyPreset("2026-07-08", "champions-league")
+                  }
+                >
+                  Probar Champions disponible
                 </button>
               </div>
             </div>

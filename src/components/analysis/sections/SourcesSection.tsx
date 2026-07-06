@@ -7,7 +7,9 @@ function QualityBar({ label, value }: { label: string; value: number }) {
     <div>
       <span>{label}</span>
       <strong>{value}%</strong>
-      <i><b style={{ width: `${value}%` }} /></i>
+      <i>
+        <b style={{ width: `${value}%` }} />
+      </i>
     </div>
   );
 }
@@ -33,17 +35,49 @@ export function SourcesSection({
           value={analysis.dataQuality.lineupConfirmed ? 100 : 45}
         />
       </div>
+
+      <div
+        className="calibration-strip"
+        aria-label="Calibración histórica del modelo"
+      >
+        <article>
+          <span>Histórico</span>
+          <strong>
+            {analysis.calibration.applied
+              ? `${analysis.calibration.sampleSize} partidos`
+              : "Sin muestra suficiente"}
+          </strong>
+          <p>{analysis.calibration.note}</p>
+        </article>
+        <article>
+          <span>Brier / Log Loss / RPS</span>
+          <strong>
+            {analysis.calibration.brier !== undefined
+              ? `${analysis.calibration.brier.toFixed(2)} · ${analysis.calibration.logLoss?.toFixed(2)} · ${analysis.calibration.rps?.toFixed(2)}`
+              : "Pendiente"}
+          </strong>
+          <p>
+            El porcentaje combina forma reciente, Poisson/Dixon-Coles, cuotas,
+            alineaciones y calibración histórica cuando existe muestra en Neon.
+          </p>
+        </article>
+      </div>
+
       <SourceLedger sources={analysis.sources} />
+
       <div className="methodology">
         <article>
           <span>Marcadores</span>
-          <strong>Poisson + Dixon–Coles</strong>
+          <strong>Poisson + Dixon-Coles</strong>
           <p>Corrige dependencia de resultados bajos y genera la matriz completa.</p>
         </article>
         <article>
           <span>Fuerza</span>
-          <strong>Elo contextual</strong>
-          <p>Considera rival, sede, recencia y diferencia entre selecciones y clubes.</p>
+          <strong>Elo contextual + histórico</strong>
+          <p>
+            Considera rival, sede, recencia, forma ponderada y diferencia entre
+            selecciones y clubes.
+          </p>
         </article>
         <article>
           <span>Incertidumbre</span>
@@ -53,7 +87,11 @@ export function SourcesSection({
         <article>
           <span>Validación</span>
           <strong>Calibración continua</strong>
-          <p>Las probabilidades se evalúan contra resultados reales. Acertar el nivel de certeza importa más que acertar un resultado aislado.</p>
+          <p>
+            Las probabilidades se evalúan contra resultados reales con Brier,
+            Log Loss y RPS. Acertar el nivel de certeza importa más que acertar
+            un resultado aislado.
+          </p>
         </article>
       </div>
     </AnalysisSection>

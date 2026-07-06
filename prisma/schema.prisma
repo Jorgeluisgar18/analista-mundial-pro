@@ -13,6 +13,7 @@ model Competition {
   name       String
   kind       String
   matches    Match[]
+  historicalMatches HistoricalMatch[]
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 }
@@ -25,6 +26,9 @@ model Team {
   kind        String
   homeMatches Match[]  @relation("HomeTeam")
   awayMatches Match[]  @relation("AwayTeam")
+  historicalHomeMatches HistoricalMatch[] @relation("HistoricalHomeTeam")
+  historicalAwayMatches HistoricalMatch[] @relation("HistoricalAwayTeam")
+  historicalTeamMatches HistoricalTeamMatch[]
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
@@ -198,4 +202,86 @@ model ProviderTelemetry {
 
   @@index([provider, occurredAt])
   @@index([operation, occurredAt])
+}
+
+model HistoricalImport {
+  id          String   @id @default(cuid())
+  sourceRepo  String
+  sourceCommit String
+  sourcePath  String
+  importedAt  DateTime @default(now())
+  fileCount   Int      @default(1)
+  matchCount  Int      @default(0)
+  rawMeta     String?
+  matches     HistoricalMatch[]
+
+  @@unique([sourceRepo, sourceCommit, sourcePath])
+  @@index([sourceRepo, importedAt])
+}
+
+model HistoricalMatch {
+  id            String   @id @default(cuid())
+  externalId    String   @unique
+  sourceRepo    String
+  sourcePath    String
+  sourceIndex   Int
+  season        String
+  round         String?
+  group         String?
+  kickoff       DateTime?
+  kickoffDate   String
+  homeGoals     Int?
+  awayGoals     Int?
+  rawJson       String
+  importId      String
+  competitionId String
+  homeTeamId    String
+  awayTeamId    String
+  import        HistoricalImport @relation(fields: [importId], references: [id], onDelete: Cascade)
+  competition   Competition      @relation(fields: [competitionId], references: [id])
+  homeTeam      Team             @relation("HistoricalHomeTeam", fields: [homeTeamId], references: [id])
+  awayTeam      Team             @relation("HistoricalAwayTeam", fields: [awayTeamId], references: [id])
+  teamRows      HistoricalTeamMatch[]
+  createdAt     DateTime @default(now())
+
+  @@index([competitionId, kickoff])
+  @@index([homeTeamId, kickoff])
+  @@index([awayTeamId, kickoff])
+  @@index([sourceRepo, sourcePath])
+}
+
+model HistoricalTeamMatch {
+  id                String   @id @default(cuid())
+  historicalMatchId String
+  teamId            String
+  opponentTeamId    String
+  isHome            Boolean
+  goalsFor          Int
+  goalsAgainst      Int
+  points            Int
+  opponentElo       Float?
+  kickoff           DateTime?
+  historicalMatch   HistoricalMatch @relation(fields: [historicalMatchId], references: [id], onDelete: Cascade)
+  team              Team            @relation(fields: [teamId], references: [id])
+
+  @@unique([historicalMatchId, teamId])
+  @@index([teamId, kickoff])
+  @@index([opponentTeamId, kickoff])
+}
+
+model CalibrationRun {
+  id          String   @id @default(cuid())
+  modelName   String
+  modelVersion String
+  sampleSize  Int
+  brier       Float
+  logLoss     Float
+  rps         Float
+  empiricalHome Float
+  empiricalDraw Float
+  empiricalAway Float
+  config      String
+  createdAt   DateTime @default(now())
+
+  @@index([modelName, modelVersion, createdAt])
 }

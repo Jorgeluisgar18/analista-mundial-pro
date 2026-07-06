@@ -28,6 +28,26 @@ describe("apiQuotaDecision", () => {
     });
   });
 
+  it("bloquea llamadas mensuales cuando una API reporta cuota mensual", () => {
+    expect(
+      apiQuotaDecision(
+        {
+          provider: "The Odds API",
+          used: 480,
+          limit: 500,
+          period: "month",
+          periodKey: "2026-07",
+          resetsAt: "2026-08-01T00:00:00.000Z",
+          updatedAt: "2026-07-01T12:00:00.000Z",
+        },
+        { reserve: 25 },
+      ),
+    ).toMatchObject({
+      shouldCall: false,
+      remaining: 20,
+    });
+  });
+
   it("permite llamadas si queda margen por encima de la reserva", () => {
     expect(
       apiQuotaDecision(

@@ -82,9 +82,12 @@ describe("ApiFootballProvider", () => {
     const provider = new ApiFootballProvider("test", fetcher as typeof fetch);
 
     const result = await provider.listMatches("2026-06-15", "wc-2026");
-    const requestedUrl = new URL(String(fetcher.mock.calls[0]?.[0]));
+    const calls = fetcher.mock.calls as unknown as Array<[URL | Request | string]>;
+    const requestedUrl = new URL(String(calls[0]?.[0]));
 
     expect(requestedUrl.searchParams.get("timezone")).toBe("America/Bogota");
+    expect(requestedUrl.searchParams.has("league")).toBe(false);
+    expect(requestedUrl.searchParams.has("season")).toBe(false);
     expect(result.data[0]?.date).toBe("2026-06-15");
     expect(result.data[0]?.time).toBe("21:30");
     expect(result.data[0]?.timezone).toBe("America/Bogota");

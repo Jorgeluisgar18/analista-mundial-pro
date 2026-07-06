@@ -11,6 +11,7 @@ import {
   removeOverround,
 } from "@/lib/models/odds";
 import { poissonDistribution } from "@/lib/models/poisson";
+import { adjustProbabilitiesWithCalibration } from "@/lib/historical/form";
 import type {
   AnalysisResult,
   ArbitrageOpportunity,
@@ -24,6 +25,13 @@ import type {
 const pct = (value: number) => Math.round(value * 1000) / 10;
 const clamp = (value: number, min = 0.05, max = 0.95) =>
   Math.min(max, Math.max(min, value));
+
+function deterministicSeed(value: string) {
+  return [...value].reduce(
+    (hash, char) => (Math.imul(hash, 31) + char.charCodeAt(0)) >>> 0,
+    2_026_061_5,
+  );
+}
 
 function riskFor(probability: number): RiskLevel {
   if (probability >= 0.7) return "Bajo";
@@ -226,6 +234,160 @@ function topScores(matrix: number[][]) {
     .slice(0, 5);
 }
 
+function strongestSide({
+  home,
+  draw,
+  away,
+  homeTeam,
+  awayTeam,
+}: {
+  home: number;
+  draw: number;
+  away: number;
+  homeTeam: string;
+  awayTeam: string;
+}) {
+  const max = Math.max(home, draw, away);
+  if (max === draw || Math.abs(home - away) < 0.025) {
+    return {
+      team: undefined,
+      label: "partido equilibrado",
+      probability: draw,
+      isBalanced: true,
+    };
+  }
+  return home > away
+    ? {
+        team: homeTeam,
+        label: homeTeam,
+        probability: home,
+        isBalanced: false,
+      }
+    : {
+        team: awayTeam,
+        label: awayTeam,
+        probability: away,
+        isBalanced: false,
+      };
+}
+
+function buildExecutiveSummary(
+  dataset: MatchDataset,
+  probabilities: { home: number; draw: number; away: number },
+  totalGoals: number,
+) {
+  const side = strongestSide({
+    ...probabilities,
+    homeTeam: dataset.match.homeTeam.name,
+    awayTeam: dataset.match.awayTeam.name,
+  });
+  const homeVolume =
+    (dataset.home.xgFor ?? dataset.home.goalsFor) + dataset.home.shots / 12;
+  const awayVolume =
+    (dataset.away.xgFor ?? dataset.away.goalsFor) + dataset.away.shots / 12;
+  const volumeLeader =
+    Math.abs(homeVolume - awayVolume) < 0.18
+      ? "ningún equipo separa claramente el volumen ofensivo"
+      : homeVolume > awayVolume
+        ? `${dataset.match.homeTeam.name} aporta mayor volumen ofensivo`
+        : `${dataset.match.awayTeam.name} aporta mayor volumen ofensivo`;
+  const lineupNote = dataset.lineups.every((lineup) => lineup.confirmed)
+    ? "con alineaciones confirmadas"
+    : "con sensibilidad alta a la confirmación de alineaciones";
+
+  if (side.isBalanced) {
+    return `El modelo proyecta un partido equilibrado entre ${dataset.match.homeTeam.name} y ${dataset.match.awayTeam.name}: ${volumeLeader}, pero la distribución 1X2 no abre una brecha fuerte. El rango central se concentra alrededor de ${totalGoals.toFixed(1)} goles, ${lineupNote}.`;
+  }
+
+  const opponent =
+    side.team === dataset.match.homeTeam.name
+      ? dataset.match.awayTeam.name
+      : dataset.match.homeTeam.name;
+  return `${side.team} parte con ventaja relativa por la combinación de fuerza, forma y producción esperada; ${opponent} necesita ajustar el ritmo para reducir esa brecha. ${volumeLeader}. El rango central se concentra alrededor de ${totalGoals.toFixed(1)} goles, ${lineupNote}.`;
+}
+
+function buildScenarios(
+  dataset: MatchDataset,
+  probabilities: { home: number; draw: number; away: number },
+  features: ReturnType<typeof buildFeatures>,
+) {
+  const homeTeam = dataset.match.homeTeam.name;
+  const awayTeam = dataset.match.awayTeam.name;
+  const homeAttackVolume = dataset.home.shots + dataset.home.shotsOnTarget * 1.8;
+  const awayAttackVolume = dataset.away.shots + dataset.away.shotsOnTarget * 1.8;
+  const homeIsFavorite = probabilities.home >= probabilities.away;
+  const favorite = homeIsFavorite ? homeTeam : awayTeam;
+  const underdog = homeIsFavorite ? awayTeam : homeTeam;
+  const favoriteProbability = homeIsFavorite
+    ? probabilities.home
+    : probabilities.away;
+  const underdogProbability = homeIsFavorite
+    ? probabilities.away
+    : probabilities.home;
+  const volumeLeader =
+    homeAttackVolume >= awayAttackVolume
+      ? {
+          team: homeTeam,
+          shots: dataset.home.shots,
+          shotsOnTarget: dataset.home.shotsOnTarget,
+        }
+      : {
+          team: awayTeam,
+          shots: dataset.away.shots,
+          shotsOnTarget: dataset.away.shotsOnTarget,
+        };
+  const volumeGap = Math.abs(homeAttackVolume - awayAttackVolume);
+  const expectedTotal = features.homeLambda + features.awayLambda;
+  const drawDescription =
+    expectedTotal < 2.35
+      ? "Ritmo bajo, pocas ventajas limpias y alta dependencia de balón parado."
+      : "Intercambio de llegadas con ventanas de control alternas y margen alto de varianza.";
+  const underdogRoute =
+    underdog === homeTeam
+      ? `${underdog} necesita proteger carril central, bajar pérdidas y atacar los espacios que deje ${favorite}.`
+      : `${underdog} necesita sostener bloque medio, administrar transiciones y no conceder tiros francos a ${favorite}.`;
+
+  if (Math.abs(probabilities.home - probabilities.away) < 4) {
+    return [
+      {
+        title: "Partido dividido por detalles",
+        probability: Math.max(probabilities.home, probabilities.away),
+        description: `${homeTeam} y ${awayTeam} llegan con señales cercanas; el control puede cambiar con el primer gol o la alineación final.`,
+      },
+      {
+        title: "Empate táctico prolongado",
+        probability: probabilities.draw,
+        description: drawDescription,
+      },
+      {
+        title: `${volumeLeader.team} aumenta el volumen`,
+        probability: Math.min(32, Math.max(18, volumeGap + probabilities.draw / 2)),
+        description: `${volumeLeader.team} proyecta ${volumeLeader.shots.toFixed(1)} remates y ${volumeLeader.shotsOnTarget.toFixed(1)} a puerta; si sostiene ese ritmo puede inclinar corners y tiros.`,
+      },
+    ];
+  }
+
+  return [
+    {
+      title: `${favorite} controla territorio`,
+      probability: favoriteProbability,
+      description: `${favorite} combina mayor señal 1X2 con volumen esperado; si convierte su dominio en remates claros, el partido se inclina temprano.`,
+    },
+    {
+      title: "Partido bloqueado",
+      probability: probabilities.draw,
+      description: `${underdogRoute} Este escenario gana peso si el total esperado se mantiene cerca de ${
+        expectedTotal < 2.5 ? "un rango bajo" : "un intercambio controlado"
+      }.`,
+    },
+    {
+      title: `Respuesta de ${underdog}`,
+      probability: Math.max(12, Math.min(underdogProbability, 28)),
+      description: `${underdog} tiene ruta competitiva si fuerza pérdidas, gana segundas jugadas y evita que ${favorite} encadene ataques largos.`,
+    },
+  ];
+}
+
 function poissonAtLeast(lambda: number, minimum: number) {
   if (!Number.isFinite(lambda) || lambda <= 0) return 0;
   const maxEvents = Math.max(25, Math.ceil(lambda + 10 * Math.sqrt(lambda)));
@@ -309,7 +471,9 @@ export function analyzeMatch(
     homeLambda: features.homeLambda,
     awayLambda: features.awayLambda,
     iterations: 12_000,
-    seed: 20260615,
+    seed: deterministicSeed(
+      `${dataset.match.id}:${dataset.match.homeTeam.id}:${dataset.match.awayTeam.id}:${dataset.match.kickoff}`,
+    ),
   });
   const blended = {
     home: model.home * 0.6 + simulation.home * 0.2 + logisticHome * 0.2,
@@ -320,6 +484,14 @@ export function analyzeMatch(
   blended.home /= blendedTotal;
   blended.draw /= blendedTotal;
   blended.away /= blendedTotal;
+  const calibrationSummary = dataset.historical?.calibration;
+  const calibrated =
+    calibrationSummary && calibrationSummary.sampleSize >= 30
+      ? adjustProbabilitiesWithCalibration(blended, calibrationSummary)
+      : blended;
+  blended.home = calibrated.home;
+  blended.draw = calibrated.draw;
+  blended.away = calibrated.away;
   const lineupsConfirmed =
     dataset.lineups.length > 0 &&
     dataset.lineups.every((lineup) => lineup.confirmed);
@@ -330,7 +502,7 @@ export function analyzeMatch(
       ? 0.55
       : 0.86,
     modelStability: 0.82,
-    calibration: 0.78,
+    calibration: (calibrationSummary?.confidenceMultiplier ?? 1) * 0.78,
     lineupConfirmed: lineupsConfirmed,
     hasBaseStats: Boolean(dataset.home.shots && dataset.away.shots),
   });
@@ -339,6 +511,7 @@ export function analyzeMatch(
     ...odd,
     outcome: normalizeOddOutcome(odd.outcome),
   }));
+  const totalGoals = features.homeLambda + features.awayLambda;
   const h2hOutcomes = [
     dataset.match.homeTeam.name,
     "Empate",
@@ -367,8 +540,7 @@ export function analyzeMatch(
         confidence,
         availableOdd: typeof odd === "number" ? odd : undefined,
         marketProbability: index < 3 ? fairH2H?.[index] : undefined,
-        reason:
-          "Combina fuerza Elo, intensidades de gol y contexto de sede neutral.",
+        reason: `Combina Elo (${dataset.home.elo} vs ${dataset.away.elo}), forma (${dataset.home.recentPointsPerGame.toFixed(2)} vs ${dataset.away.recentPointsPerGame.toFixed(2)} PPG) e intensidades de gol ${features.homeLambda.toFixed(2)}-${features.awayLambda.toFixed(2)}.`,
         risk: "La alineación oficial puede cambiar el balance de fuerza.",
         sourceIds,
       }),
@@ -419,8 +591,7 @@ export function analyzeMatch(
         probability: clamp(probability),
         confidence,
         availableOdd: odd,
-        reason:
-          "Se deriva de la distribución conjunta de goles ajustada por marcadores bajos.",
+        reason: `Distribución conjunta Dixon-Coles con lambdas ${features.homeLambda.toFixed(2)}-${features.awayLambda.toFixed(2)} y total esperado ${totalGoals.toFixed(2)}.`,
         risk: "Un gol temprano o una expulsión altera el ritmo esperado.",
         sourceIds,
       }),
@@ -554,7 +725,7 @@ export function analyzeMatch(
           market,
           probability,
           confidence: Math.max(1, confidence - 0.7),
-          reason: group.reason,
+          reason: `${group.reason} Base esperada: ${group.base.toFixed(1)}.`,
           risk:
             group.category === "cards"
               ? "Sin árbitro confirmado la incertidumbre disciplinaria aumenta."
@@ -607,7 +778,11 @@ export function analyzeMatch(
   const home = pct(blended.home);
   const draw = pct(blended.draw);
   const away = Math.round((100 - home - draw) * 10) / 10;
-  const totalGoals = features.homeLambda + features.awayLambda;
+  const executiveSummary = buildExecutiveSummary(
+    dataset,
+    blended,
+    totalGoals,
+  );
 
   return {
     id: `analysis-${dataset.match.id}`,
@@ -615,7 +790,7 @@ export function analyzeMatch(
     generatedAt: new Date().toISOString(),
     manuallyUpdated: Boolean(options.manuallyUpdated),
     match: dataset.match,
-    executiveSummary: `${dataset.match.awayTeam.name} parte con ventaja por fuerza relativa y producción ofensiva, pero ${dataset.match.homeTeam.name} puede reducir la diferencia con un bloque medio compacto. El rango central del modelo se concentra alrededor de ${totalGoals.toFixed(1)} goles.`,
+    executiveSummary,
     mainProbabilities: { home, draw, away },
     expected: {
       goals: Math.round(totalGoals * 100) / 100,
@@ -627,25 +802,7 @@ export function analyzeMatch(
     },
     predictions,
     arbitrage: findArbitrage(normalizedOdds, dataset.match),
-    scenarios: [
-      {
-        title: `${dataset.match.awayTeam.name} controla territorio`,
-        probability: away,
-        description:
-          "Amplitud alta, presión tras pérdida y mayor volumen de remate.",
-      },
-      {
-        title: "Partido bloqueado",
-        probability: draw,
-        description: `${dataset.match.homeTeam.name} protege carril central y reduce ocasiones claras.`,
-      },
-      {
-        title: `Transición de ${dataset.match.homeTeam.name}`,
-        probability: Math.min(home, 24),
-        description:
-          "Recuperación media y ataque rápido sobre el lateral adelantado.",
-      },
-    ],
+    scenarios: buildScenarios(dataset, { home, draw, away }, features),
     alerts: [
       {
         level: lineupsConfirmed ? "info" : "warning",
@@ -671,10 +828,22 @@ export function analyzeMatch(
       freshness: 87,
       agreement: 86,
       lineupConfirmed: lineupsConfirmed,
-      note:
-        dataset.match.dataOrigin === "DEMO"
+      note: calibrationSummary
+        ? `Snapshot reproducible de fuentes consultadas con calibración histórica sobre ${calibrationSummary.sampleSize} partidos.`
+        : dataset.match.dataOrigin === "DEMO"
           ? "Muestra local: no representa información actual."
           : "Snapshot reproducible de fuentes consultadas.",
+    },
+    calibration: {
+      sampleSize: calibrationSummary?.sampleSize ?? 0,
+      brier: calibrationSummary?.brier,
+      logLoss: calibrationSummary?.logLoss,
+      rps: calibrationSummary?.rps,
+      applied: Boolean(calibrationSummary && calibrationSummary.sampleSize >= 30),
+      confidenceMultiplier: calibrationSummary?.confidenceMultiplier ?? 1,
+      note: calibrationSummary
+        ? "Las probabilidades 1X2 fueron contraídas hacia tasas empíricas históricas cuando la muestra fue suficiente."
+        : "Sin muestra histórica suficiente: el análisis usa el ensamble base y marca menor evidencia de calibración.",
     },
   };
 }

@@ -20,6 +20,9 @@ export function AnalysisTopbar({
         <small>Analista<br />Mundial Pro</small>
       </Link>
       <div className="topbar-actions">
+        <Link className="secondary-button topbar-back" href="/#partidos">
+          Cambiar partido
+        </Link>
         <button type="button" className="secondary-button" onClick={onExport}>
           <ExportIcon /> Descargar informe
         </button>
@@ -27,7 +30,7 @@ export function AnalysisTopbar({
           <EditIcon /> Cambios manuales
         </button>
         <button type="button" className="primary-button" onClick={onRefresh} disabled={refreshing}>
-          <RefreshIcon /> {refreshing ? "Actualizando…" : "Actualizar datos"}
+          <RefreshIcon /> {refreshing ? "Actualizando..." : "Actualizar datos"}
         </button>
       </div>
     </header>

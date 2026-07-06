@@ -73,6 +73,39 @@ export default function Home() {
             </div>
           </div>
         </section>
+        <section className="journey-map" aria-labelledby="journey-title">
+          <div className="journey-copy">
+            <span className="section-kicker">Flujo recomendado</span>
+            <h2 id="journey-title">De la fecha al informe, sin pantallas muertas.</h2>
+            <p>
+              La web funciona como una cabina de decisión: buscar, validar
+              cobertura, abrir análisis, revisar evidencia y ajustar si aparece
+              información nueva.
+            </p>
+          </div>
+          <div className="journey-steps">
+            <a href="#partidos">
+              <span>01</span>
+              <strong>Buscar jornada</strong>
+              <small>Elige fecha y competición en horario Colombia.</small>
+            </a>
+            <a href="#salud">
+              <span>02</span>
+              <strong>Validar cobertura</strong>
+              <small>Comprueba APIs, cuota, telemetría y persistencia.</small>
+            </a>
+            <a href="#metodologia">
+              <span>03</span>
+              <strong>Entender método</strong>
+              <small>Poisson, Elo, logística, Monte Carlo y trazabilidad.</small>
+            </a>
+            <Link href="/docs/provider-setup">
+              <span>04</span>
+              <strong>Configurar fuentes</strong>
+              <small>Activa datos reales sin exponer claves en el cliente.</small>
+            </Link>
+          </div>
+        </section>
         <div id="partidos">
           <DateMatchFinder initialDate="2026-06-15" />
         </div>

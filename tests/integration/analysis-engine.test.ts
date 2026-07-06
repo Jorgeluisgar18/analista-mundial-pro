@@ -226,6 +226,128 @@ describe("analysisEngine", () => {
     expect(scenarioText).toContain("Estrella Norte");
   });
 
+  it("adapta el resumen ejecutivo al favorito real y no siempre favorece al visitante", () => {
+    const dataset = structuredClone(demoDataset);
+    dataset.match.homeTeam.name = "Local Dominante";
+    dataset.match.awayTeam.name = "Visitante Frágil";
+    dataset.home.elo = 1900;
+    dataset.away.elo = 1450;
+    dataset.home.recentPointsPerGame = 2.4;
+    dataset.away.recentPointsPerGame = 0.8;
+    dataset.home.goalsFor = 2.2;
+    dataset.away.goalsFor = 0.9;
+    dataset.home.goalsAgainst = 0.7;
+    dataset.away.goalsAgainst = 1.9;
+
+    const result = analyzeMatch(dataset);
+
+    expect(result.mainProbabilities.home).toBeGreaterThan(
+      result.mainProbabilities.away,
+    );
+    expect(result.executiveSummary).toMatch(/Local Dominante/i);
+    expect(result.executiveSummary).not.toMatch(/Visitante Frágil parte con ventaja/i);
+  });
+
+  it("produce lecturas y mercados diferentes cuando cambia el contexto estadístico", () => {
+    const lowTempo = structuredClone(demoDataset);
+    lowTempo.match.id = "low-tempo";
+    lowTempo.home.goalsFor = 0.9;
+    lowTempo.away.goalsFor = 0.8;
+    lowTempo.home.xgFor = 0.85;
+    lowTempo.away.xgFor = 0.78;
+    lowTempo.home.goalsAgainst = 0.7;
+    lowTempo.away.goalsAgainst = 0.8;
+    lowTempo.home.xgAgainst = 0.72;
+    lowTempo.away.xgAgainst = 0.82;
+    lowTempo.home.corners = 3.2;
+    lowTempo.away.corners = 3.1;
+
+    const highTempo = structuredClone(demoDataset);
+    highTempo.match.id = "high-tempo";
+    highTempo.home.goalsFor = 2.3;
+    highTempo.away.goalsFor = 2.1;
+    highTempo.home.xgFor = 2.25;
+    highTempo.away.xgFor = 2.05;
+    highTempo.home.goalsAgainst = 1.4;
+    highTempo.away.goalsAgainst = 1.5;
+    highTempo.home.xgAgainst = 1.42;
+    highTempo.away.xgAgainst = 1.55;
+    highTempo.home.corners = 6.8;
+    highTempo.away.corners = 6.4;
+
+    const low = analyzeMatch(lowTempo);
+    const high = analyzeMatch(highTempo);
+    const lowOver25 = low.predictions.find(
+      (prediction) => prediction.market === "Más de 2.5 goles",
+    );
+    const highOver25 = high.predictions.find(
+      (prediction) => prediction.market === "Más de 2.5 goles",
+    );
+
+    expect(high.expected.goals).toBeGreaterThan(low.expected.goals);
+    expect(high.expected.corners).toBeGreaterThan(low.expected.corners);
+    expect(highOver25?.probability).toBeGreaterThan(
+      lowOver25?.probability ?? 0,
+    );
+    expect(high.executiveSummary).not.toBe(low.executiveSummary);
+  });
+
+  it("orienta los escenarios al favorito y no siempre al visitante/local", () => {
+    const dataset = structuredClone(demoDataset);
+    dataset.match.homeTeam.name = "Local Dominante";
+    dataset.match.awayTeam.name = "Visitante Frágil";
+    dataset.match.id = "home-favorite-scenarios";
+    dataset.home.elo = 1920;
+    dataset.away.elo = 1430;
+    dataset.home.recentPointsPerGame = 2.5;
+    dataset.away.recentPointsPerGame = 0.7;
+    dataset.home.goalsFor = 2.4;
+    dataset.home.xgFor = 2.35;
+    dataset.home.shots = 17.5;
+    dataset.away.goalsFor = 0.8;
+    dataset.away.xgFor = 0.76;
+    dataset.away.shots = 7.2;
+
+    const result = analyzeMatch(dataset);
+    const scenarioText = result.scenarios
+      .map((scenario) => `${scenario.title} ${scenario.description}`)
+      .join(" ");
+
+    expect(result.mainProbabilities.home).toBeGreaterThan(
+      result.mainProbabilities.away,
+    );
+    expect(result.scenarios[0].title).toContain("Local Dominante");
+    expect(scenarioText).toContain("Visitante Frágil");
+    expect(scenarioText).not.toContain("Visitante Frágil controla territorio");
+    expect(scenarioText).not.toContain("Local Dominante protege carril central");
+  });
+
+  it("aplica calibración histórica cuando el dataset trae muestra suficiente", () => {
+    const uncalibrated = structuredClone(demoDataset);
+    uncalibrated.match.id = "uncalibrated-history";
+    const calibrated = structuredClone(demoDataset);
+    calibrated.match.id = "calibrated-history";
+    calibrated.historical = {
+      calibration: {
+        sampleSize: 120,
+        brier: 0.68,
+        logLoss: 1.18,
+        rps: 0.2,
+        empirical: { home: 0.52, draw: 0.27, away: 0.21 },
+        confidenceMultiplier: 0.9,
+      },
+    };
+
+    const base = analyzeMatch(uncalibrated);
+    const adjusted = analyzeMatch(calibrated);
+
+    expect(adjusted.mainProbabilities.away).toBeLessThan(
+      base.mainProbabilities.away,
+    );
+    expect(adjusted.calibration.sampleSize).toBe(120);
+    expect(adjusted.dataQuality.note).toMatch(/calibraci/i);
+  });
+
   it("estima totales secundarios con Poisson sobre el volumen esperado", () => {
     const result = analyzeMatch(demoDataset);
     const expectedCorners = demoDataset.home.corners + demoDataset.away.corners;

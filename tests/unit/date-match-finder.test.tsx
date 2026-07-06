@@ -118,12 +118,50 @@ describe("DateMatchFinder", () => {
     );
 
     expect(await screen.findByText(/no encontramos partidos/i)).toBeVisible();
-    expect(screen.getByText(/muestra local solo cubre/i)).toBeVisible();
+    expect(screen.getByText(/no se mezclan competiciones/i)).toBeVisible();
     expect(screen.getByText(/FOOTBALL_DATA_API_KEY/i)).toBeVisible();
     expect(
       screen.getByRole("link", { name: /ver guía de apis/i }),
     ).toHaveAttribute("href", "/docs/provider-setup");
   });
+  it("los presets del estado vacio ejecutan una nueva busqueda util", async () => {
+    const user = userEvent.setup();
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          mode: "demo",
+          source: "Muestra local de respaldo",
+          warnings: [],
+          matches: [],
+        }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          mode: "api",
+          source: "API-Football",
+          warnings: [],
+          matches: demoMatches,
+        }),
+      });
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<DateMatchFinder initialDate="2026-07-01" />);
+    await user.click(screen.getByRole("button", { name: /buscar partidos/i }));
+    await user.click(
+      await screen.findByRole("button", {
+        name: /probar mundial con datos reales/i,
+      }),
+    );
+
+    expect(await screen.findByText(/Colombia vs Brasil/i)).toBeVisible();
+    expect(String(fetchMock.mock.calls[1]?.[0])).toContain(
+      "competition=wc-2026",
+    );
+  });
+
   it("limpia resultados anteriores cuando una nueva busqueda falla", async () => {
     const user = userEvent.setup();
     vi.stubGlobal(

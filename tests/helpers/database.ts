@@ -1,6 +1,6 @@
 import { describe, it } from "vitest";
 
-export function hasPostgresDatabaseUrl() {
+function hasPostgresDatabaseUrl() {
   const databaseUrl = process.env.DATABASE_URL?.trim();
   return Boolean(
     databaseUrl &&

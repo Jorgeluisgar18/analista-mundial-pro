@@ -4,7 +4,7 @@ import {
   rankedProbabilityScore,
 } from "@/lib/backtesting/metrics";
 
-export type HistoricalOutcome = "home" | "draw" | "away";
+type HistoricalOutcome = "home" | "draw" | "away";
 export type HistoricalProbabilities = Record<HistoricalOutcome, number>;
 
 export interface HistoricalMatchForForm {

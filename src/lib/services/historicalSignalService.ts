@@ -35,7 +35,6 @@ function parseCalibrationRun(
     ),
   };
 }
-
 export function createHistoricalSignalService(
   database: HistoricalDatabase = prisma,
 ) {
@@ -318,5 +317,3 @@ export function createHistoricalSignalService(
     },
   };
 }
-
-export const historicalSignalService = createHistoricalSignalService();

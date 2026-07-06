@@ -312,7 +312,7 @@ Archivos:
 8. src/lib/providers/apiQuotaPolicy.ts
 9. src/app/api/health/route.ts
 10. src/app/api/usage/route.ts
-11. docs/provider-setup.md
+11. docs/guides/provider-setup.md
 12. docs/qa/manual-search-matrix.md
 13. docs/data-sources/*
 
@@ -361,7 +361,7 @@ Recuerda:
 Cuando Claude te entregue la auditoría final, pégamela completa o guárdala en:
 
 ```text
-docs/audits/claude/2026-07-06-auditoria-recibida.md
+docs/archive/audits/claude/2026-07-06-auditoria-recibida.md
 ```
 
 Luego me puedes decir:
@@ -369,4 +369,3 @@ Luego me puedes decir:
 ```text
 Aquí está la auditoría de Claude. Valida cuáles hallazgos aplican realmente, descarta falsos positivos y crea un backlog implementable por lotes. No hagas commit/push/deploy.
 ```
-

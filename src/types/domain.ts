@@ -6,8 +6,8 @@ export type EvidenceStatus =
   | "unavailable";
 
 export type SourceType = "official" | "provider" | "manual" | "inferred";
-export type DataOrigin = "API" | "CACHE" | "DEMO" | "MANUAL";
-export type MatchStatus =
+type DataOrigin = "API" | "CACHE" | "DEMO" | "MANUAL";
+type MatchStatus =
   | "scheduled"
   | "preliminary"
   | "lineups-confirmed"
@@ -93,7 +93,7 @@ export interface PlayerProjection {
   cardProbability?: number;
 }
 
-export interface AvailabilityItem {
+interface AvailabilityItem {
   id: string;
   teamId: string;
   player: string;
@@ -279,14 +279,6 @@ export interface AnalysisResult {
     confidenceMultiplier: number;
     note: string;
   };
-}
-
-export interface ApiUsageSummary {
-  provider: string;
-  used: number;
-  limit: number;
-  period: "minute" | "day" | "month" | "fair-use";
-  resetsAt: string;
 }
 
 export type ManualOverrideImpact = "low" | "medium" | "high";

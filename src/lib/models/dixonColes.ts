@@ -1,6 +1,6 @@
 import { scoreMatrix } from "@/lib/models/poisson";
 
-export function dixonColesTau(
+function dixonColesTau(
   homeGoals: number,
   awayGoals: number,
   homeLambda: number,

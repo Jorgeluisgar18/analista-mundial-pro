@@ -5,7 +5,7 @@ import type {
   NormalizedOdds,
 } from "@/types/domain";
 
-export interface ProviderMeta {
+interface ProviderMeta {
   source: string;
   fetchedAt: string;
   isStale: boolean;

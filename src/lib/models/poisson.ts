@@ -1,4 +1,4 @@
-export function poissonProbability(lambda: number, goals: number): number {
+function poissonProbability(lambda: number, goals: number): number {
   if (lambda < 0 || goals < 0 || !Number.isInteger(goals)) return 0;
   let factorial = 1;
   for (let index = 2; index <= goals; index += 1) factorial *= index;

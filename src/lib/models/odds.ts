@@ -1,4 +1,4 @@
-export function impliedProbability(decimalOdd: number): number {
+function impliedProbability(decimalOdd: number): number {
   if (decimalOdd <= 1) throw new Error("La cuota decimal debe ser mayor que 1");
   return 1 / decimalOdd;
 }

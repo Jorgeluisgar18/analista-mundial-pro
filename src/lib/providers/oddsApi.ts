@@ -56,7 +56,7 @@ interface OddsApiEventOdds extends OddsApiEvent {
   bookmakers?: OddsApiBookmaker[];
 }
 
-export function oddsSportKey(match: NormalizedMatch) {
+function oddsSportKey(match: NormalizedMatch) {
   const competition =
     `${match.competition.id} ${match.competition.name}`.toLowerCase();
   if (competition.includes("premier") || competition.includes("epl")) {

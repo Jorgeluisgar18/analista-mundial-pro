@@ -164,7 +164,7 @@ El working directory del repo principal contiene 26 archivos modificados + 6 sin
 
 | Archivo | PropÃ³sito |
 |---------|-----------|
-| `docs/handoff/2026-06-29-complejidad-empalme-produccion.md` | Este documento |
+| `docs/internal/handoff.md` | Este documento |
 | `docs/qa/manual-search-matrix.md` | Matriz QA manual |
 | `src/lib/overrides/demoOverrideService.ts` | Overrides sin BD en demo |
 | `src/lib/time/colombia.ts` | Zona horaria Colombia |
@@ -306,7 +306,7 @@ Contexto: Analista Mundial Pro.
 - Branch codex/analista-mundial-pro esta 23 commits detras de master
 - P2-7 ya implementado: refreshMatch ahora acepta bypassCache para forzar datos frescos
 
-Lee AGENTS.md y docs/handoff/2026-06-29-complejidad-empalme-produccion.md
+Lee AGENTS.md y docs/internal/handoff.md
 Reglas: NO desplegar sin autorizacion. Clean code. Sin extras fuera del backlog.
 
 Tarea: P1-4 Optimizacion holistica de cache
@@ -327,7 +327,7 @@ Contexto: Analista Mundial Pro â€” produccion activa con Neon y API-Footbal
 docs/qa/manual-search-matrix.md tiene matriz ejecutable con D1-D5 verificados contra prod.
 Master tiene: API-Football, TheSportsDB, OpenFootball, Open-Meteo, Football-Data.
 
-Lee AGENTS.md y docs/handoff/2026-06-29-complejidad-empalme-produccion.md
+Lee AGENTS.md y docs/internal/handoff.md
 
 Tarea: P1-3 QA casos reales
 1. Usa la matriz en docs/qa/manual-search-matrix.md
@@ -363,7 +363,7 @@ Contexto: Analista Mundial Pro â€” working directory tiene 26 archivos modi
 Son cambios de Codex anterior que no alcanzo a commitear (COT timezone, overrides demo, health panel, providers).
 11 archivos tienen cambios tanto en master (commiteados) como en working directory â€” revisar solapamiento.
 
-Lee AGENTS.md y docs/handoff/2026-06-29-complejidad-empalme-produccion.md (seccion 4).
+Lee AGENTS.md y docs/internal/handoff.md (seccion 4).
 
 Tarea: P2-2 Commit organizado
 1. Compara working directory contra master: git diff master...HEAD -- src/
@@ -387,7 +387,7 @@ Tarea: P2-2 Commit organizado
 | `docs/data-sources/odds-api.md` | IntegraciÃ³n The Odds API conservadora para plan gratis |
 | `docs/data-sources/openfootball.md` | Plan OpenFootball |
 | `docs/security/auth-workspace-decision.md` | Auth futura (no MVP) |
-| `docs/superpowers/plans/2026-06-27-master-audit-backlog-ui-agents-plan.md` | Backlog histÃ³rico |
+| `docs/archive/plans/superpowers/2026-06-27-master-audit-backlog-ui-agents-plan.md` | Backlog histÃ³rico |
 
 ---
 

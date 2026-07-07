@@ -1,11 +1,70 @@
 import { AnalysisSection } from "@/components/analysis/AnalysisSection";
-import type { MatchDataset } from "@/types/domain";
+import type { MatchDataset, PlayerProjection } from "@/types/domain";
 
-const SORT_KEYS: Record<string, string> = {
+type PlayerMetric = {
+  label: string;
+  value: (player: PlayerProjection) => string;
+};
+
+const SORT_KEYS: Record<string, keyof PlayerProjection> = {
   Goleadores: "goalProbability",
   Asistencias: "assistProbability",
+  Disparos: "shots",
   Tarjetas: "cardProbability",
   Faltas: "foulsCommitted",
+};
+
+const METRICS: Record<string, PlayerMetric[]> = {
+  Goleadores: [
+    {
+      label: "Probabilidad de gol",
+      value: (player) => `${Math.round((player.goalProbability ?? 0) * 100)}%`,
+    },
+    {
+      label: "Tiros",
+      value: (player) => player.shots?.toFixed(1) ?? "—",
+    },
+  ],
+  Asistencias: [
+    {
+      label: "Probabilidad de asistencia",
+      value: (player) => `${Math.round((player.assistProbability ?? 0) * 100)}%`,
+    },
+    {
+      label: "Rol",
+      value: (player) => player.position,
+    },
+  ],
+  Disparos: [
+    {
+      label: "Tiros",
+      value: (player) => player.shots?.toFixed(1) ?? "—",
+    },
+    {
+      label: "Tiros al arco",
+      value: (player) => player.shotsOnTarget?.toFixed(1) ?? "—",
+    },
+  ],
+  Faltas: [
+    {
+      label: "Faltas cometidas",
+      value: (player) => player.foulsCommitted?.toFixed(1) ?? "—",
+    },
+    {
+      label: "Faltas recibidas",
+      value: (player) => player.foulsReceived?.toFixed(1) ?? "—",
+    },
+  ],
+  Tarjetas: [
+    {
+      label: "Probabilidad de tarjeta",
+      value: (player) => `${Math.round((player.cardProbability ?? 0) * 100)}%`,
+    },
+    {
+      label: "Faltas cometidas",
+      value: (player) => player.foulsCommitted?.toFixed(1) ?? "—",
+    },
+  ],
 };
 
 export function PlayersSection({
@@ -16,10 +75,9 @@ export function PlayersSection({
   subsection: string;
 }) {
   const sortKey = SORT_KEYS[subsection] ?? "shots";
+  const metrics = METRICS[subsection] ?? METRICS.Disparos;
   const players = [...dataset.players].sort(
-    (a, b) =>
-      Number(b[sortKey as keyof typeof b] ?? 0) -
-      Number(a[sortKey as keyof typeof a] ?? 0),
+    (a, b) => Number(b[sortKey] ?? 0) - Number(a[sortKey] ?? 0),
   );
 
   if (players.length === 0) {
@@ -47,13 +105,17 @@ export function PlayersSection({
             <span>{String(index + 1).padStart(2, "0")}</span>
             <div>
               <strong>{player.name}</strong>
-              <small>{player.position} · {player.starterStatus}</small>
+              <small>
+                {player.position} · {player.starterStatus}
+              </small>
             </div>
             <dl>
-              <div><dt>Gol</dt><dd>{Math.round((player.goalProbability ?? 0) * 100)}%</dd></div>
-              <div><dt>Asistencia</dt><dd>{Math.round((player.assistProbability ?? 0) * 100)}%</dd></div>
-              <div><dt>Tiros</dt><dd>{player.shots?.toFixed(1) ?? "—"}</dd></div>
-              <div><dt>Tarjeta</dt><dd>{Math.round((player.cardProbability ?? 0) * 100)}%</dd></div>
+              {metrics.map((metric) => (
+                <div key={metric.label}>
+                  <dt>{metric.label}</dt>
+                  <dd>{metric.value(player)}</dd>
+                </div>
+              ))}
             </dl>
           </article>
         ))}

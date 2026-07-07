@@ -1,4 +1,4 @@
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { AnalysisCabin } from "@/components/analysis/AnalysisCabin";
@@ -26,6 +26,195 @@ describe("AnalysisCabin", () => {
       screen.getByRole("heading", { name: /mercado de goles/i }),
     ).toBeVisible();
     expect(screen.getByText(/2026-06-15 · 17:00 COT/i)).toBeVisible();
+  });
+
+  it("muestra contenido diferenciado para subsecciones de resumen y contexto", async () => {
+    render(
+      <AnalysisCabin
+        initialAnalysis={analyzeMatch(demoDataset)}
+        dataset={demoDataset}
+      />,
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: /^confianza$/i }));
+    expect(
+      screen.getByRole("heading", { name: /resumen · confianza/i }),
+    ).toBeVisible();
+    expect(screen.getByText(/factores de confianza/i)).toBeVisible();
+    expect(screen.queryByText(/señal principal/i)).not.toBeInTheDocument();
+
+    await userEvent.click(
+      screen.getByRole("button", {
+        name: (name) => name.startsWith("02") && /contexto/i.test(name),
+      }),
+    );
+    await userEvent.click(
+      screen.getByRole("button", { name: /^forma reciente$/i }),
+    );
+
+    expect(
+      screen.getByRole("heading", { name: /contexto · forma reciente/i }),
+    ).toBeVisible();
+    expect(screen.getAllByText(/puntos por partido/i).length).toBeGreaterThan(1);
+    expect(
+      screen.queryByText(/Necesidad de Colombia/i),
+    ).not.toBeInTheDocument();
+  });
+
+  it("muestra contenido diferenciado para táctica, porteros y alertas", async () => {
+    render(
+      <AnalysisCabin
+        initialAnalysis={analyzeMatch(demoDataset)}
+        dataset={demoDataset}
+      />,
+    );
+
+    await userEvent.click(
+      screen.getByRole("button", {
+        name: (name) => name.startsWith("03") && /táctica/i.test(name),
+      }),
+    );
+    await userEvent.click(
+      screen.getByRole("button", { name: /^plan defensivo$/i }),
+    );
+
+    expect(
+      screen.getByRole("heading", { name: /táctica · plan defensivo/i }),
+    ).toBeVisible();
+    expect(screen.getByText(/presión defensiva/i)).toBeVisible();
+    expect(screen.queryByText(/ajuste de segundo tiempo/i)).not.toBeInTheDocument();
+
+    await userEvent.click(
+      screen.getByRole("button", {
+        name: (name) => name.startsWith("07") && /porteros/i.test(name),
+      }),
+    );
+    await userEvent.click(screen.getByRole("button", { name: /^riesgos$/i }));
+
+    expect(
+      screen.getByRole("heading", { name: /porteros · riesgos/i }),
+    ).toBeVisible();
+    const main = screen.getByRole("main");
+    expect(screen.getByText(/mapa de riesgo del arquero/i)).toBeVisible();
+    expect(
+      within(main).queryByText(/portería a cero/i, {
+        selector: "dt,p,strong,span,h2",
+      }),
+    ).not.toBeInTheDocument();
+
+    await userEvent.click(
+      screen.getByRole("button", {
+        name: (name) => name.startsWith("09") && /alertas/i.test(name),
+      }),
+    );
+    await userEvent.click(screen.getByRole("button", { name: /^clima$/i }));
+
+    expect(
+      screen.getByRole("heading", { name: /alertas · clima/i }),
+    ).toBeVisible();
+    expect(screen.getAllByText(/condición climática/i).length).toBeGreaterThan(1);
+    expect(
+      within(main).queryByText(/cambio de arquero/i, {
+        selector: "p,strong,span,h2",
+      }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("muestra contenido diferenciado para plantillas, jugadores, valor y fuentes", async () => {
+    const dataset = structuredClone(demoDataset);
+    dataset.availability = [
+      {
+        id: "injury-qa",
+        teamId: dataset.match.homeTeam.id,
+        player: "Delantero QA",
+        type: "injured",
+        impact: "Pierde profundidad al espacio.",
+        replacement: "Reemplazo QA",
+        evidence: {
+          value: "Lesión muscular",
+          status: "confirmed",
+          sourceType: "provider",
+          source: "QA fixture",
+          observedAt: "2026-06-15T12:00:00Z",
+        },
+      },
+      {
+        id: "suspension-qa",
+        teamId: dataset.match.awayTeam.id,
+        player: "Defensor QA",
+        type: "suspended",
+        impact: "Reduce juego aéreo defensivo.",
+        evidence: {
+          value: "Acumulación de tarjetas",
+          status: "confirmed",
+          sourceType: "provider",
+          source: "QA fixture",
+          observedAt: "2026-06-15T12:00:00Z",
+        },
+      },
+    ];
+
+    render(
+      <AnalysisCabin
+        initialAnalysis={analyzeMatch(dataset)}
+        dataset={dataset}
+      />,
+    );
+
+    await userEvent.click(
+      screen.getByRole("button", {
+        name: (name) => name.startsWith("04") && /plantillas/i.test(name),
+      }),
+    );
+    await userEvent.click(screen.getByRole("button", { name: /^lesionados$/i }));
+
+    expect(
+      screen.getByRole("heading", { name: /plantillas · lesionados/i }),
+    ).toBeVisible();
+    expect(screen.getByText(/Delantero QA/i)).toBeVisible();
+    expect(screen.queryByText(/Defensor QA/i)).not.toBeInTheDocument();
+
+    await userEvent.click(
+      screen.getByRole("button", {
+        name: (name) => name.startsWith("06") && /jugadores/i.test(name),
+      }),
+    );
+    await userEvent.click(screen.getByRole("button", { name: /^tarjetas$/i }));
+
+    expect(
+      screen.getByRole("heading", { name: /jugadores · tarjetas/i }),
+    ).toBeVisible();
+    expect(screen.getAllByText(/probabilidad de tarjeta/i).length).toBeGreaterThan(0);
+    expect(screen.queryByText(/^Gol$/i)).not.toBeInTheDocument();
+
+    await userEvent.click(
+      screen.getByRole("button", {
+        name: (name) => name.startsWith("08") && /valor y riesgo/i.test(name),
+      }),
+    );
+    await userEvent.click(
+      screen.getByRole("button", { name: /^solo observación$/i }),
+    );
+
+    expect(
+      screen.getByRole("heading", { name: /valor y riesgo · solo observación/i }),
+    ).toBeVisible();
+    expect(screen.getAllByText(/sin señal de valor/i).length).toBeGreaterThan(1);
+
+    await userEvent.click(
+      screen.getAllByRole("button", {
+        name: (name) => name.startsWith("10") && /fuentes/i.test(name),
+      })[0],
+    );
+    await userEvent.click(
+      screen.getByRole("button", { name: /^metodología$/i }),
+    );
+
+    expect(
+      screen.getByRole("heading", { name: /fuentes · metodología/i }),
+    ).toBeVisible();
+    expect(screen.getByText(/poisson \+ dixon-coles/i)).toBeVisible();
+    expect(screen.queryByText(/^Cobertura$/i)).not.toBeInTheDocument();
   });
 
   it("muestra una surebet calculada con cuotas reales del snapshot", async () => {

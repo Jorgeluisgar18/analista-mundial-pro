@@ -29,7 +29,97 @@ function mainSignal(analysis: AnalysisResult) {
   return `${leader.label} concentra la señal principal con ${leader.value.toFixed(1)}%, ${gap.toFixed(1)} pp por encima de ${second.label}.`;
 }
 
-export function SummarySection({ analysis }: { analysis: AnalysisResult }) {
+function ScenarioGrid({ analysis }: { analysis: AnalysisResult }) {
+  return (
+    <div className="scenario-grid">
+      {(analysis.scenarios ?? []).length ? (
+        (analysis.scenarios ?? []).map((scenario) => (
+          <article key={scenario.title}>
+            <span>{scenario.probability.toFixed(1)}%</span>
+            <strong>{scenario.title}</strong>
+            <p>{scenario.description}</p>
+          </article>
+        ))
+      ) : (
+        <p className="empty-state">
+          No hay escenarios modelados para este partido.
+        </p>
+      )}
+    </div>
+  );
+}
+
+export function SummarySection({
+  analysis,
+  subsection,
+}: {
+  analysis: AnalysisResult;
+  subsection: string;
+}) {
+  if (subsection === "Probabilidades") {
+    return (
+      <AnalysisSection
+        title="Resumen · Probabilidades"
+        intro="Lectura concentrada del 1X2 y del reparto de masa entre local, empate y visitante."
+        aside={<ConfidenceBadge value={analysis.expected.confidence} />}
+      >
+        <div className="summary-probabilities">
+          <ProbabilitySummary analysis={analysis} />
+        </div>
+        <MetricStrip
+          items={[
+            [analysis.match.homeTeam.name, analysis.mainProbabilities.home, "%"],
+            ["Empate", analysis.mainProbabilities.draw, "%"],
+            [analysis.match.awayTeam.name, analysis.mainProbabilities.away, "%"],
+            ["Goles esperados", analysis.expected.goals],
+          ]}
+        />
+      </AnalysisSection>
+    );
+  }
+
+  if (subsection === "Escenarios") {
+    return (
+      <AnalysisSection
+        title="Resumen · Escenarios"
+        intro="Rutas probables del partido según la distribución del modelo y el contexto táctico disponible."
+      >
+        <ScenarioGrid analysis={analysis} />
+      </AnalysisSection>
+    );
+  }
+
+  if (subsection === "Confianza") {
+    return (
+      <AnalysisSection
+        title="Resumen · Confianza"
+        intro="Factores de confianza que limitan o sostienen la lectura del modelo antes de evaluar mercados."
+        aside={<ConfidenceBadge value={analysis.expected.confidence} />}
+      >
+        <div className="detail-list">
+          <article>
+            <span>Cobertura</span>
+            <strong>Cobertura de datos</strong>
+            <p>{analysis.dataQuality.coverage}% · {analysis.dataQuality.note}</p>
+          </article>
+          <article>
+            <span>Consistencia</span>
+            <strong>Frescura y acuerdo</strong>
+            <p>
+              Frescura {analysis.dataQuality.freshness}% · acuerdo entre fuentes{" "}
+              {analysis.dataQuality.agreement}%.
+            </p>
+          </article>
+          <article>
+            <span>Calibración</span>
+            <strong>Calibración histórica</strong>
+            <p>{analysis.calibration.note}</p>
+          </article>
+        </div>
+      </AnalysisSection>
+    );
+  }
+
   return (
     <AnalysisSection
       title="Lectura ejecutiva"
@@ -57,21 +147,7 @@ export function SummarySection({ analysis }: { analysis: AnalysisResult }) {
           ["Cobertura", analysis.dataQuality.coverage, "%"],
         ]}
       />
-      <div className="scenario-grid">
-        {(analysis.scenarios ?? []).length ? (
-          (analysis.scenarios ?? []).map((scenario) => (
-            <article key={scenario.title}>
-              <span>{scenario.probability.toFixed(1)}%</span>
-              <strong>{scenario.title}</strong>
-              <p>{scenario.description}</p>
-            </article>
-          ))
-        ) : (
-          <p className="empty-state">
-            No hay escenarios modelados para este partido.
-          </p>
-        )}
-      </div>
+      <ScenarioGrid analysis={analysis} />
     </AnalysisSection>
   );
 }

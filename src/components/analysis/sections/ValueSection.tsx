@@ -62,14 +62,20 @@ export function ValueSection({
   const rows = analysis.predictions
     .filter((p) => p.valueTier === subsection)
     .slice(0, 10);
+  const intro =
+    subsection === "Solo observación"
+      ? "Sin señal de valor suficiente: mercados útiles para monitorear, pero no para tomar decisión sin nueva evidencia."
+      : "El valor compara la probabilidad del modelo con la probabilidad implícita sin margen. No garantiza rentabilidad.";
 
   return (
     <AnalysisSection
       title={`Valor y riesgo · ${subsection}`}
-      intro="El valor compara la probabilidad del modelo con la probabilidad implícita sin margen. No garantiza rentabilidad."
+      intro={intro}
     >
       <p className="section-note">
-        Conservador = EV ≥ 8% y prob. ≥ 62%; Moderado = EV ≥ 4%; Arriesgado = EV positivo pero prob. más baja.
+        {subsection === "Solo observación"
+          ? "Sin señal de valor: se conserva para seguimiento de cuota, alineaciones o noticias, no como recomendación."
+          : "Conservador = EV ≥ 8% y prob. ≥ 62%; Moderado = EV ≥ 4%; Arriesgado = EV positivo pero prob. más baja."}
       </p>
       {rows.length ? (
         <MarketTable predictions={rows} onSelectPrediction={onSelectPrediction} />

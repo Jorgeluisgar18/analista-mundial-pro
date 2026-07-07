@@ -27,7 +27,7 @@ export function SectionContent({
     case "markets":
       return <MarketsSection analysis={analysis} subsection={activeSubsection} onSelectPrediction={onSelectPrediction} />;
     case "summary":
-      return <SummarySection analysis={analysis} />;
+      return <SummarySection analysis={analysis} subsection={activeSubsection} />;
     case "context":
       return <ContextSection analysis={analysis} dataset={dataset} subsection={activeSubsection} />;
     case "tactics":
@@ -41,7 +41,7 @@ export function SectionContent({
     case "value":
       return <ValueSection analysis={analysis} subsection={activeSubsection} onSelectPrediction={onSelectPrediction} />;
     case "alerts":
-      return <AlertsSection analysis={analysis} subsection={activeSubsection} />;
+      return <AlertsSection analysis={analysis} dataset={dataset} subsection={activeSubsection} />;
     default:
       return <SourcesSection analysis={analysis} subsection={activeSubsection} />;
   }

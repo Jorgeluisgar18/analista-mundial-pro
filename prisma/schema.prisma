@@ -191,6 +191,18 @@ model ApiUsage {
   @@unique([provider, periodKey])
 }
 
+model RateLimitBucket {
+  id        String   @id @default(cuid())
+  scope     String
+  clientKey String
+  count     Int      @default(0)
+  resetsAt  DateTime
+  updatedAt DateTime @updatedAt
+
+  @@unique([scope, clientKey])
+  @@index([resetsAt])
+}
+
 model ProviderTelemetry {
   id         String   @id @default(cuid())
   provider   String

@@ -1,5 +1,21 @@
 import type { Prediction } from "@/types/domain";
 
+const evidenceLabels = {
+  confirmed: "Confirmado",
+  expected: "Estimado",
+  inferred: "Inferido",
+  conflict: "Conflicto",
+  unavailable: "No disponible",
+} satisfies Record<Prediction["evidenceStatus"], string>;
+
+const evidenceDescriptions = {
+  confirmed: "Dato observado o confirmado por fuente conectada.",
+  expected: "Dato estimado con priors o información previa.",
+  inferred: "Dato inferido por el motor con evidencia indirecta.",
+  conflict: "Fuentes con señales contradictorias.",
+  unavailable: "Sin datos suficientes para sostener el mercado.",
+} satisfies Record<Prediction["evidenceStatus"], string>;
+
 export function MarketTable({
   predictions,
   onSelectPrediction,
@@ -26,6 +42,7 @@ export function MarketTable({
             <th>Intervalo</th>
             <th>Cuota mín.</th>
             <th>Valor</th>
+            <th>Evidencia</th>
             <th>Confianza</th>
             <th>Riesgo</th>
           </tr>
@@ -79,6 +96,14 @@ export function MarketTable({
                     {prediction.modelEdge.toFixed(1)} pp
                   </small>
                 ) : null}
+              </td>
+              <td>
+                <span
+                  className={`evidence-pill evidence-pill-${prediction.evidenceStatus}`}
+                  title={evidenceDescriptions[prediction.evidenceStatus]}
+                >
+                  {evidenceLabels[prediction.evidenceStatus]}
+                </span>
               </td>
               <td>{prediction.confidence.toFixed(1)}/10</td>
               <td>

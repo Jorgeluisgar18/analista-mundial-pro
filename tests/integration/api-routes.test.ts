@@ -11,6 +11,30 @@ import { itWithDatabase } from "../helpers/database";
 
 vi.mock("server-only", () => ({}));
 
+const ANALYST_TOKEN = "test-analyst-token";
+
+async function withAnalystToken<T>(callback: () => Promise<T>): Promise<T> {
+  const previous = process.env.ANALYST_OVERRIDE_TOKEN;
+  process.env.ANALYST_OVERRIDE_TOKEN = ANALYST_TOKEN;
+  try {
+    return await callback();
+  } finally {
+    if (previous === undefined) {
+      delete process.env.ANALYST_OVERRIDE_TOKEN;
+    } else {
+      process.env.ANALYST_OVERRIDE_TOKEN = previous;
+    }
+  }
+}
+
+function analystHeaders(extra?: HeadersInit) {
+  return {
+    "content-type": "application/json",
+    "x-analyst-token": ANALYST_TOKEN,
+    ...extra,
+  };
+}
+
 describe("API routes", () => {
   it("rechaza una fecha inválida", async () => {
     const response = await getMatches(
@@ -72,13 +96,15 @@ describe("API routes", () => {
   it("rechaza JSON malformado en cambios manuales", async () => {
     let response: Response | undefined;
     try {
-      response = await createOverride(
-        new Request("http://local/api/match/demo-col-bra/overrides", {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: "{bad",
-        }),
-        { params: Promise.resolve({ id: "demo-col-bra" }) },
+      response = await withAnalystToken(() =>
+        createOverride(
+          new Request("http://local/api/match/demo-col-bra/overrides", {
+            method: "POST",
+            headers: analystHeaders(),
+            body: "{bad",
+          }),
+          { params: Promise.resolve({ id: "demo-col-bra" }) },
+        ),
       );
     } catch {
       response = undefined;
@@ -88,6 +114,29 @@ describe("API routes", () => {
     expect(response?.headers.get("content-type")).toContain(
       "application/problem+json",
     );
+  });
+
+  it("rechaza cambios manuales sin token de analista", async () => {
+    const response = await withAnalystToken(() =>
+      createOverride(
+        new Request("http://local/api/match/demo-col-bra/overrides", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            type: "absence",
+            description: "Intento sin credencial de analista",
+            teamId: demoDataset.match.homeTeam.id,
+            impact: "high",
+            area: "attack",
+          }),
+        }),
+        { params: Promise.resolve({ id: "demo-col-bra" }) },
+      ),
+    );
+    const body = await response.json();
+
+    expect(response.status).toBe(401);
+    expect(body.title).toMatch(/credencial de analista requerida/i);
   });
 
   it("rechaza cambios manuales enviados desde otro origen", async () => {
@@ -124,19 +173,21 @@ describe("API routes", () => {
 
   itWithDatabase("aplica una baja estructurada antes de recalcular el análisis", async () => {
     const baseline = analyzeMatch(demoDataset);
-    const response = await createOverride(
-      new Request("http://local/api/match/demo-col-bra/overrides", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          type: "absence",
-          description: "Delantero titular descartado",
-          teamId: demoDataset.match.homeTeam.id,
-          impact: "high",
-          area: "attack",
+    const response = await withAnalystToken(() =>
+      createOverride(
+        new Request("http://local/api/match/demo-col-bra/overrides", {
+          method: "POST",
+          headers: analystHeaders(),
+          body: JSON.stringify({
+            type: "absence",
+            description: "Delantero titular descartado",
+            teamId: demoDataset.match.homeTeam.id,
+            impact: "high",
+            area: "attack",
+          }),
         }),
-      }),
-      { params: Promise.resolve({ id: "demo-col-bra" }) },
+        { params: Promise.resolve({ id: "demo-col-bra" }) },
+      ),
     );
     const body = await response.json();
 
@@ -202,19 +253,21 @@ describe("API routes", () => {
   });
 
   it("permite recalcular manualmente un partido demo sin persistencia", async () => {
-    const response = await createOverride(
-      new Request("http://local/api/match/demo-col-bra/overrides", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          type: "absence",
-          description: "Delantero titular descartado por prueba QA",
-          teamId: demoDataset.match.homeTeam.id,
-          impact: "high",
-          area: "attack",
+    const response = await withAnalystToken(() =>
+      createOverride(
+        new Request("http://local/api/match/demo-col-bra/overrides", {
+          method: "POST",
+          headers: analystHeaders(),
+          body: JSON.stringify({
+            type: "absence",
+            description: "Delantero titular descartado por prueba QA",
+            teamId: demoDataset.match.homeTeam.id,
+            impact: "high",
+            area: "attack",
+          }),
         }),
-      }),
-      { params: Promise.resolve({ id: "demo-col-bra" }) },
+        { params: Promise.resolve({ id: "demo-col-bra" }) },
+      ),
     );
     const body = await response.json();
 

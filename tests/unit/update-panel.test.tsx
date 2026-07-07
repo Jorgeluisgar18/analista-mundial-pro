@@ -27,6 +27,10 @@ describe("UpdatePanel", () => {
       />,
     );
 
+    await userEvent.type(
+      screen.getByLabelText(/Token de analista/i),
+      "token-local",
+    );
     await userEvent.selectOptions(
       screen.getByLabelText(/Tipo de cambio/i),
       "formation",
@@ -46,8 +50,12 @@ describe("UpdatePanel", () => {
     );
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalled());
-    const body = JSON.parse(String(fetchMock.mock.calls[0][1]?.body));
+    const requestInit = fetchMock.mock.calls[0][1];
+    const body = JSON.parse(String(requestInit?.body));
 
+    expect(requestInit?.headers).toMatchObject({
+      "x-analyst-token": "token-local",
+    });
     expect(body).toMatchObject({
       type: "formation",
       teamId: demoDataset.match.awayTeam.id,

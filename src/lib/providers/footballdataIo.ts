@@ -384,7 +384,7 @@ export class FootballdataIoProvider implements FootballProvider {
           id: "footballdata-io-stats",
           label: "Footballdata.io · stats",
           type: "provider",
-          status: Object.keys(stats).length ? "expected" : "unavailable",
+          status: Object.keys(stats).length ? "confirmed" : "unavailable",
           observedAt: fetchedAt,
           detail: Object.keys(stats).length
             ? "Estadísticas normalizadas de equipos."

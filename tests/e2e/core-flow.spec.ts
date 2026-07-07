@@ -135,7 +135,7 @@ test("la home comunica estado de datos y metodología sin parecer demo plana", a
 }) => {
   await page.goto("/");
   await expect(page.getByText("Poisson + Dixon–Coles")).toBeVisible();
-  await expect(page.getByText("Elo + logística")).toBeVisible();
+  await expect(page.getByText("Forma + logística")).toBeVisible();
   await expect(page.getByText("Estado del sistema")).toBeVisible();
   await expect(
     page.getByRole("button", { name: "Buscar partidos" }),
@@ -168,11 +168,18 @@ test("modifica manualmente un partido cuando Postgres está configurado", async 
     !hasPostgresDatabaseUrl(),
     "Requiere DATABASE_URL con Neon/Postgres para persistir overrides.",
   );
+  test.skip(
+    !process.env.ANALYST_OVERRIDE_TOKEN,
+    "Requiere ANALYST_OVERRIDE_TOKEN para probar overrides protegidos.",
+  );
 
   const description = `Baja E2E temporal ${Date.now()}`;
   try {
     await page.goto("/match/demo-col-bra");
     await page.getByRole("button", { name: /Cambios manuales/i }).click();
+    await page
+      .getByLabel("Token de analista")
+      .fill(process.env.ANALYST_OVERRIDE_TOKEN ?? "");
     await page.getByLabel("Descripción del cambio").fill(description);
     await page.getByRole("button", { name: /Guardar y recalcular/i }).click();
     await expect(

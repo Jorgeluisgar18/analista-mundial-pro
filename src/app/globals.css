@@ -1837,6 +1837,43 @@ textarea:focus-visible {
   color: var(--amber);
 }
 
+.evidence-pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 22px;
+  padding: 4px 8px;
+  border: 1px solid rgba(180, 214, 205, 0.16);
+  border-radius: 999px;
+  background: rgba(180, 214, 205, 0.06);
+  color: #d8e8e3;
+  font-family: var(--font-ui);
+  font-size: 9px;
+  font-weight: 850;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.evidence-pill-confirmed {
+  border-color: rgba(0, 222, 165, 0.36);
+  background: rgba(0, 222, 165, 0.12);
+  color: var(--emerald-soft);
+}
+
+.evidence-pill-expected,
+.evidence-pill-inferred {
+  border-color: rgba(255, 211, 107, 0.32);
+  background: rgba(255, 211, 107, 0.11);
+  color: var(--amber);
+}
+
+.evidence-pill-conflict,
+.evidence-pill-unavailable {
+  border-color: rgba(255, 110, 97, 0.36);
+  background: rgba(255, 110, 97, 0.1);
+  color: var(--coral);
+}
+
 .risk {
   display: inline-block;
   min-width: 63px;

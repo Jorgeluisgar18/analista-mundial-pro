@@ -348,6 +348,35 @@ describe("analysisEngine", () => {
     expect(adjusted.dataQuality.note).toMatch(/calibraci/i);
   });
 
+  it("limita la confianza cuando las estadisticas base son estimadas", () => {
+    const dataset = structuredClone(demoDataset);
+    dataset.match.id = "estimated-stats-confidence";
+    dataset.match.dataOrigin = "API";
+    dataset.lineups = dataset.lineups.map((lineup) => ({
+      ...lineup,
+      confirmed: true,
+      formation: {
+        ...lineup.formation,
+        status: "confirmed",
+      },
+    }));
+    dataset.sources = [
+      {
+        id: "api-team-stats",
+        label: "API-Football · estadisticas de temporada",
+        type: "provider",
+        status: "expected",
+        observedAt: "2026-06-25T18:00:00Z",
+        detail: "Conteos no cubiertos usan priors explicitos.",
+      },
+    ];
+
+    const result = analyzeMatch(dataset);
+
+    expect(result.expected.confidence).toBeLessThanOrEqual(4);
+    expect(result.dataQuality.note).toMatch(/estimad/i);
+  });
+
   it("estima totales secundarios con Poisson sobre el volumen esperado", () => {
     const result = analyzeMatch(demoDataset);
     const expectedCorners = demoDataset.home.corners + demoDataset.away.corners;

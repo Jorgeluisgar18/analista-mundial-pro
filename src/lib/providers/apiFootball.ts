@@ -41,6 +41,157 @@ interface ApiFootballFixture {
   };
 }
 
+interface ApiFootballTeamStatistics {
+  fixtures?: {
+    played?: { total?: number };
+    wins?: { total?: number };
+    draws?: { total?: number };
+  };
+  goals?: {
+    for?: { total?: { total?: number } };
+    against?: { total?: { total?: number } };
+  };
+  clean_sheet?: { total?: number };
+  [key: string]: unknown;
+}
+
+type UnknownRecord = Record<string, unknown>;
+
+function isRecord(value: unknown): value is UnknownRecord {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function numberValue(...values: unknown[]): number | undefined {
+  for (const value of values) {
+    if (typeof value === "number" && Number.isFinite(value)) return value;
+    if (typeof value === "string" && value.trim()) {
+      const parsed = Number(value);
+      if (Number.isFinite(parsed)) return parsed;
+    }
+  }
+  return undefined;
+}
+
+function readPath(root: unknown, path: string[]) {
+  let current = root;
+  for (const key of path) {
+    if (!isRecord(current)) return undefined;
+    current = current[key];
+  }
+  return current;
+}
+
+function numberFromPaths(root: unknown, paths: string[][]) {
+  return numberValue(...paths.map((path) => readPath(root, path)));
+}
+
+function sumDefined(...values: Array<number | undefined>) {
+  const present = values.filter((value): value is number => value !== undefined);
+  return present.length
+    ? present.reduce((total, value) => total + value, 0)
+    : undefined;
+}
+
+function sumBucketTotals(root: unknown) {
+  if (!isRecord(root)) return undefined;
+  const totals = Object.values(root)
+    .map((value) => numberFromPaths(value, [["total"], ["total", "total"]]))
+    .filter((value): value is number => value !== undefined);
+  return totals.length
+    ? totals.reduce((total, value) => total + value, 0)
+    : undefined;
+}
+
+function statisticArrayValue(root: unknown, labels: string[]) {
+  if (!isRecord(root) || !Array.isArray(root.statistics)) return undefined;
+  const normalizedLabels = labels.map((label) => label.toLowerCase());
+  for (const item of root.statistics) {
+    if (!isRecord(item)) continue;
+    const type = String(item.type ?? item.name ?? item.label ?? "").toLowerCase();
+    if (!normalizedLabels.some((label) => type.includes(label))) continue;
+    const value = numberValue(item.value, item.total, item.count);
+    if (value !== undefined) return value;
+  }
+  return undefined;
+}
+
+function perGame(total: number | undefined, played: number, fallback: number) {
+  return total !== undefined ? total / played : fallback;
+}
+
+function extractCountTotals(stats: ApiFootballTeamStatistics) {
+  const yellowCards =
+    numberFromPaths(stats, [
+      ["cards", "yellow", "total"],
+      ["cards", "yellow", "total", "total"],
+    ]) ?? sumBucketTotals(readPath(stats, ["cards", "yellow"]));
+  const redCards =
+    numberFromPaths(stats, [
+      ["cards", "red", "total"],
+      ["cards", "red", "total", "total"],
+    ]) ?? sumBucketTotals(readPath(stats, ["cards", "red"]));
+
+  return {
+    shots:
+      numberFromPaths(stats, [
+        ["shots", "total"],
+        ["shots", "total", "total"],
+        ["shots_for", "total"],
+        ["shotsFor", "total"],
+        ["total_shots"],
+        ["shotsTotal"],
+      ]) ?? statisticArrayValue(stats, ["total shots", "shots"]),
+    shotsOnTarget:
+      numberFromPaths(stats, [
+        ["shots_on_target", "total"],
+        ["shots_on_target", "total", "total"],
+        ["shotsOnTarget", "total"],
+        ["shots_on_goal", "total"],
+        ["shotsOnGoal", "total"],
+        ["target_shots"],
+        ["shotsOnTargetTotal"],
+      ]) ??
+      statisticArrayValue(stats, [
+        "shots on goal",
+        "shots on target",
+        "target shots",
+      ]),
+    corners:
+      numberFromPaths(stats, [
+        ["corners", "total"],
+        ["corners", "total", "total"],
+        ["corner_kicks", "total"],
+        ["cornerKicks", "total"],
+        ["cornersTotal"],
+      ]) ?? statisticArrayValue(stats, ["corner kicks", "corners"]),
+    cards:
+      numberFromPaths(stats, [
+        ["cards", "total"],
+        ["cards", "total", "total"],
+        ["cards_total"],
+        ["cardsTotal"],
+      ]) ?? sumDefined(yellowCards, redCards),
+    fouls:
+      numberFromPaths(stats, [
+        ["fouls", "total"],
+        ["fouls", "total", "total"],
+        ["foulsTotal"],
+      ]) ?? statisticArrayValue(stats, ["fouls"]),
+    offsides:
+      numberFromPaths(stats, [
+        ["offsides", "total"],
+        ["offsides", "total", "total"],
+        ["offsidesTotal"],
+      ]) ?? statisticArrayValue(stats, ["offsides"]),
+  };
+}
+
+function hasDetailedCountStats(stats: ApiFootballTeamStatistics) {
+  return Object.values(extractCountTotals(stats)).some(
+    (value) => value !== undefined,
+  );
+}
+
 function scoreFullTime(item: ApiFootballFixture): [number, number] | undefined {
   return typeof item.goals?.home === "number" &&
     typeof item.goals?.away === "number"
@@ -304,70 +455,35 @@ export class ApiFootballProvider implements FootballProvider {
           reason?: string;
         }>
       >("injuries", { fixture: id }).catch(() => []),
-      this.request<{
-        fixtures?: {
-          played?: { total?: number };
-          wins?: { total?: number };
-          draws?: { total?: number };
-        };
-        goals?: {
-          for?: { total?: { total?: number } };
-          against?: { total?: { total?: number } };
-        };
-        clean_sheet?: { total?: number };
-      }>("teams/statistics", {
+      this.request<ApiFootballTeamStatistics>("teams/statistics", {
         league: fixture.league.id,
         season: fixture.league.season ?? new Date(fixture.fixture.date).getUTCFullYear(),
         team: fixture.teams.home.id,
       }).catch(() => ({})),
-      this.request<{
-        fixtures?: {
-          played?: { total?: number };
-          wins?: { total?: number };
-          draws?: { total?: number };
-        };
-        goals?: {
-          for?: { total?: { total?: number } };
-          against?: { total?: { total?: number } };
-        };
-        clean_sheet?: { total?: number };
-      }>("teams/statistics", {
+      this.request<ApiFootballTeamStatistics>("teams/statistics", {
         league: fixture.league.id,
         season: fixture.league.season ?? new Date(fixture.fixture.date).getUTCFullYear(),
         team: fixture.teams.away.id,
       }).catch(() => ({})),
     ]);
 
-    const normalizeStats = (
-      stats: {
-        fixtures?: {
-          played?: { total?: number };
-          wins?: { total?: number };
-          draws?: { total?: number };
-        };
-        goals?: {
-          for?: { total?: { total?: number } };
-          against?: { total?: { total?: number } };
-        };
-        clean_sheet?: { total?: number };
-      },
-      elo: number,
-    ) => {
+    const normalizeStats = (stats: ApiFootballTeamStatistics, elo: number) => {
       const played = Math.max(1, stats.fixtures?.played?.total ?? 0);
       const wins = stats.fixtures?.wins?.total ?? 0;
       const draws = stats.fixtures?.draws?.total ?? 0;
+      const countTotals = extractCountTotals(stats);
       return {
         elo,
         recentPointsPerGame: (wins * 3 + draws) / played,
         goalsFor: (stats.goals?.for?.total?.total ?? 1.35 * played) / played,
         goalsAgainst:
           (stats.goals?.against?.total?.total ?? 1.25 * played) / played,
-        shots: 10.5,
-        shotsOnTarget: 3.6,
-        corners: 4.5,
-        cards: 2.1,
-        fouls: 11.5,
-        offsides: 1.6,
+        shots: perGame(countTotals.shots, played, 10.5),
+        shotsOnTarget: perGame(countTotals.shotsOnTarget, played, 3.6),
+        corners: perGame(countTotals.corners, played, 4.5),
+        cards: perGame(countTotals.cards, played, 2.1),
+        fouls: perGame(countTotals.fouls, played, 11.5),
+        offsides: perGame(countTotals.offsides, played, 1.6),
         cleanSheetRate: (stats.clean_sheet?.total ?? 0.28 * played) / played,
       };
     };
@@ -432,6 +548,9 @@ export class ApiFootballProvider implements FootballProvider {
       };
     });
 
+    const hasProviderCountStats =
+      hasDetailedCountStats(homeStats) || hasDetailedCountStats(awayStats);
+
     const sources = [
       {
         id: "api-fixture",
@@ -455,9 +574,13 @@ export class ApiFootballProvider implements FootballProvider {
         id: "api-team-stats",
         label: "API-Football · estadísticas de temporada",
         type: "provider" as const,
-        status: "expected" as const,
+        status: hasProviderCountStats
+          ? ("confirmed" as const)
+          : ("expected" as const),
         observedAt: new Date().toISOString(),
-        detail:
+        detail: hasProviderCountStats
+          ? "Goles, resultados y conteos disponibles normalizados por partido."
+          :
           "Goles y resultados del torneo; conteos no cubiertos usan priors explícitos.",
       },
     ];

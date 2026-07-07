@@ -38,11 +38,31 @@ describe("ApiFootballProvider", () => {
       }
       if (url.includes("injuries")) return Response.json({ response: [] });
       if (url.includes("teams/statistics")) {
+        const teamId = new URL(url).searchParams.get("team");
+        const countStats =
+          teamId === "10"
+            ? {
+                shots: { total: 96 },
+                shots_on_target: { total: 40 },
+                corners: { total: 48 },
+                cards: { yellow: { total: 16 }, red: { total: 2 } },
+                fouls: { total: 88 },
+                offsides: { total: 12 },
+              }
+            : {
+                shots: { total: 64 },
+                shots_on_target: { total: 24 },
+                corners: { total: 32 },
+                cards: { yellow: { total: 10 }, red: { total: 0 } },
+                fouls: { total: 72 },
+                offsides: { total: 8 },
+              };
         return Response.json({
           response: {
             fixtures: { played: { total: 8 }, wins: { total: 5 }, draws: { total: 2 } },
             goals: { for: { total: { total: 14 } }, against: { total: { total: 7 } } },
             clean_sheet: { total: 3 },
+            ...countStats,
           },
         });
       }
@@ -56,6 +76,18 @@ describe("ApiFootballProvider", () => {
     expect(result.data?.match.timezone).toBe("America/Bogota");
     expect(result.data?.lineups[0]?.formation.value).toBe("4-2-3-1");
     expect(result.data?.home.goalsFor).toBeCloseTo(1.75);
+    expect(result.data?.home.shots).toBeCloseTo(12);
+    expect(result.data?.home.shotsOnTarget).toBeCloseTo(5);
+    expect(result.data?.home.corners).toBeCloseTo(6);
+    expect(result.data?.home.cards).toBeCloseTo(2.25);
+    expect(result.data?.home.fouls).toBeCloseTo(11);
+    expect(result.data?.home.offsides).toBeCloseTo(1.5);
+    expect(result.data?.away.shots).toBeCloseTo(8);
+    expect(result.data?.away.shotsOnTarget).toBeCloseTo(3);
+    expect(result.data?.away.corners).toBeCloseTo(4);
+    expect(result.data?.away.cards).toBeCloseTo(1.25);
+    expect(result.data?.away.fouls).toBeCloseTo(9);
+    expect(result.data?.away.offsides).toBeCloseTo(1);
   });
 
   it("normaliza partidos nocturnos al día calendario de Colombia", async () => {

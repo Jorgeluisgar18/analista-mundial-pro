@@ -183,6 +183,42 @@ describe("AnalysisCabin", () => {
     ).not.toBeInTheDocument();
   });
 
+  it("envia cambios manuales con token de analista desde el panel", async () => {
+    const user = userEvent.setup();
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ analysis: analyzeMatch(demoDataset) }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(
+      <AnalysisCabin
+        initialAnalysis={analyzeMatch(demoDataset)}
+        dataset={demoDataset}
+      />,
+    );
+
+    await user.click(
+      screen.getByRole("button", { name: (name) => name === "Cambios manuales" }),
+    );
+    await user.type(screen.getByLabelText(/token de analista/i), "token-local");
+    await user.type(
+      screen.getByLabelText(/descripci/i),
+      "Baja confirmada por reporte oficial",
+    );
+    await user.click(screen.getByRole("button", { name: /guardar y recalcular/i }));
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      `/api/match/${demoDataset.match.id}/overrides`,
+      expect.objectContaining({
+        method: "POST",
+        headers: expect.objectContaining({
+          "x-analyst-token": "token-local",
+        }),
+      }),
+    );
+  });
+
   it("abre el desglose detallado del mercado al hacer clic en una fila de la tabla y se cierra con Escape", async () => {
     render(
       <AnalysisCabin

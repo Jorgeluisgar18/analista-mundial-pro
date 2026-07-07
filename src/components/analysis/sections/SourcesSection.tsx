@@ -73,10 +73,10 @@ export function SourcesSection({
         </article>
         <article>
           <span>Fuerza</span>
-          <strong>Elo contextual + histórico</strong>
+          <strong>Forma contextual + histórico</strong>
           <p>
-            Considera rival, sede, recencia, forma ponderada y diferencia entre
-            selecciones y clubes.
+            Considera sede, recencia, forma ponderada, producción ofensiva y
+            contexto disponible por tipo de competición.
           </p>
         </article>
         <article>

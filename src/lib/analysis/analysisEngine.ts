@@ -19,6 +19,7 @@ import type {
   MatchDataset,
   Prediction,
   RiskLevel,
+  SourceRecord,
   ValueTier,
 } from "@/types/domain";
 
@@ -45,6 +46,42 @@ function tierFor(probability: number, ev?: number): ValueTier {
   if (ev !== undefined && ev >= 0.04) return "Moderado";
   if (ev !== undefined && ev > 0) return "Arriesgado";
   return "Solo observación";
+}
+
+function isFinitePositive(value: unknown) {
+  return typeof value === "number" && Number.isFinite(value) && value > 0;
+}
+
+function isBaseStatsSource(source: SourceRecord) {
+  const haystack = `${source.id} ${source.label} ${source.detail}`.toLowerCase();
+  return (
+    haystack.includes("team-stats") ||
+    haystack.includes("stats") ||
+    haystack.includes("estad") ||
+    haystack.includes("hist") ||
+    haystack.includes("form")
+  );
+}
+
+function hasReliableBaseStats(dataset: MatchDataset) {
+  const numericStatsPresent = [
+    dataset.home.goalsFor,
+    dataset.home.goalsAgainst,
+    dataset.home.shots,
+    dataset.home.shotsOnTarget,
+    dataset.away.goalsFor,
+    dataset.away.goalsAgainst,
+    dataset.away.shots,
+    dataset.away.shotsOnTarget,
+  ].every(isFinitePositive);
+
+  if (!numericStatsPresent) return false;
+
+  return dataset.sources.some(
+    (source) =>
+      isBaseStatsSource(source) &&
+      (source.status === "confirmed" || source.status === "inferred"),
+  );
 }
 
 function makePrediction({
@@ -495,6 +532,7 @@ export function analyzeMatch(
   const lineupsConfirmed =
     dataset.lineups.length > 0 &&
     dataset.lineups.every((lineup) => lineup.confirmed);
+  const reliableBaseStats = hasReliableBaseStats(dataset);
   const confidence = calculateConfidence({
     coverage: dataset.players.length ? 0.88 : 0.7,
     freshness: 0.87,
@@ -504,7 +542,7 @@ export function analyzeMatch(
     modelStability: 0.82,
     calibration: (calibrationSummary?.confidenceMultiplier ?? 1) * 0.78,
     lineupConfirmed: lineupsConfirmed,
-    hasBaseStats: Boolean(dataset.home.shots && dataset.away.shots),
+    hasBaseStats: reliableBaseStats,
   });
   const sourceIds = dataset.sources.map((source) => source.id);
   const normalizedOdds = dataset.odds.map((odd) => ({
@@ -540,7 +578,7 @@ export function analyzeMatch(
         confidence,
         availableOdd: typeof odd === "number" ? odd : undefined,
         marketProbability: index < 3 ? fairH2H?.[index] : undefined,
-        reason: `Combina Elo (${dataset.home.elo} vs ${dataset.away.elo}), forma (${dataset.home.recentPointsPerGame.toFixed(2)} vs ${dataset.away.recentPointsPerGame.toFixed(2)} PPG) e intensidades de gol ${features.homeLambda.toFixed(2)}-${features.awayLambda.toFixed(2)}.`,
+        reason: `Combina fuerza base disponible (${dataset.home.elo} vs ${dataset.away.elo}), forma (${dataset.home.recentPointsPerGame.toFixed(2)} vs ${dataset.away.recentPointsPerGame.toFixed(2)} PPG) e intensidades de gol ${features.homeLambda.toFixed(2)}-${features.awayLambda.toFixed(2)}.`,
         risk: "La alineación oficial puede cambiar el balance de fuerza.",
         sourceIds,
       }),
@@ -828,7 +866,9 @@ export function analyzeMatch(
       freshness: 87,
       agreement: 86,
       lineupConfirmed: lineupsConfirmed,
-      note: calibrationSummary
+      note: !reliableBaseStats
+        ? "Estadisticas base estimadas: la calibracion y la confianza quedan limitadas hasta disponer de conteos confirmados o historico suficiente."
+        : calibrationSummary
         ? `Snapshot reproducible de fuentes consultadas con calibración histórica sobre ${calibrationSummary.sampleSize} partidos.`
         : dataset.match.dataOrigin === "DEMO"
           ? "Muestra local: no representa información actual."

@@ -1,5 +1,6 @@
-import { prisma } from "@/lib/db/prisma";
-import { checkRateLimit } from "@/lib/http/rateLimit";
+import { getDatabaseRuntimeStatus, prisma } from "@/lib/db/prisma";
+import { requireAnalyst } from "@/lib/auth/analyst";
+import { checkPersistentRateLimit } from "@/lib/http/persistentRateLimit";
 import { requireSameOrigin } from "@/lib/http/requestGuards";
 import { problem } from "@/lib/http/problem";
 import { applyDemoManualOverride } from "@/lib/overrides/demoOverrideService";
@@ -12,10 +13,16 @@ export async function POST(
 ) {
   const originProblem = requireSameOrigin(request);
   if (originProblem) return originProblem;
-  const limitProblem = checkRateLimit(request, "manual-overrides", {
-    limit: 20,
-    windowMs: 60_000,
-  });
+  const analystProblem = requireAnalyst(request);
+  if (analystProblem) return analystProblem;
+  const limitProblem = await checkPersistentRateLimit(
+    request,
+    "manual-overrides",
+    {
+      limit: 20,
+      windowMs: 60_000,
+    },
+  );
   if (limitProblem) return limitProblem;
 
   const { id } = await context.params;
@@ -37,6 +44,15 @@ export async function POST(
   }
   const demoResult = applyDemoManualOverride(id, parsed.data);
   if (demoResult) return Response.json(demoResult, { status: 201 });
+
+  const databaseRuntime = getDatabaseRuntimeStatus();
+  if (databaseRuntime.status !== "configured") {
+    return problem(
+      503,
+      "Persistencia no configurada",
+      "No se pueden guardar cambios manuales reales hasta configurar Neon/Postgres.",
+    );
+  }
 
   const match = await prisma.match.findUnique({ where: { externalId: id } });
   if (!match) return problem(404, "Partido no encontrado", id);

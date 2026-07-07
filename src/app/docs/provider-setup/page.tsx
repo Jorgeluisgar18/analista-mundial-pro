@@ -36,6 +36,11 @@ const providers = [
     variable: "Sin clave",
     use: "Clima estimado por ciudad o sede.",
   },
+  {
+    name: "Edición manual",
+    variable: "ANALYST_OVERRIDE_TOKEN",
+    use: "Credencial privada para crear cambios manuales desde la cabina de análisis.",
+  },
 ];
 
 export default function ProviderSetupPage() {
@@ -124,7 +129,8 @@ THE_SPORTSDB_TIMEOUT_MS="8000"
 ODDS_API_KEY=""
 ODDS_API_REGIONS="eu"
 ODDS_API_MARKETS="h2h"
-ODDS_API_TIMEOUT_MS="8000"`}</pre>
+ODDS_API_TIMEOUT_MS="8000"
+ANALYST_OVERRIDE_TOKEN=""`}</pre>
         </section>
 
         <section className="provider-table-section">

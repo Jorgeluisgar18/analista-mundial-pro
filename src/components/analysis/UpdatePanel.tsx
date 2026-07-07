@@ -29,6 +29,11 @@ export function UpdatePanel({
   const [impact, setImpact] = useState<ManualOverrideImpact>("medium");
   const [area, setArea] = useState<ManualOverrideArea>("attack");
   const [value, setValue] = useState("");
+  const [analystToken, setAnalystToken] = useState(() =>
+    typeof window === "undefined"
+      ? ""
+      : (window.localStorage.getItem("amp-analyst-token") ?? ""),
+  );
   const [status, setStatus] = useState("");
   const [saving, setSaving] = useState(false);
   const dialogRef = useRef<HTMLElement>(null);
@@ -82,12 +87,21 @@ export function UpdatePanel({
 
   async function submit(event: React.FormEvent) {
     event.preventDefault();
+    const token = analystToken.trim();
+    if (!token) {
+      setStatus("Ingresa el token de analista antes de guardar cambios.");
+      return;
+    }
     setStatus("Guardando y recalculando…");
     setSaving(true);
     try {
+      window.localStorage.setItem("amp-analyst-token", token);
       const response = await fetch(`/api/match/${matchId}/overrides`, {
         method: "POST",
-        headers: { "content-type": "application/json" },
+        headers: {
+          "content-type": "application/json",
+          "x-analyst-token": token,
+        },
         body: JSON.stringify({
           type,
           description,
@@ -136,6 +150,17 @@ export function UpdatePanel({
           descripción y fuente antes de recalcular.
         </p>
         <form onSubmit={submit}>
+          <label>
+            <span>Token de analista</span>
+            <input
+              type="password"
+              value={analystToken}
+              onChange={(event) => setAnalystToken(event.target.value)}
+              autoComplete="off"
+              placeholder="Credencial privada de edición"
+              required
+            />
+          </label>
           <label>
             <span>Tipo de cambio</span>
             <select value={type} onChange={(event) => setType(event.target.value as ManualOverrideInput["type"])}>

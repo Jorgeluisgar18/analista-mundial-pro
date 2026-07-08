@@ -51,6 +51,12 @@ function UsageBar({ used, limit }: { used: number; limit: number }) {
 }
 
 function ProviderCard({ provider }: { provider: ProviderInfo }) {
+  const statusLabel = provider.configured
+    ? provider.telemetry?.failures
+      ? "Configurado con fallos recientes"
+      : "Configurado"
+    : "No configurado";
+
   return (
     <article className={`health-provider ${provider.configured ? "on" : "off"}`}>
       <header>
@@ -58,6 +64,9 @@ function ProviderCard({ provider }: { provider: ProviderInfo }) {
         <strong>{provider.label}</strong>
         <code className="health-badge">{provider.id}</code>
       </header>
+      <p className="health-purpose">
+        Estado: <strong>{statusLabel}</strong>
+      </p>
       <p className="health-purpose">{provider.purpose}</p>
       {provider.usage ? (
         <div className="health-usage-row">
@@ -135,7 +144,11 @@ export function HealthPanel() {
       <h2 className="health-heading">
         Estado del sistema
         <span className={`health-mode mode-${health?.mode ?? "loading"}`}>
-          {health?.mode === "api-ready" ? "Datos reales listos" : health?.mode === "demo" ? "Respaldo local" : "Cargando..."}
+          {health?.mode === "api-ready"
+            ? "Datos reales listos"
+            : health?.mode === "demo"
+              ? "Respaldo local"
+              : "Cargando..."}
         </span>
       </h2>
 
@@ -144,10 +157,33 @@ export function HealthPanel() {
       {health && (
         <>
           <div className="health-meta">
-            <span>BD: <strong>{health.database === "connected" ? "Neon/Postgres conectada" : "Sin persistencia"}</strong></span>
+            <span>
+              BD:{" "}
+              <strong>
+                {health.database === "connected"
+                  ? "Neon/Postgres conectada"
+                  : "Sin persistencia"}
+              </strong>
+            </span>
+            {health.databaseError && (
+              <span title={health.databaseError}>
+                Motivo BD: {health.databaseError}
+              </span>
+            )}
             <span>Verificado: {new Date(health.checkedAt).toLocaleTimeString()}</span>
-            <button type="button" className="health-refresh" onClick={fetchHealth} aria-label="Actualizar estado del sistema">↻</button>
-            {loading && <span className="health-loading" aria-label="Cargando estado del sistema">Cargando...</span>}
+            <button
+              type="button"
+              className="health-refresh"
+              onClick={fetchHealth}
+              aria-label="Actualizar estado del sistema"
+            >
+              ↻
+            </button>
+            {loading && (
+              <span className="health-loading" aria-label="Cargando estado del sistema">
+                Cargando...
+              </span>
+            )}
           </div>
           <div className="health-grid">
             {health.providers.map((p) => (

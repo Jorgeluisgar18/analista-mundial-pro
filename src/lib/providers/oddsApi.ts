@@ -1,4 +1,5 @@
 import { normalizeOddOutcome } from "@/lib/models/odds";
+import { resilientFetch } from "@/lib/providers/http";
 import type {
   Fetcher,
   OddsProvider,
@@ -269,7 +270,10 @@ export class TheOddsApiProvider implements OddsProvider {
     url.searchParams.set("apiKey", this.apiKey);
     url.searchParams.set("dateFormat", "iso");
 
-    const response = await this.fetcher(url, this.requestOptions());
+    const response = await resilientFetch(this.fetcher, url, {
+      ...this.requestOptions(),
+      retryLabel: "The Odds API /events",
+    });
     if (!response.ok) {
       throw new Error(`The Odds API /events respondió ${response.status}`);
     }
@@ -287,7 +291,10 @@ export class TheOddsApiProvider implements OddsProvider {
       url.searchParams.set("bookmakers", this.bookmakers);
     }
 
-    const response = await this.fetcher(url, this.requestOptions());
+    const response = await resilientFetch(this.fetcher, url, {
+      ...this.requestOptions(),
+      retryLabel: "The Odds API /event odds",
+    });
     if (!response.ok) {
       const detail =
         response.status === 429

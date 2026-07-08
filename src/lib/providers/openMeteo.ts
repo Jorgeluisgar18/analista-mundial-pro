@@ -4,6 +4,7 @@ import {
   type ProviderResult,
   type UsageReporter,
 } from "@/lib/providers/types";
+import { resilientFetch } from "@/lib/providers/http";
 import type { Evidence } from "@/types/domain";
 
 export class OpenMeteoProvider {
@@ -24,9 +25,10 @@ export class OpenMeteoProvider {
     url.searchParams.set("count", "5");
     url.searchParams.set("language", "es");
     url.searchParams.set("format", "json");
-    const response = await this.fetcher(url, {
+    const response = await resilientFetch(this.fetcher, url, {
       signal: AbortSignal.timeout(8_000),
       cache: "no-store",
+      retryLabel: "Open-Meteo geocoding",
     });
     await emitUsage(this.usageReporter, {
       provider: "Open-Meteo",
@@ -74,9 +76,10 @@ export class OpenMeteoProvider {
     url.searchParams.set("start_date", date);
     url.searchParams.set("end_date", date);
     url.searchParams.set("timezone", "UTC");
-    const response = await this.fetcher(url, {
+    const response = await resilientFetch(this.fetcher, url, {
       signal: AbortSignal.timeout(8_000),
       cache: "no-store",
+      retryLabel: "Open-Meteo forecast",
     });
     await emitUsage(this.usageReporter, {
       provider: "Open-Meteo",

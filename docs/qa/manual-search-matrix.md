@@ -6,6 +6,21 @@
 
 ---
 
+## Bloque QA recomendado antes del próximo deploy
+
+| Área | Caso | Resultado esperado |
+|------|------|--------------------|
+| Búsqueda por liga | Premier League / Champions / LaLiga en fecha con calendario | Lista partidos reales o mensaje vacío explicado por proveedor/cuota |
+| Búsqueda por selección | Mundial/selecciones en fecha FIFA conocida | Horario Colombia, equipos con bandera/escudo y fuente visible |
+| Caso vacío | Fecha sin partidos | Mensaje claro, CTA de fuentes/API, sin pantalla blanca |
+| Cabina | Abrir un partido real y uno local | Resumen, mercados, fuentes y alertas cambian según contexto |
+| Cuotas | Partido con y sin The Odds API disponible | Indicar cuota disponible, no disponible o caché sin romper análisis |
+| Alineaciones | Oficial, esperada y no disponible | Mostrar estado correcto y nombres cuando existan |
+| Salud | `/api/health` | Proveedor configurado/no configurado, uso, telemetría y DB legibles |
+| Responsive | Home, resultados y cabina mobile | Sin overlays bloqueando CTA principales |
+
+---
+
 ## Ejecución 2026-06-30
 
 | Campo | Resultado |

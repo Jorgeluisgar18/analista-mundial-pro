@@ -14,6 +14,7 @@ import {
   APP_TIME_ZONE,
   normalizeKickoffForAppTimeZone,
 } from "@/lib/time/colombia";
+import { resilientFetch } from "@/lib/providers/http";
 import type { MatchDataset, NormalizedMatch } from "@/types/domain";
 
 interface ApiFootballFixture {
@@ -262,10 +263,11 @@ export class ApiFootballProvider implements FootballProvider {
     Object.entries(params).forEach(([key, value]) =>
       url.searchParams.set(key, String(value)),
     );
-    const response = await this.fetcher(url, {
+    const response = await resilientFetch(this.fetcher, url, {
       headers: { "x-apisports-key": this.apiKey },
       signal: AbortSignal.timeout(8_000),
       cache: "no-store",
+      retryLabel: "API-Football",
     });
     await this.reportUsage(response);
     if (!response.ok) {
@@ -297,10 +299,11 @@ export class ApiFootballProvider implements FootballProvider {
       url.searchParams.set("league", String(league));
       url.searchParams.set("season", String(seasonFromDate(date)));
     }
-    const response = await this.fetcher(url, {
+    const response = await resilientFetch(this.fetcher, url, {
       headers: { "x-apisports-key": this.apiKey },
       signal: AbortSignal.timeout(8_000),
       cache: "no-store",
+      retryLabel: "API-Football fixtures",
     });
     await this.reportUsage(response);
     if (!response.ok) {

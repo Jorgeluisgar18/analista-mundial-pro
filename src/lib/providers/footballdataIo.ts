@@ -1,5 +1,6 @@
 import { normalizeKickoffForAppTimeZone } from "@/lib/time/colombia";
 import { matchesCompetition } from "@/lib/providers/competitionCatalog";
+import { resilientFetch } from "@/lib/providers/http";
 import type {
   Fetcher,
   FootballProvider,
@@ -247,13 +248,14 @@ export class FootballdataIoProvider implements FootballProvider {
       url.searchParams.set("league", competition);
     }
 
-    const response = await this.fetcher(url, {
+    const response = await resilientFetch(this.fetcher, url, {
       headers: {
         accept: "application/json",
         Authorization: `Bearer ${this.apiKey}`,
       },
       signal: AbortSignal.timeout(8_000),
       cache: "no-store",
+      retryLabel: "Footballdata.io",
     });
     if (!response.ok) {
       throw new Error(`Footballdata.io respondio ${response.status}`);
@@ -418,13 +420,14 @@ export class FootballdataIoProvider implements FootballProvider {
 
   private async request(path: string) {
     const url = new URL(`${this.baseUrl}/${path}`);
-    const response = await this.fetcher(url, {
+    const response = await resilientFetch(this.fetcher, url, {
       headers: {
         accept: "application/json",
         Authorization: `Bearer ${this.apiKey}`,
       },
       signal: AbortSignal.timeout(8_000),
       cache: "no-store",
+      retryLabel: "Footballdata.io",
     });
     if (!response.ok) {
       throw new Error(`Footballdata.io respondio ${response.status}`);

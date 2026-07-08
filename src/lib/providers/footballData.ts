@@ -6,6 +6,7 @@ import type {
 } from "@/lib/providers/types";
 import { emitUsage } from "@/lib/providers/types";
 import { resolveFootballDataCompetition } from "@/lib/providers/competitionCatalog";
+import { resilientFetch } from "@/lib/providers/http";
 import {
   normalizeKickoffForAppTimeZone,
   nextIsoDate,
@@ -32,10 +33,11 @@ export class FootballDataProvider implements FootballProvider {
     if (competitionCode) {
       url.searchParams.set("competitions", competitionCode);
     }
-    const response = await this.fetcher(url, {
+    const response = await resilientFetch(this.fetcher, url, {
       headers: { "X-Auth-Token": this.apiKey },
       signal: AbortSignal.timeout(8_000),
       cache: "no-store",
+      retryLabel: "Football-Data.org",
     });
     await emitUsage(this.usageReporter, {
       provider: "Football-Data.org",

@@ -292,6 +292,88 @@ describe("analysisEngine", () => {
     expect(high.executiveSummary).not.toBe(low.executiveSummary);
   });
 
+  it("recalcula ventaja y valor cuando cambian las cuotas disponibles", () => {
+    const shortHome = structuredClone(demoDataset);
+    shortHome.odds = [
+      {
+        bookmaker: "Casa A",
+        market: "h2h",
+        outcome: shortHome.match.homeTeam.name,
+        odd: 1.55,
+        observedAt: "2026-06-25T18:00:00Z",
+      },
+      {
+        bookmaker: "Casa A",
+        market: "h2h",
+        outcome: "Draw",
+        odd: 3.4,
+        observedAt: "2026-06-25T18:00:00Z",
+      },
+      {
+        bookmaker: "Casa A",
+        market: "h2h",
+        outcome: shortHome.match.awayTeam.name,
+        odd: 5.5,
+        observedAt: "2026-06-25T18:00:00Z",
+      },
+    ];
+    const generousHome = structuredClone(shortHome);
+    generousHome.odds[0] = {
+      ...generousHome.odds[0],
+      odd: 3.6,
+      observedAt: "2026-06-25T19:00:00Z",
+    };
+
+    const shortResult = analyzeMatch(shortHome);
+    const generousResult = analyzeMatch(generousHome);
+    const shortMarket = shortResult.predictions.find(
+      (prediction) => prediction.market === shortHome.match.homeTeam.name,
+    );
+    const generousMarket = generousResult.predictions.find(
+      (prediction) => prediction.market === generousHome.match.homeTeam.name,
+    );
+
+    expect(generousMarket?.availableOdd).toBeGreaterThan(
+      shortMarket?.availableOdd ?? 0,
+    );
+    expect(generousMarket?.expectedValue ?? -100).toBeGreaterThan(
+      shortMarket?.expectedValue ?? -100,
+    );
+    expect(generousMarket?.modelEdge).not.toBe(shortMarket?.modelEdge);
+  });
+
+  it("ajusta intensidades cuando una baja confirmada afecta a un titular ofensivo", () => {
+    const base = structuredClone(demoDataset);
+    const affected = structuredClone(demoDataset);
+    affected.availability = [
+      {
+        id: "away-forward-out",
+        teamId: affected.match.awayTeam.id,
+        player: "Vinícius Júnior",
+        type: "injured",
+        impact: "Titular ofensivo descartado.",
+        replacement: "Suplente",
+        evidence: {
+          value: "Baja confirmada",
+          status: "confirmed",
+          sourceType: "provider",
+          source: "QA",
+          observedAt: "2026-06-25T18:30:00Z",
+        },
+      },
+    ];
+
+    const baseResult = analyzeMatch(base);
+    const affectedResult = analyzeMatch(affected);
+
+    expect(affectedResult.expected.awayGoals).toBeLessThan(
+      baseResult.expected.awayGoals,
+    );
+    expect(affectedResult.mainProbabilities.away).toBeLessThan(
+      baseResult.mainProbabilities.away,
+    );
+  });
+
   it("orienta los escenarios al favorito y no siempre al visitante/local", () => {
     const dataset = structuredClone(demoDataset);
     dataset.match.homeTeam.name = "Local Dominante";

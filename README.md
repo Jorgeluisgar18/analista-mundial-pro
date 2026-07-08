@@ -64,6 +64,11 @@ npm test          # pruebas unitarias e integración
 npm run test:e2e  # pruebas end-to-end
 ```
 
+## Documentación útil
+
+- `docs/data-sources/provider-onboarding.md`: guía para agregar ligas, proveedores, escudos/importadores y QA local.
+- `docs/qa/manual-search-matrix.md`: matriz manual para validar búsquedas, cabina y estados vacíos.
+
 ## Estado del proyecto
 
 El proyecto está en evolución activa. Actualmente se está fortaleciendo el motor de análisis, la integración con proveedores, el histórico deportivo, la calibración de probabilidades y la experiencia visual del informe.

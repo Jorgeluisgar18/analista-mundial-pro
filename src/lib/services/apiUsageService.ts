@@ -63,11 +63,31 @@ export async function recordApiUsage(event: ProviderUsageEvent) {
   });
 }
 
+export function selectActiveUsageRecords<
+  T extends {
+    provider: string;
+    resetsAt: Date;
+  },
+>(records: T[], now = new Date()) {
+  const activeByProvider = new Map<string, T>();
+
+  for (const record of records) {
+    if (
+      record.resetsAt.getTime() > now.getTime() &&
+      !activeByProvider.has(record.provider)
+    ) {
+      activeByProvider.set(record.provider, record);
+    }
+  }
+
+  return [...activeByProvider.values()];
+}
+
 export async function getApiUsageSnapshot() {
   const records = await prisma.apiUsage.findMany({
     orderBy: [{ updatedAt: "desc" }, { provider: "asc" }],
   });
-  return records.map((record) => ({
+  return selectActiveUsageRecords(records).map((record) => ({
     provider: record.provider,
     used: record.used,
     limit: record.limit,

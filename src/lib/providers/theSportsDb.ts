@@ -4,6 +4,7 @@ import type {
   SourceRecord,
   TeamRef,
 } from "@/types/domain";
+import { resilientFetch } from "@/lib/providers/http";
 
 interface TheSportsDbConfig {
   apiKey: string;
@@ -91,9 +92,10 @@ export class TheSportsDbClient {
       url.searchParams.set(key, value);
     }
 
-    const response = await this.fetcher(url, {
+    const response = await resilientFetch(this.fetcher, url, {
       headers: { accept: "application/json" },
       signal: AbortSignal.timeout(this.config.timeoutMs),
+      retryLabel: "TheSportsDB",
     });
     if (response.status === 429) {
       throw new Error("TheSportsDB rate limit reached");

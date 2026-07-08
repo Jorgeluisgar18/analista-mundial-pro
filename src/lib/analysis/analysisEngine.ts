@@ -84,6 +84,27 @@ function hasReliableBaseStats(dataset: MatchDataset) {
   );
 }
 
+function sourceFreshnessScore(sources: SourceRecord[], now = new Date()) {
+  const latestObservedAt = sources
+    .map((source) => new Date(source.observedAt).getTime())
+    .filter((timestamp) => Number.isFinite(timestamp))
+    .sort((a, b) => b - a)[0];
+
+  if (latestObservedAt === undefined) return 0.5;
+
+  const ageHours = Math.max(
+    0,
+    (now.getTime() - latestObservedAt) / (1000 * 60 * 60),
+  );
+
+  if (ageHours <= 1) return 0.95;
+  if (ageHours <= 6) return 0.9;
+  if (ageHours <= 24) return 0.82;
+  if (ageHours <= 72) return 0.65;
+  if (ageHours <= 168) return 0.45;
+  return 0.3;
+}
+
 function makePrediction({
   id,
   category,
@@ -533,9 +554,10 @@ export function analyzeMatch(
     dataset.lineups.length > 0 &&
     dataset.lineups.every((lineup) => lineup.confirmed);
   const reliableBaseStats = hasReliableBaseStats(dataset);
+  const freshnessScore = sourceFreshnessScore(dataset.sources);
   const confidence = calculateConfidence({
     coverage: dataset.players.length ? 0.88 : 0.7,
-    freshness: 0.87,
+    freshness: freshnessScore,
     agreement: dataset.sources.some((source) => source.status === "conflict")
       ? 0.55
       : 0.86,
@@ -863,7 +885,7 @@ export function analyzeMatch(
     sources: dataset.sources,
     dataQuality: {
       coverage: dataset.players.length ? 88 : 70,
-      freshness: 87,
+      freshness: Math.round(freshnessScore * 100),
       agreement: 86,
       lineupConfirmed: lineupsConfirmed,
       note: !reliableBaseStats

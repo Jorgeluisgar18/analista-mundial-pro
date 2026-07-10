@@ -6,14 +6,55 @@ import {
   type CalibrationSummary,
   type HistoricalMatchForForm,
 } from "@/lib/historical/form";
+import { DEFAULT_DIXON_COLES_RHO } from "@/lib/backtesting/dixon-coles-calibration";
+import {
+  BASE_FOOTBALL_ELO,
+  footballEloTimeline,
+  ratingForTeam,
+  type HistoricalEloMatch,
+} from "@/lib/historical/elo";
 import type { MatchDataset } from "@/types/domain";
 
 type HistoricalDatabase = typeof prisma;
+
+function parseCalibrationConfig(config: string) {
+  try {
+    const parsed = JSON.parse(config) as {
+      dixonColesRho?: unknown;
+      rhoSampleSize?: unknown;
+      rhoAverageLogLoss?: unknown;
+    };
+    return {
+      dixonColesRho:
+        typeof parsed.dixonColesRho === "number" &&
+        Number.isFinite(parsed.dixonColesRho)
+          ? parsed.dixonColesRho
+          : DEFAULT_DIXON_COLES_RHO,
+      rhoSampleSize:
+        typeof parsed.rhoSampleSize === "number" &&
+        Number.isFinite(parsed.rhoSampleSize)
+          ? parsed.rhoSampleSize
+          : undefined,
+      rhoAverageLogLoss:
+        typeof parsed.rhoAverageLogLoss === "number" &&
+        Number.isFinite(parsed.rhoAverageLogLoss)
+          ? parsed.rhoAverageLogLoss
+          : null,
+    };
+  } catch {
+    return {
+      dixonColesRho: DEFAULT_DIXON_COLES_RHO,
+      rhoSampleSize: undefined,
+      rhoAverageLogLoss: null,
+    };
+  }
+}
 
 function parseCalibrationRun(
   run: Awaited<ReturnType<HistoricalDatabase["calibrationRun"]["findFirst"]>>,
 ): CalibrationSummary | undefined {
   if (!run) return undefined;
+  const config = parseCalibrationConfig(run.config);
   return {
     sampleSize: run.sampleSize,
     brier: run.brier,
@@ -33,17 +74,63 @@ function parseCalibrationRun(
           Math.max(0, run.logLoss - 1.05) * 0.12,
       ),
     ),
+    dixonColesRho: config.dixonColesRho,
+    rhoSampleSize: config.rhoSampleSize,
+    rhoAverageLogLoss: config.rhoAverageLogLoss,
   };
 }
+
 export function createHistoricalSignalService(
   database: HistoricalDatabase = prisma,
 ) {
+  async function historicalMatchesBefore(before: Date) {
+    const rows = await database.historicalMatch.findMany({
+      where: {
+        kickoff: { lt: before },
+        homeGoals: { not: null },
+        awayGoals: { not: null },
+      },
+      orderBy: [{ kickoff: "asc" }, { id: "asc" }],
+      take: 5000,
+      select: {
+        id: true,
+        kickoff: true,
+        homeTeamId: true,
+        awayTeamId: true,
+        homeGoals: true,
+        awayGoals: true,
+      },
+    });
+
+    return rows.flatMap<HistoricalEloMatch>((match) => {
+      if (match.homeGoals === null || match.awayGoals === null) return [];
+      return [
+        {
+          id: match.id,
+          kickoff: match.kickoff,
+          homeTeamId: match.homeTeamId,
+          awayTeamId: match.awayTeamId,
+          homeGoals: match.homeGoals,
+          awayGoals: match.awayGoals,
+        },
+      ];
+    });
+  }
+
+  async function currentEloRatings(before: Date, teamIds: string[]) {
+    const timeline = footballEloTimeline(await historicalMatchesBefore(before));
+    return new Map(
+      teamIds.map((teamId) => [teamId, ratingForTeam(timeline, teamId)]),
+    );
+  }
+
   async function ingestFinishedDataset(dataset: MatchDataset) {
     const score = dataset.match.scoreFullTime;
     if (dataset.match.dataOrigin === "DEMO" || dataset.match.status !== "finished" || !score) {
       return;
     }
     const [homeGoals, awayGoals] = score;
+    const kickoff = new Date(dataset.match.kickoff);
     const competition = await database.competition.upsert({
       where: { externalId: dataset.match.competition.id },
       update: {
@@ -86,6 +173,14 @@ export function createHistoricalSignalService(
         },
       }),
     ]);
+    const preMatchRatings = await currentEloRatings(kickoff, [
+      homeTeam.id,
+      awayTeam.id,
+    ]);
+    const homePreMatchElo =
+      preMatchRatings.get(homeTeam.id) ?? BASE_FOOTBALL_ELO;
+    const awayPreMatchElo =
+      preMatchRatings.get(awayTeam.id) ?? BASE_FOOTBALL_ELO;
     const importRun = await database.historicalImport.upsert({
       where: {
         sourceRepo_sourceCommit_sourcePath: {
@@ -131,33 +226,64 @@ export function createHistoricalSignalService(
         awayTeamId: awayTeam.id,
       },
     });
-    await database.historicalTeamMatch.createMany({
-      data: [
-        {
+    await Promise.all([
+      database.historicalTeamMatch.upsert({
+        where: {
+          historicalMatchId_teamId: {
+            historicalMatchId: historicalMatch.id,
+            teamId: homeTeam.id,
+          },
+        },
+        update: {
+          opponentTeamId: awayTeam.id,
+          isHome: true,
+          goalsFor: homeGoals,
+          goalsAgainst: awayGoals,
+          points: homeGoals > awayGoals ? 3 : homeGoals === awayGoals ? 1 : 0,
+          opponentElo: awayPreMatchElo,
+          kickoff,
+        },
+        create: {
           historicalMatchId: historicalMatch.id,
           teamId: homeTeam.id,
           opponentTeamId: awayTeam.id,
           isHome: true,
           goalsFor: homeGoals,
           goalsAgainst: awayGoals,
-          points:
-            homeGoals > awayGoals ? 3 : homeGoals === awayGoals ? 1 : 0,
-          kickoff: new Date(dataset.match.kickoff),
+          points: homeGoals > awayGoals ? 3 : homeGoals === awayGoals ? 1 : 0,
+          opponentElo: awayPreMatchElo,
+          kickoff,
         },
-        {
+      }),
+      database.historicalTeamMatch.upsert({
+        where: {
+          historicalMatchId_teamId: {
+            historicalMatchId: historicalMatch.id,
+            teamId: awayTeam.id,
+          },
+        },
+        update: {
+          opponentTeamId: homeTeam.id,
+          isHome: false,
+          goalsFor: awayGoals,
+          goalsAgainst: homeGoals,
+          points: awayGoals > homeGoals ? 3 : awayGoals === homeGoals ? 1 : 0,
+          opponentElo: homePreMatchElo,
+          kickoff,
+        },
+        create: {
           historicalMatchId: historicalMatch.id,
           teamId: awayTeam.id,
           opponentTeamId: homeTeam.id,
           isHome: false,
           goalsFor: awayGoals,
           goalsAgainst: homeGoals,
-          points:
-            awayGoals > homeGoals ? 3 : awayGoals === homeGoals ? 1 : 0,
-          kickoff: new Date(dataset.match.kickoff),
+          points: awayGoals > homeGoals ? 3 : awayGoals === homeGoals ? 1 : 0,
+          opponentElo: homePreMatchElo,
+          kickoff,
         },
-      ],
-      skipDuplicates: true,
-    });
+      }),
+    ]);
   }
 
   function openFootballExternalId(name: string) {
@@ -216,6 +342,7 @@ export function createHistoricalSignalService(
     });
 
     return {
+      teamId: team.id,
       teamName: team.name,
       rows: rows.map<HistoricalMatchForForm>((row) => {
         const match = row.historicalMatch;
@@ -225,6 +352,7 @@ export function createHistoricalSignalService(
           awayTeamName: match.awayTeam.name,
           homeGoals: row.isHome ? row.goalsFor : row.goalsAgainst,
           awayGoals: row.isHome ? row.goalsAgainst : row.goalsFor,
+          opponentElo: row.opponentElo ?? undefined,
         };
       }),
     };
@@ -244,8 +372,20 @@ export function createHistoricalSignalService(
       ]);
       const homeRows = homeHistory.rows;
       const awayRows = awayHistory.rows;
+      const ratingIds = [homeHistory.teamId, awayHistory.teamId].filter(
+        (teamId): teamId is string => Boolean(teamId),
+      );
+      const eloRatings = ratingIds.length
+        ? await currentEloRatings(new Date(dataset.match.kickoff), ratingIds)
+        : new Map<string, number>();
+      const homeElo = homeHistory.teamId
+        ? (eloRatings.get(homeHistory.teamId) ?? BASE_FOOTBALL_ELO)
+        : dataset.home.elo;
+      const awayElo = awayHistory.teamId
+        ? (eloRatings.get(awayHistory.teamId) ?? BASE_FOOTBALL_ELO)
+        : dataset.away.elo;
       const historical =
-        homeRows.length || awayRows.length || calibrationRun
+        homeRows.length || awayRows.length || ratingIds.length || calibrationRun
           ? {
               homeForm: homeRows.length
                 ? historicalFormFromMatches(
@@ -275,23 +415,31 @@ export function createHistoricalSignalService(
         home: historical.homeForm
           ? {
               ...dataset.home,
+              elo: homeElo,
               recentPointsPerGame:
                 historical.homeForm.strengthAdjustedPointsPerGame,
               goalsFor: historical.homeForm.goalsFor,
               goalsAgainst: historical.homeForm.goalsAgainst,
               cleanSheetRate: historical.homeForm.cleanSheetRate,
             }
-          : dataset.home,
+          : {
+              ...dataset.home,
+              elo: homeElo,
+            },
         away: historical.awayForm
           ? {
               ...dataset.away,
+              elo: awayElo,
               recentPointsPerGame:
                 historical.awayForm.strengthAdjustedPointsPerGame,
               goalsFor: historical.awayForm.goalsFor,
               goalsAgainst: historical.awayForm.goalsAgainst,
               cleanSheetRate: historical.awayForm.cleanSheetRate,
             }
-          : dataset.away,
+          : {
+              ...dataset.away,
+              elo: awayElo,
+            },
         sources: [
           ...dataset.sources.filter((source) => source.id !== "historical-engine"),
           {
@@ -300,7 +448,7 @@ export function createHistoricalSignalService(
             type: "provider",
             status: "inferred",
             observedAt: new Date().toISOString(),
-            detail: `Forma histórica: ${homeHistoricalMatchCount} partidos de ${dataset.match.homeTeam.name}, ${awayHistoricalMatchCount} de ${dataset.match.awayTeam.name}. Calibración: ${
+            detail: `Forma histórica: ${homeHistoricalMatchCount} partidos de ${dataset.match.homeTeam.name}, ${awayHistoricalMatchCount} de ${dataset.match.awayTeam.name}. Elo actual: ${Math.round(homeElo)}-${Math.round(awayElo)}. Calibración: ${
               calibrationRun ? `${calibrationRun.sampleSize} predicciones` : "sin corrida guardada"
             }.`,
           },

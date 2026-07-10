@@ -38,6 +38,9 @@ export interface CalibrationSummary {
   rps: number;
   empirical: HistoricalProbabilities;
   confidenceMultiplier: number;
+  dixonColesRho?: number;
+  rhoSampleSize?: number;
+  rhoAverageLogLoss?: number | null;
 }
 
 export function canonicalHistoricalTeamName(name: string) {

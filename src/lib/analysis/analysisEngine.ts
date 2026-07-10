@@ -1,5 +1,9 @@
-import { calculateConfidence } from "@/lib/analysis/confidence";
+import {
+  calculateConfidence,
+  calculateModelStability,
+} from "@/lib/analysis/confidence";
 import { buildFeatures } from "@/lib/analysis/features";
+import { DEFAULT_DIXON_COLES_RHO } from "@/lib/backtesting/dixon-coles-calibration";
 import { dixonColesMatrix } from "@/lib/models/dixonColes";
 import { logisticProbability } from "@/lib/models/logistic";
 import { simulateGoals } from "@/lib/models/monteCarlo";
@@ -492,10 +496,13 @@ export function analyzeMatch(
   options: { manuallyUpdated?: boolean } = {},
 ): AnalysisResult {
   const features = buildFeatures(dataset);
+  const calibrationSummary = dataset.historical?.calibration;
+  const dixonColesRho =
+    calibrationSummary?.dixonColesRho ?? DEFAULT_DIXON_COLES_RHO;
   const model = dixonColesMatrix(
     features.homeLambda,
     features.awayLambda,
-    -0.08,
+    dixonColesRho,
     8,
   );
   const formDelta =
@@ -542,7 +549,6 @@ export function analyzeMatch(
   blended.home /= blendedTotal;
   blended.draw /= blendedTotal;
   blended.away /= blendedTotal;
-  const calibrationSummary = dataset.historical?.calibration;
   const calibrated =
     calibrationSummary && calibrationSummary.sampleSize >= 30
       ? adjustProbabilitiesWithCalibration(blended, calibrationSummary)
@@ -555,13 +561,14 @@ export function analyzeMatch(
     dataset.lineups.every((lineup) => lineup.confirmed);
   const reliableBaseStats = hasReliableBaseStats(dataset);
   const freshnessScore = sourceFreshnessScore(dataset.sources);
+  const modelStability = calculateModelStability(calibrationSummary);
   const confidence = calculateConfidence({
     coverage: dataset.players.length ? 0.88 : 0.7,
     freshness: freshnessScore,
     agreement: dataset.sources.some((source) => source.status === "conflict")
       ? 0.55
       : 0.86,
-    modelStability: 0.82,
+    modelStability,
     calibration: (calibrationSummary?.confidenceMultiplier ?? 1) * 0.78,
     lineupConfirmed: lineupsConfirmed,
     hasBaseStats: reliableBaseStats,
@@ -887,6 +894,7 @@ export function analyzeMatch(
       coverage: dataset.players.length ? 88 : 70,
       freshness: Math.round(freshnessScore * 100),
       agreement: 86,
+      modelStability: Math.round(modelStability * 100),
       lineupConfirmed: lineupsConfirmed,
       note: !reliableBaseStats
         ? "Estadisticas base estimadas: la calibracion y la confianza quedan limitadas hasta disponer de conteos confirmados o historico suficiente."
@@ -901,6 +909,9 @@ export function analyzeMatch(
       brier: calibrationSummary?.brier,
       logLoss: calibrationSummary?.logLoss,
       rps: calibrationSummary?.rps,
+      dixonColesRho,
+      rhoSampleSize: calibrationSummary?.rhoSampleSize,
+      rhoAverageLogLoss: calibrationSummary?.rhoAverageLogLoss,
       applied: Boolean(calibrationSummary && calibrationSummary.sampleSize >= 30),
       confidenceMultiplier: calibrationSummary?.confidenceMultiplier ?? 1,
       note: calibrationSummary

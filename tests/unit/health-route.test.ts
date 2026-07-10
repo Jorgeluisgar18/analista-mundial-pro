@@ -34,6 +34,9 @@ describe("/api/health", () => {
     expect(body.database).toBe("unavailable");
     expect(body.databaseRecords).toBe(0);
     expect(body.telemetryStatus).toBe("unavailable");
+    expect(body.modelHealth.status).toBe("unavailable");
+    expect(body.modelHealth.elo.status).toBe("unavailable");
+    expect(body.modelHealth.backtesting.status).toBe("unavailable");
     expect(JSON.stringify(body)).not.toMatch(/postgres:\/\/|apikey|secret/i);
   });
 });

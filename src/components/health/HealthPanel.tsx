@@ -29,6 +29,37 @@ interface ProviderInfo {
   telemetry: ProviderTelemetry | null;
 }
 
+type ModelHealthStatus =
+  | "ready"
+  | "partial"
+  | "stale"
+  | "missing"
+  | "unavailable";
+
+interface ModelHealth {
+  status: "connected" | "unavailable";
+  checkedAt: string;
+  elo: {
+    status: ModelHealthStatus;
+    totalRows: number;
+    rowsWithOpponentElo: number;
+    coverage: number;
+  };
+  backtesting: {
+    status: ModelHealthStatus;
+    latestRunAt: string | null;
+    daysSinceLastRun: number | null;
+    sampleSize: number;
+    brier: number | null;
+    logLoss: number | null;
+    rps: number | null;
+    dixonColesRho: number | null;
+    rhoSampleSize: number | null;
+    source: string | null;
+  };
+  error?: string;
+}
+
 interface HealthData {
   mode: "demo" | "api-ready";
   checkedAt: string;
@@ -37,6 +68,7 @@ interface HealthData {
   telemetry?: ProviderTelemetry[];
   telemetryStatus?: "connected" | "unavailable";
   databaseError?: string | null;
+  modelHealth?: ModelHealth;
 }
 
 function UsageBar({ used, limit }: { used: number; limit: number }) {
@@ -93,6 +125,57 @@ function ProviderCard({ provider }: { provider: ProviderInfo }) {
         provider.configured && (
           <em className="health-no-usage">Sin telemetría reciente</em>
         )
+      )}
+    </article>
+  );
+}
+
+const modelStatusLabel: Record<ModelHealthStatus, string> = {
+  ready: "Actualizado",
+  partial: "Parcial",
+  stale: "Desactualizado",
+  missing: "Sin datos",
+  unavailable: "No disponible",
+};
+
+function ModelHealthCard({ modelHealth }: { modelHealth: ModelHealth }) {
+  return (
+    <article className={`health-provider ${modelHealth.status === "connected" ? "on" : "off"}`}>
+      <header>
+        <span
+          className={`health-dot ${modelHealth.status === "connected" ? "dot-on" : "dot-off"}`}
+        />
+        <strong>Modelo histórico</strong>
+        <code className="health-badge">Elo + backtesting</code>
+      </header>
+      <p className="health-purpose">
+        Elo: <strong>{modelStatusLabel[modelHealth.elo.status]}</strong> ·{" "}
+        {modelHealth.elo.coverage}% de cobertura ({modelHealth.elo.rowsWithOpponentElo}/
+        {modelHealth.elo.totalRows})
+      </p>
+      <p className="health-purpose">
+        Backtesting:{" "}
+        <strong>{modelStatusLabel[modelHealth.backtesting.status]}</strong> ·{" "}
+        {modelHealth.backtesting.sampleSize} partidos
+        {modelHealth.backtesting.daysSinceLastRun !== null
+          ? ` · hace ${modelHealth.backtesting.daysSinceLastRun} días`
+          : ""}
+      </p>
+      <div className="health-usage-row">
+        <span className="health-label">Dixon-Coles rho</span>
+        <span className="health-usage-label">
+          {modelHealth.backtesting.dixonColesRho !== null
+            ? modelHealth.backtesting.dixonColesRho.toFixed(3)
+            : "Sin calibrar"}
+        </span>
+        <span className="health-resets">
+          {modelHealth.backtesting.rhoSampleSize
+            ? `${modelHealth.backtesting.rhoSampleSize} marcadores`
+            : modelHealth.backtesting.source ?? "Sin fuente guardada"}
+        </span>
+      </div>
+      {modelHealth.error && (
+        <em className="health-no-usage">Detalle: {modelHealth.error}</em>
       )}
     </article>
   );
@@ -185,6 +268,11 @@ export function HealthPanel() {
               </span>
             )}
           </div>
+          {health.modelHealth && (
+            <div className="health-grid">
+              <ModelHealthCard modelHealth={health.modelHealth} />
+            </div>
+          )}
           <div className="health-grid">
             {health.providers.map((p) => (
               <ProviderCard key={p.id} provider={p} />

@@ -11,7 +11,7 @@ La primera versión está pensada para el Mundial 2026, pero la base está prepa
 - Probabilidades 1X2, goles, marcadores y mercados relacionados.
 - Integración con proveedores deportivos y fuentes abiertas.
 - Soporte para alineaciones confirmadas, parciales o esperadas.
-- Contexto histórico, forma reciente y calibración del modelo.
+- Contexto histórico, Elo calculado desde resultados previos, forma reciente y calibración del modelo.
 - Visualización responsive para escritorio y móvil.
 
 ## Enfoque

@@ -135,7 +135,7 @@ test("la home comunica estado de datos y metodología sin parecer demo plana", a
 }) => {
   await page.goto("/");
   await expect(page.getByText("Poisson + Dixon–Coles")).toBeVisible();
-  await expect(page.getByText("Forma + logística")).toBeVisible();
+  await expect(page.getByText("Elo histórico + logística")).toBeVisible();
   await expect(page.getByText("Estado del sistema")).toBeVisible();
   await expect(
     page.getByRole("button", { name: "Buscar partidos" }),

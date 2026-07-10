@@ -16,6 +16,7 @@
     "backtest": "tsx scripts/run-backtest.ts",
     "openfootball:import": "tsx scripts/import-openfootball.ts",
     "openfootball:validate": "tsx scripts/validate-openfootball.ts",
+    "historical:elo-backfill": "tsx scripts/backfill-historical-elo.ts",
     "postinstall": "prisma generate",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",

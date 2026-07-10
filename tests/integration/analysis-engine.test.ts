@@ -464,6 +464,53 @@ describe("analysisEngine", () => {
     expect(adjusted.dataQuality.note).toMatch(/calibraci/i);
   });
 
+  it("usa el rho Dixon-Coles calibrado para ajustar la masa de empates bajos", () => {
+    const lowDrawRho = structuredClone(demoDataset);
+    lowDrawRho.match.id = "dixon-coles-rho-shared-seed";
+    lowDrawRho.historical = {
+      calibration: {
+        sampleSize: 120,
+        brier: 0.52,
+        logLoss: 1.02,
+        rps: 0.18,
+        empirical: { home: 0.4, draw: 0.3, away: 0.3 },
+        confidenceMultiplier: 0.96,
+        dixonColesRho: 0.12,
+      },
+    };
+    const highDrawRho = structuredClone(lowDrawRho);
+    highDrawRho.historical!.calibration!.dixonColesRho = -0.14;
+
+    const lowDraw = analyzeMatch(lowDrawRho);
+    const highDraw = analyzeMatch(highDrawRho);
+
+    expect(highDraw.calibration.dixonColesRho).toBe(-0.14);
+    expect(highDraw.mainProbabilities.draw).toBeGreaterThan(
+      lowDraw.mainProbabilities.draw,
+    );
+  });
+
+  it("cambia probabilidades cuando cambia la fuerza Elo real", () => {
+    const equalStrength = structuredClone(demoDataset);
+    equalStrength.match.id = "equal-elo-strength";
+    equalStrength.home.elo = 1500;
+    equalStrength.away.elo = 1500;
+
+    const strongHome = structuredClone(equalStrength);
+    strongHome.match.id = "strong-home-elo";
+    strongHome.home.elo = 1740;
+    strongHome.away.elo = 1420;
+
+    const equal = analyzeMatch(equalStrength);
+    const shifted = analyzeMatch(strongHome);
+
+    expect(shifted.mainProbabilities.home).toBeGreaterThan(
+      equal.mainProbabilities.home,
+    );
+    expect(shifted.expected.homeGoals).toBeGreaterThan(equal.expected.homeGoals);
+    expect(shifted.executiveSummary).not.toBe(equal.executiveSummary);
+  });
+
   it("limita la confianza cuando las estadisticas base son estimadas", () => {
     const dataset = structuredClone(demoDataset);
     dataset.match.id = "estimated-stats-confidence";

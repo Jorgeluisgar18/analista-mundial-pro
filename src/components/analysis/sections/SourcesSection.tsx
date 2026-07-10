@@ -32,6 +32,10 @@ export function SourcesSection({
           <QualityBar label="Frescura" value={analysis.dataQuality.freshness} />
           <QualityBar label="Acuerdo" value={analysis.dataQuality.agreement} />
           <QualityBar
+            label="Estabilidad"
+            value={analysis.dataQuality.modelStability}
+          />
+          <QualityBar
             label="Alineaciones"
             value={analysis.dataQuality.lineupConfirmed ? 100 : 45}
           />
@@ -54,12 +58,24 @@ export function SourcesSection({
             <span>Brier / Log Loss / RPS</span>
             <strong>
               {analysis.calibration.brier !== undefined
-                ? `${analysis.calibration.brier.toFixed(2)} · ${analysis.calibration.logLoss?.toFixed(2)} · ${analysis.calibration.rps?.toFixed(2)}`
+                ? `${analysis.calibration.brier.toFixed(2)} - ${analysis.calibration.logLoss?.toFixed(2)} - ${analysis.calibration.rps?.toFixed(2)}`
                 : "Pendiente"}
             </strong>
             <p>
               La calidad mide si el porcentaje puede sostenerse con evidencia
-              suficiente o si debe tratarse como aproximación preliminar.
+              suficiente o si debe tratarse como aproximacion preliminar.
+            </p>
+          </article>
+          <article>
+            <span>Dixon-Coles rho</span>
+            <strong>
+              {analysis.calibration.dixonColesRho !== undefined
+                ? analysis.calibration.dixonColesRho.toFixed(3)
+                : "Pendiente"}
+            </strong>
+            <p>
+              Ajusta la dependencia de marcadores bajos usando backtesting
+              historico cuando existe muestra calibrada.
             </p>
           </article>
         </div>
@@ -67,7 +83,7 @@ export function SourcesSection({
     );
   }
 
-  if (subsection === "Metodología") {
+  if (subsection === "Metodologia" || subsection === "Metodología") {
     return (
       <AnalysisSection
         title="Fuentes · Metodología"
@@ -77,28 +93,32 @@ export function SourcesSection({
           <article>
             <span>Marcadores</span>
             <strong>Poisson + Dixon-Coles</strong>
-            <p>Corrige dependencia de resultados bajos y genera la matriz completa.</p>
+            <p>
+              Corrige dependencia de resultados bajos con rho calibrado y genera
+              la matriz completa.
+            </p>
           </article>
           <article>
             <span>Fuerza</span>
-            <strong>Forma contextual + histórico</strong>
+            <strong>Elo historico + forma contextual</strong>
             <p>
-              Considera sede, recencia, forma ponderada, producción ofensiva y
-              contexto disponible por tipo de competición.
+              Calcula ratings Elo desde resultados historicos cronologicos y los
+              combina con sede, recencia, forma ponderada y produccion ofensiva
+              disponible.
             </p>
           </article>
           <article>
             <span>Incertidumbre</span>
             <strong>Monte Carlo</strong>
-            <p>Propaga variación de intensidades y escenarios de alineación.</p>
+            <p>Propaga variacion de intensidades y escenarios de alineacion.</p>
           </article>
           <article>
-            <span>Validación</span>
-            <strong>Calibración continua</strong>
+            <span>Validacion</span>
+            <strong>Calibracion continua</strong>
             <p>
-              Las probabilidades se evalúan contra resultados reales con Brier,
-              Log Loss y RPS. Acertar el nivel de certeza importa más que acertar
-              un resultado aislado.
+              Las probabilidades se evaluan contra resultados reales con Brier,
+              Log Loss y RPS. Acertar el nivel de certeza importa mas que
+              acertar un resultado aislado.
             </p>
           </article>
         </div>

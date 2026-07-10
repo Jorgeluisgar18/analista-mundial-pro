@@ -39,8 +39,8 @@ export default function Home() {
                 <span>Marcadores y goles</span>
               </div>
               <div>
-                <strong>Forma + logística</strong>
-                <span>Contexto y mercados</span>
+                <strong>Elo histórico + logística</strong>
+                <span>Fuerza, contexto y mercados</span>
               </div>
               <div>
                 <strong>Monte Carlo</strong>
@@ -97,7 +97,7 @@ export default function Home() {
             <a href="#metodologia">
               <span>03</span>
               <strong>Entender método</strong>
-              <small>Poisson, forma contextual, logística, Monte Carlo y trazabilidad.</small>
+              <small>Poisson, Elo histórico, logística, Monte Carlo y trazabilidad.</small>
             </a>
             <Link href="/docs/provider-setup">
               <span>04</span>

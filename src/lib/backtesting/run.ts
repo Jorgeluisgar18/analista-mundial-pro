@@ -1,4 +1,5 @@
 import { summarizeCalibration, type CalibrationRow } from "@/lib/historical/form";
+import type { DixonColesCalibrationRow } from "@/lib/backtesting/dixon-coles-calibration";
 import type { AnalysisResult } from "@/types/domain";
 
 export type BacktestOutcome = "home" | "draw" | "away";
@@ -15,7 +16,9 @@ export interface HistoricalBacktestMatch {
   awayGoals: number;
 }
 
-export interface HistoricalBacktestRow extends CalibrationRow {
+export interface HistoricalBacktestRow
+  extends CalibrationRow,
+    DixonColesCalibrationRow {
   matchId: string;
   kickoffDate: string;
   homeTeamName: string;
@@ -131,6 +134,25 @@ function probabilitiesFromSignals({
   });
 }
 
+function expectedGoalsFromSignals({
+  home,
+  away,
+}: {
+  home: ReturnType<typeof teamSignal>;
+  away: ReturnType<typeof teamSignal>;
+}) {
+  return {
+    homeLambda: Math.min(
+      4.5,
+      Math.max(0.2, home.goalsFor * 0.58 + away.goalsAgainst * 0.42 + 0.12),
+    ),
+    awayLambda: Math.min(
+      4.5,
+      Math.max(0.2, away.goalsFor * 0.58 + home.goalsAgainst * 0.42),
+    ),
+  };
+}
+
 export function historicalMatchesToBacktestRows(
   matches: HistoricalBacktestMatch[],
   options: { minPriorMatchesPerTeam?: number } = {},
@@ -153,12 +175,18 @@ export function historicalMatchesToBacktestRows(
       return [];
     }
 
+    const expectedGoals = expectedGoalsFromSignals({ home, away });
+
     return [
       {
         matchId: match.id,
         kickoffDate: match.kickoffDate,
         homeTeamName: match.homeTeamName,
         awayTeamName: match.awayTeamName,
+        homeGoals: match.homeGoals,
+        awayGoals: match.awayGoals,
+        homeLambda: expectedGoals.homeLambda,
+        awayLambda: expectedGoals.awayLambda,
         probabilities: probabilitiesFromSignals({ home, away }),
         outcome: outcomeFromScore([match.homeGoals, match.awayGoals]),
       },

@@ -7,6 +7,10 @@ import {
   outcomeFromScore,
   probabilitiesFromAnalysisResult,
 } from "@/lib/backtesting/run";
+import {
+  calibrateDixonColesRho,
+  type DixonColesCalibrationRow,
+} from "@/lib/backtesting/dixon-coles-calibration";
 import type { CalibrationRow } from "@/lib/historical/form";
 import type { AnalysisResult } from "@/types/domain";
 
@@ -17,7 +21,7 @@ const disableDatabase = process.env.BACKTEST_DISABLE_DATABASE === "1";
 const databaseUrl = disableDatabase ? undefined : process.env.DATABASE_URL?.trim();
 const modelName = process.env.BACKTEST_MODEL_NAME ?? "AMP ensemble";
 const modelVersion = process.env.BACKTEST_MODEL_VERSION ?? "1.1.0";
-const minSampleSize = Number(process.env.BACKTEST_MIN_SAMPLE_SIZE ?? 1);
+const minSampleSize = Number(process.env.BACKTEST_MIN_SAMPLE_SIZE ?? 30);
 const sourceMode = process.env.BACKTEST_SOURCE ?? "auto";
 const prisma = databaseUrl
   ? new PrismaClient({ adapter: new PrismaPg(databaseUrl) })
@@ -47,6 +51,7 @@ async function main() {
   }
 
   let rows: CalibrationRow[] = [];
+  let dixonColesRows: DixonColesCalibrationRow[] = [];
 
   if (sourceMode !== "historical") {
     const analysisRuns = await prisma.analysisRun.findMany({
@@ -86,7 +91,10 @@ async function main() {
   }
 
   let source = "analysisRun+historicalMatch";
-  if (rows.length < minSampleSize && sourceMode !== "analysis") {
+  if (
+    (rows.length < minSampleSize || dixonColesRows.length === 0) &&
+    sourceMode !== "analysis"
+  ) {
     const historicalMatches = await prisma.historicalMatch.findMany({
       where: {
         homeGoals: { not: null },
@@ -99,7 +107,7 @@ async function main() {
       orderBy: [{ kickoffDate: "asc" }, { sourceIndex: "asc" }],
     });
 
-    rows = historicalMatchesToBacktestRows(
+    const historicalBacktestRows = historicalMatchesToBacktestRows(
       historicalMatches
         .filter(
           (
@@ -117,9 +125,17 @@ async function main() {
           homeGoals: match.homeGoals,
           awayGoals: match.awayGoals,
         })),
-      { minPriorMatchesPerTeam: Number(process.env.BACKTEST_MIN_PRIOR_MATCHES ?? 2) },
+      {
+        minPriorMatchesPerTeam: Number(
+          process.env.BACKTEST_MIN_PRIOR_MATCHES ?? 2,
+        ),
+      },
     );
-    source = "historicalMatch:rolling-offline";
+    if (rows.length < minSampleSize || sourceMode === "historical") {
+      rows = historicalBacktestRows;
+      source = "historicalMatch:rolling-offline";
+    }
+    dixonColesRows = historicalBacktestRows;
   }
 
   if (rows.length < minSampleSize) {
@@ -137,6 +153,9 @@ async function main() {
   }
 
   const summary = backtestRowsToCalibration(rows);
+  const dixonColesCalibration = calibrateDixonColesRho(dixonColesRows, {
+    minSampleSize: Math.max(30, Math.min(rows.length, minSampleSize)),
+  });
   const saved = await prisma.calibrationRun.create({
     data: {
       modelName,
@@ -152,6 +171,11 @@ async function main() {
         source,
         minSampleSize,
         sourceMode,
+        rhoSource: dixonColesRows.length ? "historicalMatch:rolling-offline" : null,
+        dixonColesRho: dixonColesCalibration.rho,
+        dixonColesRhoApplied: dixonColesCalibration.applied,
+        rhoSampleSize: dixonColesCalibration.sampleSize,
+        rhoAverageLogLoss: dixonColesCalibration.averageLogLoss,
       }),
     },
   });
@@ -166,6 +190,9 @@ async function main() {
       logLoss: summary.logLoss,
       rps: summary.rps,
       empirical: summary.empirical,
+      dixonColesRho: dixonColesCalibration.rho,
+      dixonColesRhoApplied: dixonColesCalibration.applied,
+      rhoSampleSize: dixonColesCalibration.sampleSize,
       source,
     }),
   );

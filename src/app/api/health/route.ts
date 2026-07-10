@@ -3,6 +3,7 @@ import { getProviderTelemetrySnapshot } from "@/lib/services/providerTelemetrySe
 import { getProviderStatus } from "@/lib/providers/providerConfig";
 import { hasConfiguredFootballProvider } from "@/lib/providers/providerConfig";
 import { getDatabaseRuntimeStatus, prisma } from "@/lib/db/prisma";
+import { getModelHealthSnapshot } from "@/lib/services/modelHealthService";
 
 const usageProviderByStatusId = {
   "api-football": "API-Football",
@@ -57,6 +58,32 @@ export async function GET() {
           records: [],
         };
   const telemetry = telemetryProbe.records;
+  const modelHealth =
+    databaseProbe.status === "connected"
+      ? await getModelHealthSnapshot()
+      : {
+          status: "unavailable" as const,
+          checkedAt: new Date().toISOString(),
+          elo: {
+            status: "unavailable" as const,
+            totalRows: 0,
+            rowsWithOpponentElo: 0,
+            coverage: 0,
+          },
+          backtesting: {
+            status: "unavailable" as const,
+            latestRunAt: null,
+            daysSinceLastRun: null,
+            sampleSize: 0,
+            brier: null,
+            logLoss: null,
+            rps: null,
+            dixonColesRho: null,
+            rhoSampleSize: null,
+            source: null,
+          },
+          error: databaseRuntime.error,
+        };
   const apiReady = hasConfiguredFootballProvider();
 
   return Response.json({
@@ -78,6 +105,7 @@ export async function GET() {
     })),
     telemetry,
     telemetryStatus: telemetryProbe.status,
+    modelHealth,
     database: databaseProbe.status,
     databaseRecords:
       databaseProbe.status === "connected" ? databaseProbe.records : 0,

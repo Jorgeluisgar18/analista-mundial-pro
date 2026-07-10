@@ -169,6 +169,9 @@ export interface MatchDataset {
         away: number;
       };
       confidenceMultiplier: number;
+      dixonColesRho?: number;
+      rhoSampleSize?: number;
+      rhoAverageLogLoss?: number | null;
     };
   };
 }
@@ -267,6 +270,7 @@ export interface AnalysisResult {
     coverage: number;
     freshness: number;
     agreement: number;
+    modelStability: number;
     lineupConfirmed: boolean;
     note: string;
   };
@@ -275,6 +279,9 @@ export interface AnalysisResult {
     brier?: number;
     logLoss?: number;
     rps?: number;
+    dixonColesRho?: number;
+    rhoSampleSize?: number;
+    rhoAverageLogLoss?: number | null;
     applied: boolean;
     confidenceMultiplier: number;
     note: string;

@@ -8,11 +8,18 @@ interface RateLimitBucket {
 const buckets = new Map<string, RateLimitBucket>();
 
 export function clientAddress(request: Request) {
-  return (
-    request.headers.get("x-forwarded-for")?.split(",")[0].trim() ||
-    request.headers.get("x-real-ip") ||
-    "local"
-  );
+  const netlifyClientIp = request.headers.get("x-nf-client-connection-ip");
+  if (netlifyClientIp) return netlifyClientIp.trim();
+
+  if (process.env.TRUST_X_FORWARDED_FOR === "true") {
+    return (
+      request.headers.get("x-forwarded-for")?.split(",")[0].trim() ||
+      request.headers.get("x-real-ip") ||
+      "local"
+    );
+  }
+
+  return "local";
 }
 
 export function checkRateLimit(

@@ -70,7 +70,13 @@ async function main() {
       ) {
         continue;
       }
-      const parsed = JSON.parse(run.result) as unknown;
+      let parsed: unknown;
+      try {
+        parsed = JSON.parse(run.result);
+      } catch (e) {
+        console.warn(`Error parsing analysis result for run ${run.id}:`, e);
+        continue;
+      }
       if (!isAnalysisResult(parsed)) continue;
       rows.push({
         probabilities: probabilitiesFromAnalysisResult(parsed),

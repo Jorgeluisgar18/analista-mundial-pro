@@ -7,6 +7,26 @@ import { applyDemoManualOverride } from "@/lib/overrides/demoOverrideService";
 import { getAnalysis } from "@/lib/services/analysisService";
 import { manualOverrideSchema } from "@/lib/validation/schemas";
 
+const MAX_MANUAL_OVERRIDE_BODY_BYTES = 32_768;
+
+function requestBodyTooLarge(request: Request) {
+  const contentLength = request.headers.get("content-length");
+  if (!contentLength) return null;
+  const parsedLength = Number(contentLength);
+  if (
+    !Number.isFinite(parsedLength) ||
+    parsedLength <= MAX_MANUAL_OVERRIDE_BODY_BYTES
+  ) {
+    return null;
+  }
+
+  return problem(
+    413,
+    "Solicitud demasiado grande",
+    "Los cambios manuales deben enviarse como JSON compacto menor a 32 KB.",
+  );
+}
+
 export async function POST(
   request: Request,
   context: { params: Promise<{ id: string }> },
@@ -26,6 +46,9 @@ export async function POST(
   if (limitProblem) return limitProblem;
 
   const { id } = await context.params;
+  const sizeProblem = requestBodyTooLarge(request);
+  if (sizeProblem) return sizeProblem;
+
   let payload: unknown;
   try {
     payload = await request.json();

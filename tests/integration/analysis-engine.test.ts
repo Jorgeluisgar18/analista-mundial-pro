@@ -292,6 +292,40 @@ describe("analysisEngine", () => {
     expect(high.executiveSummary).not.toBe(low.executiveSummary);
   });
 
+  it("maneja partidos de bajo volumen tipo 0-0 sin probabilidades inválidas", () => {
+    const dataset = structuredClone(demoDataset);
+    dataset.match.id = "nil-nil-edge-case";
+    dataset.match.scoreFullTime = [0, 0];
+    dataset.home.goalsFor = 0;
+    dataset.home.goalsAgainst = 0;
+    dataset.home.xgFor = 0;
+    dataset.home.xgAgainst = 0;
+    dataset.home.shots = 0;
+    dataset.home.shotsOnTarget = 0;
+    dataset.away.goalsFor = 0;
+    dataset.away.goalsAgainst = 0;
+    dataset.away.xgFor = 0;
+    dataset.away.xgAgainst = 0;
+    dataset.away.shots = 0;
+    dataset.away.shotsOnTarget = 0;
+
+    const result = analyzeMatch(dataset);
+    const probabilities = [
+      result.mainProbabilities.home,
+      result.mainProbabilities.draw,
+      result.mainProbabilities.away,
+      ...result.predictions.map((prediction) => prediction.probability),
+    ];
+
+    expect(probabilities.every(Number.isFinite)).toBe(true);
+    expect(
+      result.mainProbabilities.home +
+        result.mainProbabilities.draw +
+        result.mainProbabilities.away,
+    ).toBeCloseTo(100, 1);
+    expect(result.expected.goals).toBeGreaterThanOrEqual(0);
+  });
+
   it("recalcula ventaja y valor cuando cambian las cuotas disponibles", () => {
     const shortHome = structuredClone(demoDataset);
     shortHome.odds = [

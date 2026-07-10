@@ -1,6 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
 import { GET as getMatches } from "@/app/api/matches/route";
 import { GET as getProviderStatus } from "@/app/api/provider-status/route";
+import { POST as analyzeMatchRoute } from "@/app/api/match/[id]/analyze/route";
+import { POST as refreshMatchRoute } from "@/app/api/match/[id]/refresh/route";
 import { POST as createOverride } from "@/app/api/match/[id]/overrides/route";
 import { GET as getHistory } from "@/app/api/match/[id]/history/route";
 import MatchPage from "@/app/match/[id]/page";
@@ -22,6 +24,18 @@ async function withAnalystToken<T>(callback: () => Promise<T>): Promise<T> {
     if (previous === undefined) {
       delete process.env.ANALYST_OVERRIDE_TOKEN;
     } else {
+      process.env.ANALYST_OVERRIDE_TOKEN = previous;
+    }
+  }
+}
+
+async function withoutAnalystToken<T>(callback: () => Promise<T>): Promise<T> {
+  const previous = process.env.ANALYST_OVERRIDE_TOKEN;
+  delete process.env.ANALYST_OVERRIDE_TOKEN;
+  try {
+    return await callback();
+  } finally {
+    if (previous !== undefined) {
       process.env.ANALYST_OVERRIDE_TOKEN = previous;
     }
   }
@@ -116,6 +130,34 @@ describe("API routes", () => {
     );
   });
 
+  it("rechaza payloads demasiado grandes antes de parsear cambios manuales", async () => {
+    const largePayload = JSON.stringify({
+      type: "absence",
+      description: "x".repeat(40_000),
+      teamId: demoDataset.match.homeTeam.id,
+      impact: "high",
+      area: "attack",
+    });
+    const response = await withAnalystToken(() =>
+      createOverride(
+        new Request("http://local/api/match/demo-col-bra/overrides", {
+          method: "POST",
+          headers: analystHeaders({
+            "content-length": String(
+              new TextEncoder().encode(largePayload).length,
+            ),
+          }),
+          body: largePayload,
+        }),
+        { params: Promise.resolve({ id: "demo-col-bra" }) },
+      ),
+    );
+    const body = await response.json();
+
+    expect(response.status).toBe(413);
+    expect(body.title).toMatch(/solicitud demasiado grande/i);
+  });
+
   it("rechaza cambios manuales sin token de analista", async () => {
     const response = await withAnalystToken(() =>
       createOverride(
@@ -137,6 +179,144 @@ describe("API routes", () => {
 
     expect(response.status).toBe(401);
     expect(body.title).toMatch(/credencial de analista requerida/i);
+  });
+
+  it("rechaza cambios manuales con token de analista incorrecto", async () => {
+    const response = await withAnalystToken(() =>
+      createOverride(
+        new Request("http://local/api/match/demo-col-bra/overrides", {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            "x-analyst-token": "wrong-token",
+          },
+          body: JSON.stringify({
+            type: "absence",
+            description: "Intento con credencial incorrecta",
+            teamId: demoDataset.match.homeTeam.id,
+            impact: "high",
+            area: "attack",
+          }),
+        }),
+        { params: Promise.resolve({ id: "demo-col-bra" }) },
+      ),
+    );
+    const body = await response.json();
+
+    expect(response.status).toBe(401);
+    expect(body.title).toMatch(/credencial de analista requerida/i);
+  });
+
+  it("acepta credencial de analista mediante Authorization Bearer", async () => {
+    const response = await withAnalystToken(() =>
+      createOverride(
+        new Request("http://local/api/match/demo-col-bra/overrides", {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            authorization: `Bearer ${ANALYST_TOKEN}`,
+          },
+          body: JSON.stringify({
+            type: "absence",
+            description: "Baja confirmada con bearer token",
+            teamId: demoDataset.match.homeTeam.id,
+            impact: "high",
+            area: "attack",
+          }),
+        }),
+        { params: Promise.resolve({ id: "demo-col-bra" }) },
+      ),
+    );
+    const body = await response.json();
+
+    expect(response.status).toBe(201);
+    expect(body.override.id).toMatch(/^demo-manual-/);
+  });
+
+  it("falla cerrado si el token de analista no está configurado", async () => {
+    const response = await withoutAnalystToken(() =>
+      createOverride(
+        new Request("http://local/api/match/demo-col-bra/overrides", {
+          method: "POST",
+          headers: analystHeaders(),
+          body: JSON.stringify({
+            type: "absence",
+            description: "Intento sin configuración segura",
+            teamId: demoDataset.match.homeTeam.id,
+            impact: "high",
+            area: "attack",
+          }),
+        }),
+        { params: Promise.resolve({ id: "demo-col-bra" }) },
+      ),
+    );
+    const body = await response.json();
+
+    expect(response.status).toBe(503);
+    expect(body.title).toMatch(/edición manual no configurada/i);
+  });
+
+  it("no se bloquea con user-agent vacío o extenso", async () => {
+    const requests = [
+      new Request("http://local/api/match/demo-col-bra/analyze", {
+        method: "POST",
+        headers: { "user-agent": "" },
+      }),
+      new Request("http://local/api/match/demo-col-bra/analyze", {
+        method: "POST",
+        headers: { "user-agent": `qa-agent/${"x".repeat(4096)}` },
+      }),
+    ];
+
+    const responses = await Promise.race([
+      Promise.all(
+        requests.map((request) =>
+          analyzeMatchRoute(request, {
+            params: Promise.resolve({ id: "demo-col-bra" }),
+          }),
+        ),
+      ),
+      new Promise<never>((_, reject) =>
+        setTimeout(
+          () => reject(new Error("User-Agent regression timeout")),
+          2_000,
+        ),
+      ),
+    ]);
+
+    expect(responses.every((response) => response.status === 200)).toBe(true);
+  });
+
+  it("atiende análisis concurrentes en el endpoint POST correcto", async () => {
+    const responses = await Promise.all(
+      Array.from({ length: 4 }, () =>
+        analyzeMatchRoute(
+          new Request("http://local/api/match/demo-col-bra/analyze", {
+            method: "POST",
+          }),
+          { params: Promise.resolve({ id: "demo-col-bra" }) },
+        ),
+      ),
+    );
+
+    expect(responses.every((response) => response.status === 200)).toBe(true);
+    expect(responses.every((response) => response.status !== 405)).toBe(true);
+  });
+
+  it("atiende refresh concurrente en el endpoint POST correcto", async () => {
+    const responses = await Promise.all(
+      Array.from({ length: 3 }, () =>
+        refreshMatchRoute(
+          new Request("http://local/api/match/demo-col-bra/refresh", {
+            method: "POST",
+          }),
+          { params: Promise.resolve({ id: "demo-col-bra" }) },
+        ),
+      ),
+    );
+
+    expect(responses.every((response) => response.status === 200)).toBe(true);
+    expect(responses.every((response) => response.status !== 405)).toBe(true);
   });
 
   it("rechaza cambios manuales enviados desde otro origen", async () => {

@@ -220,7 +220,12 @@ export function createAnalysisService({
   return {
     async getAnalysis(
       matchId: string,
-      options: { manuallyUpdated?: boolean; persist?: boolean; bypassCache?: boolean } = {},
+      options: {
+        manuallyUpdated?: boolean;
+        persist?: boolean;
+        bypassCache?: boolean;
+        strictPersistence?: boolean;
+      } = {},
     ) {
       const dataset = await matchService.getById(matchId, options.bypassCache);
       if (!dataset) return null;
@@ -267,6 +272,9 @@ export function createAnalysisService({
         try {
           await persistAnalysis(database, lineupReadyDataset, result);
         } catch (error) {
+          if (options.strictPersistence) {
+            throw new Error("Persistence failed", { cause: error });
+          }
           console.warn("No se pudo persistir el análisis:", error);
         }
       }

@@ -138,6 +138,10 @@ const modelStatusLabel: Record<ModelHealthStatus, string> = {
   unavailable: "No disponible",
 };
 
+function daysSinceLabel(days: number) {
+  return days === 1 ? "hace 1 día" : `hace ${days} días`;
+}
+
 function ModelHealthCard({ modelHealth }: { modelHealth: ModelHealth }) {
   return (
     <article className={`health-provider ${modelHealth.status === "connected" ? "on" : "off"}`}>
@@ -158,7 +162,7 @@ function ModelHealthCard({ modelHealth }: { modelHealth: ModelHealth }) {
         <strong>{modelStatusLabel[modelHealth.backtesting.status]}</strong> ·{" "}
         {modelHealth.backtesting.sampleSize} partidos
         {modelHealth.backtesting.daysSinceLastRun !== null
-          ? ` · hace ${modelHealth.backtesting.daysSinceLastRun} días`
+          ? ` · ${daysSinceLabel(modelHealth.backtesting.daysSinceLastRun)}`
           : ""}
       </p>
       <div className="health-usage-row">

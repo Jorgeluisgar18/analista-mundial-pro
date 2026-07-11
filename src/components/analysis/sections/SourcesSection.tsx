@@ -63,7 +63,7 @@ export function SourcesSection({
             </strong>
             <p>
               La calidad mide si el porcentaje puede sostenerse con evidencia
-              suficiente o si debe tratarse como aproximacion preliminar.
+              suficiente o si debe tratarse como aproximación preliminar.
             </p>
           </article>
           <article>
@@ -75,7 +75,7 @@ export function SourcesSection({
             </strong>
             <p>
               Ajusta la dependencia de marcadores bajos usando backtesting
-              historico cuando existe muestra calibrada.
+              histórico cuando existe muestra calibrada.
             </p>
           </article>
         </div>
@@ -102,22 +102,22 @@ export function SourcesSection({
             <span>Fuerza</span>
             <strong>Elo historico + forma contextual</strong>
             <p>
-              Calcula ratings Elo desde resultados historicos cronologicos y los
-              combina con sede, recencia, forma ponderada y produccion ofensiva
+              Calcula ratings Elo desde resultados históricos cronológicos y los
+              combina con sede, recencia, forma ponderada y producción ofensiva
               disponible.
             </p>
           </article>
           <article>
             <span>Incertidumbre</span>
             <strong>Monte Carlo</strong>
-            <p>Propaga variacion de intensidades y escenarios de alineacion.</p>
+            <p>Propaga variación de intensidades y escenarios de alineación.</p>
           </article>
           <article>
             <span>Validacion</span>
             <strong>Calibracion continua</strong>
             <p>
-              Las probabilidades se evaluan contra resultados reales con Brier,
-              Log Loss y RPS. Acertar el nivel de certeza importa mas que
+              Las probabilidades se evalúan contra resultados reales con Brier,
+              Log Loss y RPS. Acertar el nivel de certeza importa más que
               acertar un resultado aislado.
             </p>
           </article>

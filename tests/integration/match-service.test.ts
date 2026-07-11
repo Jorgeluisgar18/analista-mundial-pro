@@ -6,6 +6,7 @@ import { getApiUsageSnapshot } from "@/lib/services/apiUsageService";
 vi.mock("@/lib/services/apiUsageService", () => ({
   getApiUsageSnapshot: vi.fn(async () => []),
 }));
+vi.mock("server-only", () => ({}));
 
 const mockedGetApiUsageSnapshot = vi.mocked(getApiUsageSnapshot);
 
@@ -629,5 +630,118 @@ describe("matchService", () => {
     expect(cached?.match.dataOrigin).toBe("CACHE");
     expect(bypassed?.match.dataOrigin).toBe("API");
     expect(providerCall).toHaveBeenCalledTimes(1);
+  });
+
+  it("deduplica consultas simultÃ¡neas sin bypass para proteger cuota del proveedor", async () => {
+    const providerDataset = structuredClone(demoDataset);
+    providerDataset.match.id = "external-concurrent-cache-test";
+    providerDataset.match.dataOrigin = "API";
+    let resolveProvider!: (value: typeof providerDataset) => void;
+    const providerReady = new Promise<typeof providerDataset>((resolve) => {
+      resolveProvider = resolve;
+    });
+    const providerCall = vi.fn();
+    const service = createMatchService({
+      snapshotCache: {
+        async getFreshDataset() {
+          return null;
+        },
+      },
+      providers: {
+        football: [
+          {
+            id: "football-test",
+            async listMatches() {
+              return {
+                data: [],
+                meta: {
+                  source: "football-test",
+                  fetchedAt: new Date().toISOString(),
+                  isStale: false,
+                  warnings: [],
+                },
+              };
+            },
+            async getMatch() {
+              providerCall();
+              const data = await providerReady;
+              return {
+                data,
+                meta: {
+                  source: "football-test",
+                  fetchedAt: new Date().toISOString(),
+                  isStale: false,
+                  warnings: [],
+                },
+              };
+            },
+          },
+        ],
+      },
+    });
+
+    const first = service.getById("external-concurrent-cache-test");
+    const second = service.getById("external-concurrent-cache-test");
+    resolveProvider(providerDataset);
+    const [firstResult, secondResult] = await Promise.all([first, second]);
+
+    expect(firstResult?.match.id).toBe(
+      "football-test--external-concurrent-cache-test",
+    );
+    expect(secondResult?.match.id).toBe(
+      "football-test--external-concurrent-cache-test",
+    );
+    expect(providerCall).toHaveBeenCalledTimes(1);
+  });
+
+  it("no deduplica consultas con bypass porque representan refresh forzado", async () => {
+    const providerDataset = structuredClone(demoDataset);
+    providerDataset.match.id = "external-forced-refresh-test";
+    providerDataset.match.dataOrigin = "API";
+    const providerCall = vi.fn();
+    const service = createMatchService({
+      snapshotCache: {
+        async getFreshDataset() {
+          throw new Error("No debe consultar snapshot con bypass activo");
+        },
+      },
+      providers: {
+        football: [
+          {
+            id: "football-test",
+            async listMatches() {
+              return {
+                data: [],
+                meta: {
+                  source: "football-test",
+                  fetchedAt: new Date().toISOString(),
+                  isStale: false,
+                  warnings: [],
+                },
+              };
+            },
+            async getMatch() {
+              providerCall();
+              return {
+                data: providerDataset,
+                meta: {
+                  source: "football-test",
+                  fetchedAt: new Date().toISOString(),
+                  isStale: false,
+                  warnings: [],
+                },
+              };
+            },
+          },
+        ],
+      },
+    });
+
+    await Promise.all([
+      service.getById("external-forced-refresh-test", true),
+      service.getById("external-forced-refresh-test", true),
+    ]);
+
+    expect(providerCall).toHaveBeenCalledTimes(2);
   });
 });

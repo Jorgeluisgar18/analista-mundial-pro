@@ -569,4 +569,67 @@ describe("AnalysisCabin", () => {
     expect(screen.getByText("Oficial parcial")).toBeVisible();
     expect(screen.getByText("Arquero oficial")).toBeVisible();
   });
+
+  it("explica cuando la actualizacion reutiliza cache para proteger cuota", async () => {
+    const user = userEvent.setup();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          dataset: demoDataset,
+          analysis: analyzeMatch(demoDataset),
+          refreshMode: "cache-aware",
+          refreshedAt: "2026-07-11T15:00:00.000Z",
+          refreshedFields: ["alineaciones", "cuotas"],
+        }),
+      }),
+    );
+
+    render(
+      <AnalysisCabin
+        initialAnalysis={analyzeMatch(demoDataset)}
+        dataset={demoDataset}
+      />,
+    );
+
+    await user.click(
+      screen.getByRole("button", { name: (name) => name === "Actualizar datos" }),
+    );
+
+    expect(await screen.findByText(/cache inteligente/i)).toBeVisible();
+    expect(screen.getByText(/proteger cuota/i)).toBeVisible();
+    expect(screen.getByText(/alineaciones, cuotas/i)).toBeVisible();
+  });
+
+  it("explica cuando la actualizacion fuerza consulta al proveedor", async () => {
+    const user = userEvent.setup();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          dataset: demoDataset,
+          analysis: analyzeMatch(demoDataset),
+          refreshMode: "provider",
+          refreshedAt: "2026-07-11T15:00:00.000Z",
+          refreshedFields: ["estado", "estadisticas"],
+        }),
+      }),
+    );
+
+    render(
+      <AnalysisCabin
+        initialAnalysis={analyzeMatch(demoDataset)}
+        dataset={demoDataset}
+      />,
+    );
+
+    await user.click(
+      screen.getByRole("button", { name: (name) => name === "Actualizar datos" }),
+    );
+
+    expect(await screen.findByText(/proveedor real/i)).toBeVisible();
+    expect(screen.getByText(/puede consumir cuota/i)).toBeVisible();
+  });
 });

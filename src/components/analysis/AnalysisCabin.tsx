@@ -11,6 +11,13 @@ import { MobileActionBar } from "@/components/analysis/MobileActionBar";
 import { ResponsibleGamingNotice } from "@/components/shared/ResponsibleGamingNotice";
 import type { AnalysisResult, MatchDataset, Prediction } from "@/types/domain";
 
+type RefreshMode = "cache-aware" | "provider";
+
+interface RefreshStatus {
+  mode: RefreshMode;
+  fields: string[];
+}
+
 const NAVIGATION: readonly NavSection[] = [
   { id: "summary", label: "01 · Resumen", subs: ["Panorama", "Probabilidades", "Escenarios", "Confianza"] },
   { id: "context", label: "02 · Contexto", subs: ["Necesidad", "Forma reciente", "Rivales", "Motivación y presión"] },
@@ -37,6 +44,7 @@ export function AnalysisCabin({
   const [activeSubsection, setActiveSubsection] = useState("Panorama");
   const [updateOpen, setUpdateOpen] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [refreshStatus, setRefreshStatus] = useState<RefreshStatus | null>(null);
   const [selectedPrediction, setSelectedPrediction] = useState<Prediction | null>(null);
   const currentNavigation = NAVIGATION.find((s) => s.id === activeSection) ?? NAVIGATION[0];
 
@@ -53,6 +61,12 @@ export function AnalysisCabin({
       if (res.ok && body.analysis) {
         setAnalysis(body.analysis);
         if (body.dataset) setCurrentDataset(body.dataset);
+        if (body.refreshMode === "cache-aware" || body.refreshMode === "provider") {
+          setRefreshStatus({
+            mode: body.refreshMode,
+            fields: Array.isArray(body.refreshedFields) ? body.refreshedFields : [],
+          });
+        }
       }
     } finally {
       setRefreshing(false);
@@ -117,6 +131,24 @@ export function AnalysisCabin({
                 mercados, valor y fuentes.
               </p>
             </div>
+            {refreshStatus ? (
+              <div className="refresh-status" role="status" aria-live="polite">
+                <span className="section-kicker">Estado de actualización</span>
+                <strong>
+                  {refreshStatus.mode === "cache-aware"
+                    ? "Cache inteligente"
+                    : "Proveedor real"}
+                </strong>
+                <p>
+                  {refreshStatus.mode === "cache-aware"
+                    ? "Se reutilizó cache fresco cuando aplicaba para proteger cuota sin ocultar la trazabilidad."
+                    : "Se forzó consulta al proveedor; puede consumir cuota del plan gratuito."}
+                </p>
+                {refreshStatus.fields.length ? (
+                  <p>Campos revisados: {refreshStatus.fields.join(", ")}</p>
+                ) : null}
+              </div>
+            ) : null}
             <SectionContent
               activeSection={activeSection}
               activeSubsection={activeSubsection}

@@ -5,8 +5,8 @@ export function SourceLedger({ sources }: { sources: SourceRecord[] }) {
   return (
     <div className="source-ledger">
       {(sources ?? []).length ? (
-        (sources ?? []).map((source) => (
-          <article key={source.id}>
+        (sources ?? []).map((source, index) => (
+          <article key={`${source.id}-${source.observedAt}-${index}`}>
             <span
               className={`evidence-dot evidence-${source.status}`}
               aria-hidden="true"

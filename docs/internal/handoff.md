@@ -1,10 +1,10 @@
 ﻿# Empalme multi-IA â€” clasificaciÃ³n por complejidad y estado actual
 
-**Fecha:** 2026-06-29 (v2 â€” actualizado post-sesiÃ³n)  
+**Fecha:** 2026-07-11 (v5 - actualizado post-calibracion historica)
 **Proyecto:** Analista Mundial Pro (`analista-mundial-pro` v0.1.0)  
 **URL producciÃ³n:** `https://shiny-torte-4f01e2.netlify.app`  
-**Estado:** `master` en producciÃ³n con 23 commits nuevos de Codex + merge de refactors locales.  
-**âš ï¸ Importante:** el working directory del repo principal tiene 26 archivos modificados + 5 nuevos **sin commit** (cambios locales de Codex previo que quedaron sin crÃ©ditos).
+**Estado:** `master` actualizado en GitHub hasta `b88531b` (`feat: calibrate historical model health`). Netlify permanece sin deploy manual; si los builds siguen detenidos, el push no debe consumir creditos.
+**Importante:** working directory limpio al retomar el 2026-07-11. No hay cambios locales acumulados pendientes.
 
 ---
 
@@ -51,14 +51,14 @@
 |----|-------|--------|
 | P0-2 | Verificar Neon/Netlify DB en producciÃ³n | ðŸ”´ No verificado aÃºn |
 | P0-3 | Smoke test real post-deploy | ðŸ”´ No ejecutado aÃºn |
-| P1-3 | QA casos reales por liga/competiciÃ³n/fecha | ðŸŸ¡ Matriz creada, no ejecutada |
-| P1-4 | OptimizaciÃ³n holÃ­stica de cachÃ© (matchService + snapshot + quota) | ðŸ”´ No iniciado |
-| P2-2 | Commit organizado de cambios locales acumulados | ðŸŸ¡ 26 archivos sin commit (COT, overrides demo, health, providers) |
+| P1-3 | QA casos reales por liga/competiciÃ³n/fecha | ðŸŸ¡ Matriz creada; siguiente QA debe ejecutarse local o post-deploy controlado |
+| P1-4 | OptimizaciÃ³n holÃ­stica de cachÃ© (matchService + snapshot + quota) | ðŸŸ¡ Parcial: refresh cache-aware ya existe; pendiente revisar cuota/freshness holÃ­stico |
+| P2-2 | Commit organizado de cambios locales acumulados | âœ… Cerrado: working tree limpio, `b88531b` pusheado a GitHub |
 | P2-3 | Validación local Neon con DATABASE_URL real | ✅ Verificado localmente el 2026-07-02 |
 | P2-4 | Ampliar E2E visuales/responsive (screenshots, mÃ¡s viewports) | ðŸŸ¡ Pendiente |
 | P2-5 | Consistencia de docs (migraciones Netlify, CSP stale, README) | ðŸŸ¡ Pendiente |
 | P2-6 | Plantilla QA manual bÃºsquedas clave | ðŸŸ¡ Creada en sesiÃ³n anterior, verificar |
-| P2-7 | refreshService: invalidar cachÃ© real vs re-anÃ¡lisis superficial | ðŸŸ¡ Pendiente |
+| P2-7 | refreshService: invalidar cachÃ© real vs re-anÃ¡lisis superficial | âœ… Implementado: refresh normal cache-aware y bypass explÃ­cito |
 
 ### Ya completados por Codex (en master, 23 commits)
 
@@ -78,8 +78,8 @@
 
 | Riesgo | Impacto | MitigaciÃ³n |
 |--------|---------|------------|
-| 26 archivos modificados sin commit en working directory | Si se pierde el working tree, se pierden cambios COT, overrides demo, health | Hacer commit pronto o stash |
-| 11 archivos con cambios tanto en master como en working directory | Potenciales conflictos al hacer commit/stash | Revisar diff contra master antes de commit |
+| Estado documental desactualizado | Puede confundir a otras IAs sobre pendientes ya cerrados | Mantener secciÃ³n 8 y resumen superior actualizados |
+| Netlify builds/creditos | Pushes pueden consumir creditos si los builds se reactivan | Confirmar Stopped builds antes de pushes frecuentes |
 | Neon no verificado en producciÃ³n | Persistencia no funcional en prod | P0-2 pendiente |
 | API-Football free tier | Quema de cuota | CachÃ© TTL + reserva diaria |
 
@@ -262,6 +262,11 @@ Smoke: `docs/qa/production-smoke.md`
 
 | Fecha | IA | Tareas | Resultado | Siguiente paso |
 |-------|-----|--------|-----------|----------------|
+| 2026-07-11 | Codex | QA visual local del estado de actualización antes de commit: cabina real `footballdata-io--204598` en desktop, clic en `Actualizar datos`, validación visual del bloque "Estado de actualización" con copy de cache/cuota. Revisión móvil: sin overflow ni overlay de error; el indicador dev de Next/Turbopack intercepta el botón inferior local, hallazgo solo de entorno dev. Secret scan previo sin claves reales. | **Browser local:** desktop OK, bloque `Cache inteligente` visible; mobile render OK sin overflow. **Suite completa:** `npm test` 51 pass, 5 skipped; 178 pass, 8 skipped. | Ejecutar build/lint finales, commit y push autorizado por owner. |
+| 2026-07-11 | Codex | P1-4 mensajes operativos: la cabina ahora comunica el modo de actualización tras `Actualizar datos`: cache inteligente para proteger cuota o proveedor real cuando se fuerza consulta externa. Añadidas pruebas UI para ambos modos usando la respuesta real de `refreshService` (`refreshMode`, `refreshedFields`). | **Focal:** `analysis-cabin` 16 pass. Suite focal cache/refresh/health/copy/source ledger OK: 8 archivos pass, 1 skipped; 42 pass, 2 skipped. | Ejecutar `tsc`, lint y `git diff --check`; después QA visual ligera local si el owner quiere revisar en navegador. |
+| 2026-07-11 | Codex | P1-4 cache/freshness: auditoría de `matchService`, `refreshService`, `cachePolicy` y cuotas. Detectado hueco thundering herd: dos requests simultáneos sin bypass podían duplicar `provider.getMatch`. Añadido candado in-memory por `matchId` para llamadas cache-aware; `bypassCache=true` conserva refresh forzado. | **Focal:** `tests/integration/match-service.test.ts` 14 pass. Nuevas pruebas cubren dedupe sin bypass y no-dedupe con bypass. | Ejecutar suite focal cache/refresh + lint/typecheck; luego decidir si se amplía a mensajes operativos de cache/cuota. |
+| 2026-07-11 | Codex | QA local visual/API del Health Panel y cabina. Validado `/api/health` con DB conectada, Elo 100%, backtesting listo, rho -0.080. QA visual encontró y corrigió copy singular "hace 1 día", copy con tildes en Fuentes y warning React por keys duplicadas en `SourceLedger`. | **Focal:** `source-ledger`, `analysis-cabin`, `health-route`, `copy-encoding` OK (17 pass). Browser interno: home/health y cabina real Footballdata.io sin overlay; interacción Fuentes -> Calidad muestra Brier/Log Loss/RPS y rho; logs nuevos limpios. | Siguiente recomendado: bloque P1-4 cache/freshness holístico antes de reactivar deploys Netlify. |
+| 2026-07-11 | Codex | Limpieza documental post-push: resumen superior, backlog, riesgos y estado de control de versiones actualizados para reflejar `b88531b` y working tree limpio. | Empalme deja de marcar falsos pendientes de "26 archivos sin commit" y "commit unico grande". | QA local visual/API del Health Panel y cabina para validar modelo historico, Elo, backtesting y rho. |
 | 2026-07-09 | Codex | Bloque rho/health: calibrador Dixon-Coles por likelihood contra marcadores históricos, `run-backtest` guarda `dixonColesRho` en `CalibrationRun.config`, el motor usa rho calibrado en la matriz, `HealthPanel` y `/api/health` exponen frescura de Elo/backtesting/rho. | **Backtest local:** 817 muestras históricas, Brier 0.623, Log Loss 1.036, RPS 0.214, rho -0.080 aplicado con 817 marcadores. **Focal:** 38 pass. **Typecheck/lint inicial:** OK. | Ejecutar verificación completa final, secret scan, commit y push autorizado por owner. |
 | 2026-07-09 | Codex | Backfill Elo ejecutado y H34/H66 completado: `historical:elo-backfill` optimizado por lotes, 966 partidos / 1.932 filas actualizadas; `modelStability` deja de ser literal y se calcula desde `CalibrationRun` (Brier, Log Loss, RPS y tamaño de muestra), expuesto en `dataQuality`. | Backfill OK. Focal: ensemble/confidence/analysis-cabin OK. | Verificación completa final y decidir commit/push. |
 | 2026-07-09 | Codex | H29 Elo real: módulo puro `historical/elo`, conexión con `historicalSignalService`, escritura de `opponentElo`, enriquecimiento de `dataset.home/away.elo` desde histórico, copy público actualizado a Elo histórico y tests de sensibilidad. | Focal: historical-elo, historical-signal-service, analysis-engine, analysis-cabin OK. E2E core: 5 pass/1 skip. | Verificación completa final; siguiente bloque recomendado: H34/H66 `modelStability` real usando `CalibrationRun`. |
@@ -290,22 +295,20 @@ Smoke: `docs/qa/production-smoke.md`
 | 2026-07-08 | Codex | Bloque medio/bajo: retries conservadores por proveedor con `resilientFetch`; ajuste de intensidades por bajas confirmadas/suspendidos; sensitivity tests para cuotas y disponibilidad; health panel con estados más claros; README saneado; guía `docs/data-sources/provider-onboarding.md`; reportes externos movidos a `docs/audits/`; matriz QA ampliada para próximo deploy. | **Focal:** `npx vitest run tests/unit/provider-http.test.ts tests/integration/analysis-engine.test.ts tests/unit/copy-encoding.test.ts` 21 pass. **Typecheck:** OK. **Lint:** OK. **Tests:** `npm test` 152 pass, 7 skip. **Build:** OK. Secret scan sin claves reales conocidas; solo URL local Postgres de desarrollo y patrón de checklist. Sin commit, push ni deploy. | Siguiente recomendado: revisar diff, decidir commit local. Luego QA visual con navegador si se quiere validar HealthPanel/cabina responsive antes de subir. |
 | 2026-07-08 | Codex | QA visual local de Health Panel y cabina en escritorio/móvil. La primera ejecución E2E reveló 404 en rutas dinámicas por caché `.next` inconsistente; se limpió el artefacto generado y las rutas volvieron a responder 200. Detectado y corregido un bug real: el snapshot de cuota mostraba períodos vencidos; ahora conserva únicamente el período vigente más reciente por proveedor sin borrar el histórico de Neon. | **E2E:** 9 pass, 1 skip. **Visual:** home/health/cabina/mercado/móvil 200, sin errores de consola ni desborde horizontal. **Focal cuota:** 18 pass. Capturas guardadas fuera del repo. Owner autorizó commit y push a GitHub; sin deploy manual de Netlify. | Ejecutar verificación completa, secret scan, commit y push. |
 
-### Pendiente explícito: commit único grande, sin deploy por créditos Netlify
+### Estado de control de versiones y deploy
 
-Estado acordado el 2026-07-02:
+Estado actualizado el 2026-07-11:
 
-- El owner pidió dejar los cambios acumulados para **un solo commit grande más adelante**.
-- **No ejecutar `git commit`, `git push` ni deploy de Netlify** hasta autorización explícita.
-- Motivo operativo: créditos Netlify consumidos; evitar builds/deploys adicionales por ahora.
-- Antes del commit futuro, repetir verificación mínima:
+- El commit acumulado ya fue realizado y pusheado a GitHub: `b88531b feat: calibrate historical model health`.
+- Working directory limpio al retomar.
+- No se ejecutó deploy manual de Netlify.
+- Antes de cualquier nuevo commit/push, confirmar autorización del owner y repetir verificación mínima:
   1. `git status --short`
   2. secret scan sobre claves reales conocidas del entorno local, sin documentar prefijos ni valores en el repositorio.
   3. `npm test`
   4. `npm run test:e2e`
   5. `npm run lint`
   6. `npm run build`
-- Commit sugerido cuando se autorice:
-  - `feat: consolidate real providers, premium UX and QA hardening`
 - Deploy sugerido: solo después de que el owner confirme créditos Netlify disponibles o una ventana controlada de deploy.
 ---
 

@@ -48,6 +48,7 @@ export function createMatchService({
   snapshotCache?: Pick<MatchSnapshotCache, "getFreshDataset">;
 } = {}) {
   const providers = injectedProviders ?? createProviderRegistry(env);
+  const inFlightDatasetLookups = new Map<string, Promise<MatchDataset | null>>();
   const providerStatus = () => getProviderStatus(env);
   const scopedId = (providerId: string, id: string) =>
     id.includes("--") || id.includes(":") ? id : `${providerId}--${id}`;
@@ -91,7 +92,7 @@ export function createMatchService({
       : `${target.provider} omitido para proteger el plan gratuito. ${decision.reason}`;
   }
 
-  return {
+  const service = {
     async listByDate(date: string, competition?: string) {
       const warnings: string[] = [];
       for (const provider of providers.football) {
@@ -155,6 +156,19 @@ export function createMatchService({
           snapshotCache ?? (injectedProviders ? undefined : await getDefaultSnapshotCache());
         const cached = await cache?.getFreshDataset(id);
         if (cached) return structuredClone(cached);
+        const inFlight = inFlightDatasetLookups.get(id);
+        if (inFlight) {
+          const shared = await inFlight;
+          return shared ? structuredClone(shared) : null;
+        }
+        const lookup = service.getById(id, true);
+        inFlightDatasetLookups.set(id, lookup);
+        try {
+          const loaded = await lookup;
+          return loaded ? structuredClone(loaded) : null;
+        } finally {
+          inFlightDatasetLookups.delete(id);
+        }
       }
 
       for (const provider of providers.football) {
@@ -306,6 +320,7 @@ export function createMatchService({
       return null;
     },
   };
+  return service;
 }
 
 export const matchService = createMatchService();

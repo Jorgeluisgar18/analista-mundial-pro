@@ -20,34 +20,60 @@ function visualLabel(team: TeamRef, competitionKind: CompetitionKind) {
 const countryCodeByTeamName: Record<string, string> = {
   alemania: "de",
   argentina: "ar",
+  austria: "at",
   "bélgica": "be",
   belgica: "be",
+  belgium: "be",
+  brazil: "br",
   brasil: "br",
   colombia: "co",
   croacia: "hr",
+  croatia: "hr",
   dinamarca: "dk",
+  denmark: "dk",
   ecuador: "ec",
+  england: "gb-eng",
   españa: "es",
   espana: "es",
   "estados unidos": "us",
   francia: "fr",
+  france: "fr",
+  germany: "de",
   inglaterra: "gb-eng",
   italia: "it",
+  italy: "it",
   marruecos: "ma",
   "méxico": "mx",
   mexico: "mx",
+  morocco: "ma",
+  netherlands: "nl",
   "países bajos": "nl",
   "paises bajos": "nl",
   portugal: "pt",
+  spain: "es",
+  "south africa": "za",
+  "united states": "us",
   uruguay: "uy",
 };
+
+function normalizeTeamNameForFlag(name: string) {
+  return name
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .replace(/\b(men'?s|women'?s)\b/gu, "")
+    .replace(/\b(national|team|selection|seleccion|seleccion nacional)\b/gu, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
 
 function flagUrlFor(team: TeamRef) {
   if (/^[a-z]{2}$/i.test(team.code)) {
     return `https://flagcdn.com/w80/${team.code.toLowerCase()}.png`;
   }
 
-  const normalizedName = team.name.trim().toLowerCase();
+  const normalizedName = normalizeTeamNameForFlag(team.name);
   const countryCode = countryCodeByTeamName[normalizedName];
   return countryCode ? `https://flagcdn.com/w80/${countryCode}.png` : undefined;
 }

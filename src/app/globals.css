@@ -1669,6 +1669,11 @@ textarea:focus-visible {
   line-height: 1.55;
 }
 
+.refresh-status-error {
+  border-color: rgba(239, 118, 95, 0.32);
+  background: linear-gradient(135deg, rgba(239, 118, 95, 0.12), rgba(239, 199, 110, 0.05));
+}
+
 
 .analysis-section-header {
   display: flex;

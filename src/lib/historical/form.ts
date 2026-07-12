@@ -3,6 +3,7 @@ import {
   logLoss,
   rankedProbabilityScore,
 } from "@/lib/backtesting/metrics";
+import type { AnalysisModelConfigInput } from "@/types/domain";
 
 type HistoricalOutcome = "home" | "draw" | "away";
 export type HistoricalProbabilities = Record<HistoricalOutcome, number>;
@@ -23,7 +24,18 @@ export interface HistoricalTeamFormSignal {
   goalsFor: number;
   goalsAgainst: number;
   cleanSheetRate: number;
+  home: HistoricalTeamFormSplit;
+  away: HistoricalTeamFormSplit;
   source: "historical";
+}
+
+export interface HistoricalTeamFormSplit {
+  matches: number;
+  weightedPointsPerGame: number;
+  strengthAdjustedPointsPerGame: number;
+  goalsFor: number;
+  goalsAgainst: number;
+  cleanSheetRate: number;
 }
 
 export interface CalibrationRow {
@@ -41,6 +53,7 @@ export interface CalibrationSummary {
   dixonColesRho?: number;
   rhoSampleSize?: number;
   rhoAverageLogLoss?: number | null;
+  modelConfig?: AnalysisModelConfigInput;
 }
 
 export function canonicalHistoricalTeamName(name: string) {
@@ -75,31 +88,16 @@ function strengthMultiplier(opponentElo?: number) {
   return Math.min(1.25, Math.max(0.85, 1 + (opponentElo - 1600) / 1200));
 }
 
-export function historicalFormFromMatches(
-  teamName: string,
-  matches: HistoricalMatchForForm[],
-  referenceDate = new Date(),
-): HistoricalTeamFormSignal {
-  const normalizedTeam = canonicalHistoricalTeamName(teamName);
-  const rows = matches
-    .map((match) => {
-      const isHome = canonicalHistoricalTeamName(match.homeTeamName) === normalizedTeam;
-      const isAway = canonicalHistoricalTeamName(match.awayTeamName) === normalizedTeam;
-      if (!isHome && !isAway) return undefined;
-      const goalsFor = isHome ? match.homeGoals : match.awayGoals;
-      const goalsAgainst = isHome ? match.awayGoals : match.homeGoals;
-      const weight = recencyWeight(match.kickoffDate, referenceDate);
-      const points = pointsFor(goalsFor, goalsAgainst);
-      return {
-        goalsFor,
-        goalsAgainst,
-        points,
-        weight,
-        strengthWeight: weight * strengthMultiplier(match.opponentElo),
-      };
-    })
-    .filter((row): row is NonNullable<typeof row> => Boolean(row));
+interface HistoricalWeightedRow {
+  venue: "home" | "away";
+  goalsFor: number;
+  goalsAgainst: number;
+  points: number;
+  weight: number;
+  strengthWeight: number;
+}
 
+function summarizeWeightedRows(rows: HistoricalWeightedRow[]): HistoricalTeamFormSplit {
   const weightTotal = rows.reduce((sum, row) => sum + row.weight, 0);
   const safeWeight = Math.max(0.0001, weightTotal);
 
@@ -121,6 +119,41 @@ export function historicalFormFromMatches(
         (sum, row) => sum + (row.goalsAgainst === 0 ? row.weight : 0),
         0,
       ) / safeWeight,
+  };
+}
+
+export function historicalFormFromMatches(
+  teamName: string,
+  matches: HistoricalMatchForForm[],
+  referenceDate = new Date(),
+): HistoricalTeamFormSignal {
+  const normalizedTeam = canonicalHistoricalTeamName(teamName);
+  const rows = matches
+    .map((match) => {
+      const isHome = canonicalHistoricalTeamName(match.homeTeamName) === normalizedTeam;
+      const isAway = canonicalHistoricalTeamName(match.awayTeamName) === normalizedTeam;
+      if (!isHome && !isAway) return undefined;
+      const goalsFor = isHome ? match.homeGoals : match.awayGoals;
+      const goalsAgainst = isHome ? match.awayGoals : match.homeGoals;
+      const weight = recencyWeight(match.kickoffDate, referenceDate);
+      const points = pointsFor(goalsFor, goalsAgainst);
+      return {
+        venue: isHome ? "home" as const : "away" as const,
+        goalsFor,
+        goalsAgainst,
+        points,
+        weight,
+        strengthWeight: weight * strengthMultiplier(match.opponentElo),
+      };
+    })
+    .filter((row): row is NonNullable<typeof row> => Boolean(row));
+
+  const overall = summarizeWeightedRows(rows);
+
+  return {
+    ...overall,
+    home: summarizeWeightedRows(rows.filter((row) => row.venue === "home")),
+    away: summarizeWeightedRows(rows.filter((row) => row.venue === "away")),
     source: "historical",
   };
 }

@@ -15,8 +15,11 @@ export interface ProviderStatus {
   purpose: string;
 }
 
-function hasSecret(value?: string) {
-  return Boolean(value?.trim());
+function hasPlausibleSecret(value: string | undefined, pattern?: RegExp) {
+  const secret = value?.trim();
+  if (!secret) return false;
+  if (pattern) return pattern.test(secret);
+  return /^[a-zA-Z0-9_-]{10,}$/.test(secret);
 }
 
 export function getProviderStatus(
@@ -33,7 +36,7 @@ export function getProviderStatus(
       id: "api-football",
       label: "API-FOOTBALL / API-Sports",
       envName: "FOOTBALL_API_KEY",
-      configured: hasSecret(env.FOOTBALL_API_KEY),
+      configured: hasPlausibleSecret(env.FOOTBALL_API_KEY),
       docsUrl: "https://www.api-football.com/documentation-v3",
       purpose:
         "Fixtures, equipos, ligas, detalles de partido y cobertura amplia internacional.",
@@ -42,7 +45,7 @@ export function getProviderStatus(
       id: "football-data",
       label: "Football-Data.org",
       envName: "FOOTBALL_DATA_API_KEY",
-      configured: hasSecret(env.FOOTBALL_DATA_API_KEY),
+      configured: hasPlausibleSecret(env.FOOTBALL_DATA_API_KEY),
       docsUrl: "https://www.football-data.org/documentation/quickstart",
       purpose:
         "Calendarios y resultados de ligas europeas top y competiciones UEFA.",
@@ -51,7 +54,7 @@ export function getProviderStatus(
       id: "footballdata-io",
       label: "Footballdata.io",
       envName: "FOOTBALLDATA_IO_API_KEY",
-      configured: hasSecret(env.FOOTBALLDATA_IO_API_KEY),
+      configured: hasPlausibleSecret(env.FOOTBALLDATA_IO_API_KEY),
       docsUrl: "https://footballdata.io/documentation/",
       purpose:
         "Proveedor complementario de fixtures, resultados, rankings FIFA y estadisticas con cuota mensual gratuita.",
@@ -60,7 +63,7 @@ export function getProviderStatus(
       id: "the-sportsdb",
       label: "TheSportsDB",
       envName: "THE_SPORTSDB_API_KEY",
-      configured: hasSecret(env.THE_SPORTSDB_API_KEY),
+      configured: hasPlausibleSecret(env.THE_SPORTSDB_API_KEY, /^[a-zA-Z0-9_-]{3,}$/),
       docsUrl: "https://www.thesportsdb.com/documentation",
       purpose:
         "Enriquecimiento gratuito secundario: equipos, eventos, estadios, badges y contexto no critico.",
@@ -69,7 +72,7 @@ export function getProviderStatus(
       id: "odds-api",
       label: "The Odds API",
       envName: "ODDS_API_KEY",
-      configured: hasSecret(env.ODDS_API_KEY),
+      configured: hasPlausibleSecret(env.ODDS_API_KEY),
       docsUrl: "https://the-odds-api.com/liveapi/guides/v4/",
       purpose:
         "Cuotas prepartido para value betting, comparacion de mercados y surebets.",

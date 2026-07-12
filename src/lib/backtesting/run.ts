@@ -1,6 +1,10 @@
 import { summarizeCalibration, type CalibrationRow } from "@/lib/historical/form";
 import type { DixonColesCalibrationRow } from "@/lib/backtesting/dixon-coles-calibration";
-import type { AnalysisResult } from "@/types/domain";
+import type {
+  AnalysisModelConfigInput,
+  AnalysisResult,
+  EnsembleWeights,
+} from "@/types/domain";
 
 export type BacktestOutcome = "home" | "draw" | "away";
 export type BacktestProbabilities = Record<BacktestOutcome, number>;
@@ -48,6 +52,65 @@ export function probabilitiesFromAnalysisResult(
 
 export function backtestRowsToCalibration(rows: CalibrationRow[]) {
   return summarizeCalibration(rows);
+}
+
+function clamp(value: number, min: number, max: number) {
+  return Math.min(max, Math.max(min, value));
+}
+
+function normalizeWeights(weights: EnsembleWeights): EnsembleWeights {
+  const total = weights.dixonColes + weights.simulation + weights.logistic;
+  if (total <= 0) {
+    return { dixonColes: 0.6, simulation: 0.2, logistic: 0.2 };
+  }
+  return {
+    dixonColes: weights.dixonColes / total,
+    simulation: weights.simulation / total,
+    logistic: weights.logistic / total,
+  };
+}
+
+export function deriveModelConfigFromBacktest(
+  summary: ReturnType<typeof backtestRowsToCalibration>,
+  {
+    modelVersion,
+    source,
+  }: {
+    modelVersion: string;
+    source: string;
+  },
+): AnalysisModelConfigInput {
+  const metricQuality = clamp(
+    1 -
+      Math.max(0, summary.brier - 0.45) * 0.55 -
+      Math.max(0, summary.logLoss - 1.05) * 0.18 -
+      Math.max(0, summary.rps - 0.2) * 0.35,
+    0.35,
+    1,
+  );
+  const sampleConfidence = clamp(
+    Math.log10(Math.max(10, summary.sampleSize)) / 2.4,
+    0.45,
+    1,
+  );
+  const confidence = metricQuality * 0.7 + sampleConfidence * 0.3;
+  const drawDeviation = Math.abs(summary.empirical.draw - 0.27);
+  const weights = normalizeWeights({
+    dixonColes: 0.5 + confidence * 0.22,
+    simulation: 0.18 + (1 - confidence) * 0.12,
+    logistic: 0.16 + drawDeviation * 0.7,
+  });
+
+  return {
+    label: `backtest-${modelVersion}-${
+      source.includes("historical") ? "historical" : "analysis"
+    }-${summary.sampleSize}`,
+    weights,
+    logistic: {
+      drawBase: clamp(0.28 + summary.empirical.draw * 0.18, 0.26, 0.36),
+      drawSensitivity: clamp(0.16 + drawDeviation * 0.5, 0.14, 0.28),
+    },
+  };
 }
 
 function points(goalsFor: number, goalsAgainst: number) {

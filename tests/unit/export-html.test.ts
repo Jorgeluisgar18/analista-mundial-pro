@@ -18,4 +18,15 @@ describe("renderAnalysisHtml", () => {
     expect(html).toContain("Snapshot");
     expect(html).not.toMatch(/Snapshot \d{4}-\d{2}-\d{2}T/);
   });
+
+  it("incluye bloques criticos del informe completo", () => {
+    const html = renderAnalysisHtml(analyzeMatch(demoDataset));
+
+    expect(html).toContain("Escenarios");
+    expect(html).toContain("Alertas");
+    expect(html).toContain("Calibraci");
+    expect(html).toContain("Calidad de datos");
+    expect(html).toContain("Valor esperado");
+    expect(html).toContain("Surebets");
+  });
 });

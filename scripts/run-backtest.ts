@@ -3,6 +3,7 @@ import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "../generated/prisma/client";
 import {
   backtestRowsToCalibration,
+  deriveModelConfigFromBacktest,
   historicalMatchesToBacktestRows,
   outcomeFromScore,
   probabilitiesFromAnalysisResult,
@@ -156,6 +157,10 @@ async function main() {
   const dixonColesCalibration = calibrateDixonColesRho(dixonColesRows, {
     minSampleSize: Math.max(30, Math.min(rows.length, minSampleSize)),
   });
+  const modelConfig = deriveModelConfigFromBacktest(summary, {
+    modelVersion,
+    source,
+  });
   const saved = await prisma.calibrationRun.create({
     data: {
       modelName,
@@ -176,6 +181,7 @@ async function main() {
         dixonColesRhoApplied: dixonColesCalibration.applied,
         rhoSampleSize: dixonColesCalibration.sampleSize,
         rhoAverageLogLoss: dixonColesCalibration.averageLogLoss,
+        modelConfig,
       }),
     },
   });
@@ -193,6 +199,7 @@ async function main() {
       dixonColesRho: dixonColesCalibration.rho,
       dixonColesRhoApplied: dixonColesCalibration.applied,
       rhoSampleSize: dixonColesCalibration.sampleSize,
+      modelConfig,
       source,
     }),
   );

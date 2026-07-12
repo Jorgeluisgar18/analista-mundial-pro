@@ -62,6 +62,27 @@ export interface NormalizedMatch {
   scoreFullTime?: [number, number];
 }
 
+export interface EnsembleWeights {
+  dixonColes: number;
+  simulation: number;
+  logistic: number;
+}
+
+export interface LogisticModelConfigInput {
+  coefficients?: [number, number, number, number];
+  intercept?: number;
+  drawBase?: number;
+  drawSensitivity?: number;
+  drawMin?: number;
+  drawMax?: number;
+}
+
+export interface AnalysisModelConfigInput {
+  label?: string;
+  weights?: Partial<EnsembleWeights>;
+  logistic?: LogisticModelConfigInput;
+}
+
 export interface TeamForm {
   elo: number;
   recentPointsPerGame: number;
@@ -172,6 +193,7 @@ export interface MatchDataset {
       dixonColesRho?: number;
       rhoSampleSize?: number;
       rhoAverageLogLoss?: number | null;
+      modelConfig?: AnalysisModelConfigInput;
     };
   };
 }

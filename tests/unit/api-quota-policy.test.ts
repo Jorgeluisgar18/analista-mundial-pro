@@ -20,7 +20,7 @@ describe("apiQuotaDecision", () => {
           resetsAt: "2026-06-27T00:00:00.000Z",
           updatedAt: "2026-06-26T12:00:00.000Z",
         },
-        { reserve: 10 },
+        { reserve: 10, now: new Date("2026-06-26T12:00:00.000Z") },
       ),
     ).toMatchObject({
       shouldCall: false,
@@ -40,7 +40,7 @@ describe("apiQuotaDecision", () => {
           resetsAt: "2026-08-01T00:00:00.000Z",
           updatedAt: "2026-07-01T12:00:00.000Z",
         },
-        { reserve: 25 },
+        { reserve: 25, now: new Date("2026-07-01T12:00:00.000Z") },
       ),
     ).toMatchObject({
       shouldCall: false,
@@ -60,11 +60,34 @@ describe("apiQuotaDecision", () => {
           resetsAt: "2026-06-27T00:00:00.000Z",
           updatedAt: "2026-06-26T12:00:00.000Z",
         },
-        { reserve: 10 },
+        { reserve: 10, now: new Date("2026-06-26T12:00:00.000Z") },
       ),
     ).toMatchObject({
       shouldCall: true,
       remaining: 70,
+    });
+  });
+
+  it("ignora contadores vencidos porque la ventana de cuota ya reinicio", () => {
+    expect(
+      apiQuotaDecision(
+        {
+          provider: "API-Football",
+          used: 100,
+          limit: 100,
+          period: "day",
+          periodKey: "2026-06-26",
+          resetsAt: "2026-06-27T00:00:00.000Z",
+          updatedAt: "2026-06-26T23:59:00.000Z",
+        },
+        {
+          reserve: 10,
+          now: new Date("2026-06-27T00:01:00.000Z"),
+        },
+      ),
+    ).toMatchObject({
+      shouldCall: true,
+      remaining: 100,
     });
   });
 });

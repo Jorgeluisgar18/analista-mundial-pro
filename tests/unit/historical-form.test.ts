@@ -54,6 +54,36 @@ describe("historical form and calibration", () => {
     expect(form.goalsFor).toBeGreaterThan(form.goalsAgainst);
   });
 
+  it("expone splits local y visitante para evitar una forma historica plana", () => {
+    const form = historicalFormFromMatches(
+      "Colombia",
+      [
+        {
+          kickoffDate: "2026-06-01",
+          homeTeamName: "Colombia",
+          awayTeamName: "Peru",
+          homeGoals: 3,
+          awayGoals: 0,
+        },
+        {
+          kickoffDate: "2026-06-05",
+          homeTeamName: "Ecuador",
+          awayTeamName: "Colombia",
+          homeGoals: 2,
+          awayGoals: 0,
+        },
+      ],
+      new Date("2026-06-15T00:00:00Z"),
+    );
+
+    expect(form.home.matches).toBe(1);
+    expect(form.away.matches).toBe(1);
+    expect(form.home.goalsFor).toBeGreaterThan(form.away.goalsFor);
+    expect(form.home.weightedPointsPerGame).toBeGreaterThan(
+      form.away.weightedPointsPerGame,
+    );
+  });
+
   it("summarizes calibration quality using Brier, log loss and RPS", () => {
     const summary = summarizeCalibration([
       {

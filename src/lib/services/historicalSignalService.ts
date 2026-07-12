@@ -14,6 +14,7 @@ import {
   type HistoricalEloMatch,
 } from "@/lib/historical/elo";
 import type { MatchDataset } from "@/types/domain";
+import type { AnalysisModelConfigInput } from "@/types/domain";
 
 type HistoricalDatabase = typeof prisma;
 
@@ -23,6 +24,7 @@ function parseCalibrationConfig(config: string) {
       dixonColesRho?: unknown;
       rhoSampleSize?: unknown;
       rhoAverageLogLoss?: unknown;
+      modelConfig?: unknown;
     };
     return {
       dixonColesRho:
@@ -40,14 +42,65 @@ function parseCalibrationConfig(config: string) {
         Number.isFinite(parsed.rhoAverageLogLoss)
           ? parsed.rhoAverageLogLoss
           : null,
+      modelConfig: parseModelConfig(parsed.modelConfig),
     };
   } catch {
     return {
       dixonColesRho: DEFAULT_DIXON_COLES_RHO,
       rhoSampleSize: undefined,
       rhoAverageLogLoss: null,
+      modelConfig: undefined,
     };
   }
+}
+
+function finiteNumber(value: unknown) {
+  return typeof value === "number" && Number.isFinite(value);
+}
+
+function parseModelConfig(value: unknown): AnalysisModelConfigInput | undefined {
+  if (!value || typeof value !== "object") return undefined;
+  const input = value as {
+    label?: unknown;
+    weights?: unknown;
+    logistic?: unknown;
+  };
+  const weights =
+    input.weights && typeof input.weights === "object"
+      ? (input.weights as Record<string, unknown>)
+      : undefined;
+  const logistic =
+    input.logistic && typeof input.logistic === "object"
+      ? (input.logistic as Record<string, unknown>)
+      : undefined;
+  const parsed: AnalysisModelConfigInput = {};
+  if (typeof input.label === "string" && input.label.trim()) {
+    parsed.label = input.label;
+  }
+  if (weights) {
+    parsed.weights = {
+      dixonColes: finiteNumber(weights.dixonColes)
+        ? Number(weights.dixonColes)
+        : undefined,
+      simulation: finiteNumber(weights.simulation)
+        ? Number(weights.simulation)
+        : undefined,
+      logistic: finiteNumber(weights.logistic)
+        ? Number(weights.logistic)
+        : undefined,
+    };
+  }
+  if (logistic) {
+    parsed.logistic = {
+      drawBase: finiteNumber(logistic.drawBase)
+        ? Number(logistic.drawBase)
+        : undefined,
+      drawSensitivity: finiteNumber(logistic.drawSensitivity)
+        ? Number(logistic.drawSensitivity)
+        : undefined,
+    };
+  }
+  return parsed.label || parsed.weights || parsed.logistic ? parsed : undefined;
 }
 
 function parseCalibrationRun(
@@ -77,6 +130,7 @@ function parseCalibrationRun(
     dixonColesRho: config.dixonColesRho,
     rhoSampleSize: config.rhoSampleSize,
     rhoAverageLogLoss: config.rhoAverageLogLoss,
+    modelConfig: config.modelConfig,
   };
 }
 

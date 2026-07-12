@@ -45,6 +45,7 @@ export function AnalysisCabin({
   const [updateOpen, setUpdateOpen] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [refreshStatus, setRefreshStatus] = useState<RefreshStatus | null>(null);
+  const [refreshError, setRefreshError] = useState<string | null>(null);
   const [selectedPrediction, setSelectedPrediction] = useState<Prediction | null>(null);
   const currentNavigation = NAVIGATION.find((s) => s.id === activeSection) ?? NAVIGATION[0];
 
@@ -55,9 +56,19 @@ export function AnalysisCabin({
 
   async function refresh() {
     setRefreshing(true);
+    setRefreshError(null);
     try {
       const res = await fetch(`/api/match/${analysis.match.id}/refresh`, { method: "POST" });
-      const body = await res.json();
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setRefreshStatus(null);
+        setRefreshError(
+          typeof body.error === "string"
+            ? body.error
+            : "No fue posible actualizar los datos en este momento.",
+        );
+        return;
+      }
       if (res.ok && body.analysis) {
         setAnalysis(body.analysis);
         if (body.dataset) setCurrentDataset(body.dataset);
@@ -68,6 +79,13 @@ export function AnalysisCabin({
           });
         }
       }
+    } catch (error) {
+      setRefreshStatus(null);
+      setRefreshError(
+        error instanceof Error
+          ? error.message
+          : "No fue posible actualizar los datos en este momento.",
+      );
     } finally {
       setRefreshing(false);
     }
@@ -147,6 +165,13 @@ export function AnalysisCabin({
                 {refreshStatus.fields.length ? (
                   <p>Campos revisados: {refreshStatus.fields.join(", ")}</p>
                 ) : null}
+              </div>
+            ) : null}
+            {refreshError ? (
+              <div className="refresh-status refresh-status-error" role="alert">
+                <span className="section-kicker">Actualizacion no completada</span>
+                <strong>El informe conserva el ultimo analisis disponible</strong>
+                <p>{refreshError}</p>
               </div>
             ) : null}
             <SectionContent

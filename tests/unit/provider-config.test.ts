@@ -60,14 +60,34 @@ describe("providerConfig", () => {
 
     expect(
       hasConfiguredFootballProvider({
-        FOOTBALL_DATA_API_KEY: "token",
+        FOOTBALL_DATA_API_KEY: "football-data-org-token",
       }),
     ).toBe(true);
 
     expect(
       hasConfiguredFootballProvider({
-        FOOTBALLDATA_IO_API_KEY: "token",
+        FOOTBALLDATA_IO_API_KEY: "footballdata-io-token",
       }),
     ).toBe(true);
+  });
+
+  it("no marca como configuradas las API keys con formato claramente invalido", () => {
+    const status = getProviderStatus({
+      FOOTBALL_API_KEY: "abc",
+      FOOTBALL_DATA_API_KEY: "token",
+      FOOTBALLDATA_IO_API_KEY: "short",
+      THE_SPORTSDB_API_KEY: "123",
+      ODDS_API_KEY: "bad-key",
+    });
+
+    expect(status).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: "api-football", configured: false }),
+        expect.objectContaining({ id: "football-data", configured: false }),
+        expect.objectContaining({ id: "footballdata-io", configured: false }),
+        expect.objectContaining({ id: "the-sportsdb", configured: true }),
+        expect.objectContaining({ id: "odds-api", configured: false }),
+      ]),
+    );
   });
 });

@@ -87,4 +87,76 @@ describe("historicalSignalService", () => {
     expect(enriched.away.elo).toBeLessThan(1500);
     expect(enriched.sources.at(-1)?.detail).toMatch(/Elo actual/i);
   });
+
+  it("inyecta modelConfig persistido desde la ultima CalibrationRun", async () => {
+    const teams = [
+      { id: "alpha-db", name: "Alpha Cal", externalId: "alpha-ext" },
+      { id: "beta-db", name: "Beta Cal", externalId: "beta-ext" },
+    ];
+    const fakeDatabase = {
+      team: {
+        async findMany() {
+          return teams;
+        },
+      },
+      historicalTeamMatch: {
+        async groupBy() {
+          return [];
+        },
+        async findMany() {
+          return [];
+        },
+      },
+      historicalMatch: {
+        async findMany() {
+          return [];
+        },
+      },
+      calibrationRun: {
+        async findFirst() {
+          return {
+            id: "calibration-run-1",
+            modelName: "AMP ensemble",
+            modelVersion: "1.1.0",
+            sampleSize: 120,
+            brier: 0.5,
+            logLoss: 1.02,
+            rps: 0.18,
+            empiricalHome: 0.44,
+            empiricalDraw: 0.29,
+            empiricalAway: 0.27,
+            config: JSON.stringify({
+              dixonColesRho: -0.08,
+              modelConfig: {
+                label: "backtest-1.1.0-120",
+                weights: {
+                  dixonColes: 0.7,
+                  simulation: 0.15,
+                  logistic: 0.15,
+                },
+              },
+            }),
+            createdAt: new Date("2026-07-12T12:00:00.000Z"),
+          };
+        },
+      },
+    };
+    const dataset = structuredClone(demoDataset);
+    dataset.match.dataOrigin = "API";
+    dataset.match.homeTeam.name = "Alpha Cal";
+    dataset.match.awayTeam.name = "Beta Cal";
+
+    const enriched = await createHistoricalSignalService(
+      fakeDatabase as never,
+    ).enrich(dataset);
+
+    expect(enriched.historical?.calibration?.modelConfig).toMatchObject({
+      label: "backtest-1.1.0-120",
+      weights: {
+        dixonColes: 0.7,
+        simulation: 0.15,
+        logistic: 0.15,
+      },
+    });
+  });
 });

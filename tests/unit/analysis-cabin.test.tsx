@@ -632,4 +632,31 @@ describe("AnalysisCabin", () => {
     expect(await screen.findByText(/proveedor real/i)).toBeVisible();
     expect(screen.getByText(/puede consumir cuota/i)).toBeVisible();
   });
+
+  it("muestra un mensaje operativo cuando falla la actualizacion", async () => {
+    const user = userEvent.setup();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: false,
+        json: async () => ({
+          error: "Proveedor temporalmente no disponible",
+        }),
+      }),
+    );
+
+    render(
+      <AnalysisCabin
+        initialAnalysis={analyzeMatch(demoDataset)}
+        dataset={demoDataset}
+      />,
+    );
+
+    await user.click(
+      screen.getByRole("button", { name: (name) => name === "Actualizar datos" }),
+    );
+
+    expect(await screen.findByText(/actualizacion no completada/i)).toBeVisible();
+    expect(screen.getByText(/proveedor temporalmente no disponible/i)).toBeVisible();
+  });
 });

@@ -13,14 +13,19 @@ function escapeHtml(value: unknown) {
     .replaceAll("'", "&#039;");
 }
 
+function formatPercent(value: number | undefined) {
+  return value === undefined ? "No disponible" : `${value.toFixed(1)}%`;
+}
+
 function predictionRows(predictions: Prediction[]) {
   return predictions
     .map(
       (prediction) => `
         <tr>
           <td><strong>${escapeHtml(prediction.market)}</strong><small>${escapeHtml(prediction.reason)}</small></td>
-          <td>${prediction.probability === undefined ? "No disponible" : `${prediction.probability.toFixed(1)}%`}</td>
-          <td>${prediction.minimumOddForValue?.toFixed(2) ?? "—"}</td>
+          <td>${formatPercent(prediction.probability)}</td>
+          <td>${prediction.minimumOddForValue?.toFixed(2) ?? "-"}</td>
+          <td>${prediction.expectedValue === undefined ? "-" : `${prediction.expectedValue.toFixed(1)}%`}</td>
           <td>${escapeHtml(prediction.confidence.toFixed(1))}/10</td>
           <td><span class="risk">${escapeHtml(prediction.riskLevel)}</span><small>${escapeHtml(prediction.risk)}</small></td>
         </tr>`,
@@ -37,6 +42,10 @@ function groupPredictionsByCategory(predictions: Prediction[]) {
   }, {});
 }
 
+function evidenceCards(items: string) {
+  return `<div class="sources">${items}</div>`;
+}
+
 export function renderAnalysisHtml(analysis: AnalysisResult) {
   const groups = Object.entries(groupPredictionsByCategory(analysis.predictions))
     .map(
@@ -44,10 +53,40 @@ export function renderAnalysisHtml(analysis: AnalysisResult) {
         <section>
           <h2>${escapeHtml(category)}</h2>
           <table>
-            <thead><tr><th>Mercado</th><th>Probabilidad</th><th>Cuota mín.</th><th>Confianza</th><th>Riesgo</th></tr></thead>
+            <thead><tr><th>Mercado</th><th>Probabilidad</th><th>Cuota min.</th><th>Valor esperado</th><th>Confianza</th><th>Riesgo</th></tr></thead>
             <tbody>${predictionRows(predictions ?? [])}</tbody>
           </table>
         </section>`,
+    )
+    .join("");
+
+  const scenarios = analysis.scenarios
+    .map(
+      (scenario) => `
+        <div class="source">
+          <strong>${escapeHtml(scenario.title)} · ${scenario.probability.toFixed(1)}%</strong>
+          <small>${escapeHtml(scenario.description)}</small>
+        </div>`,
+    )
+    .join("");
+
+  const alerts = analysis.alerts
+    .map(
+      (alert) => `
+        <div class="source">
+          <strong>${escapeHtml(alert.level.toUpperCase())} · ${escapeHtml(alert.title)}</strong>
+          <small>${escapeHtml(alert.detail)}</small>
+        </div>`,
+    )
+    .join("");
+
+  const arbitrage = analysis.arbitrage
+    .map(
+      (opportunity) => `
+        <div class="source">
+          <strong>${escapeHtml(opportunity.market)} · margen ${opportunity.margin.toFixed(2)}%</strong>
+          <small>${opportunity.isOpportunity ? "Oportunidad teorica detectada" : "Sin surebet accionable"} · retorno ${opportunity.returnAmount.toFixed(2)} · ganancia teorica ${opportunity.theoreticalProfit.toFixed(2)}</small>
+        </div>`,
     )
     .join("");
 
@@ -84,7 +123,46 @@ export function renderAnalysisHtml(analysis: AnalysisResult) {
     </div>
   </header>
   <div class="summary">${escapeHtml(analysis.executiveSummary)}</div>
+  <section>
+    <h2>Escenarios</h2>
+    ${evidenceCards(scenarios || '<div class="source"><strong>Sin escenarios destacados</strong><small>El modelo no encontro bifurcaciones relevantes para este snapshot.</small></div>')}
+  </section>
+  <section>
+    <h2>Alertas</h2>
+    ${evidenceCards(alerts || '<div class="source"><strong>Sin alertas criticas</strong><small>No hay avisos operativos destacados en este snapshot.</small></div>')}
+  </section>
   ${groups}
+  <section>
+    <h2>Surebets</h2>
+    ${evidenceCards(arbitrage || '<div class="source"><strong>Sin surebet accionable</strong><small>No se detecto arbitraje deportivo con las cuotas disponibles.</small></div>')}
+  </section>
+  <section>
+    <h2>Calidad de datos</h2>
+    <table>
+      <tbody>
+        <tr><th>Cobertura</th><td>${analysis.dataQuality.coverage.toFixed(1)}%</td></tr>
+        <tr><th>Frescura</th><td>${analysis.dataQuality.freshness.toFixed(1)}%</td></tr>
+        <tr><th>Acuerdo de fuentes</th><td>${analysis.dataQuality.agreement.toFixed(1)}%</td></tr>
+        <tr><th>Estabilidad del modelo</th><td>${analysis.dataQuality.modelStability.toFixed(1)}%</td></tr>
+        <tr><th>Alineacion confirmada</th><td>${analysis.dataQuality.lineupConfirmed ? "Si" : "No"}</td></tr>
+        <tr><th>Nota</th><td>${escapeHtml(analysis.dataQuality.note)}</td></tr>
+      </tbody>
+    </table>
+  </section>
+  <section>
+    <h2>Calibracion historica</h2>
+    <table>
+      <tbody>
+        <tr><th>Muestra</th><td>${analysis.calibration.sampleSize}</td></tr>
+        <tr><th>Brier Score</th><td>${analysis.calibration.brier?.toFixed(4) ?? "No disponible"}</td></tr>
+        <tr><th>Log Loss</th><td>${analysis.calibration.logLoss?.toFixed(4) ?? "No disponible"}</td></tr>
+        <tr><th>RPS</th><td>${analysis.calibration.rps?.toFixed(4) ?? "No disponible"}</td></tr>
+        <tr><th>Dixon-Coles rho</th><td>${analysis.calibration.dixonColesRho?.toFixed(4) ?? "No disponible"}</td></tr>
+        <tr><th>Aplicada</th><td>${analysis.calibration.applied ? "Si" : "No"}</td></tr>
+        <tr><th>Nota</th><td>${escapeHtml(analysis.calibration.note)}</td></tr>
+      </tbody>
+    </table>
+  </section>
   <section>
     <h2>Fuentes y evidencia</h2>
     <div class="sources">

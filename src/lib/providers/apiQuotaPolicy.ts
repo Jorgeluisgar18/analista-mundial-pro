@@ -12,12 +12,21 @@ export interface ApiUsageSnapshotRecord {
 
 export function apiQuotaDecision(
   usage: ApiUsageSnapshotRecord | undefined,
-  { reserve = 10 }: { reserve?: number } = {},
+  { reserve = 10, now = new Date() }: { reserve?: number; now?: Date } = {},
 ) {
   if (!usage) {
     return {
       shouldCall: true,
       reason: "Sin telemetría previa; se permite una consulta controlada.",
+    };
+  }
+
+  const resetsAt = new Date(usage.resetsAt);
+  if (Number.isFinite(resetsAt.getTime()) && resetsAt <= now) {
+    return {
+      shouldCall: true,
+      remaining: usage.limit,
+      reason: `La ventana ${usage.period} ya reinicio; se permite una consulta controlada.`,
     };
   }
 

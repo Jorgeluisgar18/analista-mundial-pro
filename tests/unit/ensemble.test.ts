@@ -96,4 +96,57 @@ describe("probabilistic ensemble", () => {
       unstable.expected.confidence,
     );
   });
+
+  it("permite parametrizar pesos calibrados del ensemble con trazabilidad", () => {
+    const dataset = structuredClone(demoDataset);
+    dataset.match.id = "ensemble-weight-override";
+
+    const base = analyzeMatch(dataset);
+    const logisticOnly = analyzeMatch(dataset, {
+      modelConfig: {
+        label: "qa-logistic-only",
+        weights: {
+          dixonColes: 0,
+          simulation: 0,
+          logistic: 1,
+        },
+      },
+    });
+
+    expect(logisticOnly.modelVersion).toContain("qa-logistic-only");
+    expect(Math.abs(logisticOnly.mainProbabilities.home - base.mainProbabilities.home)).toBeGreaterThan(0.2);
+    expect(
+      logisticOnly.mainProbabilities.home +
+        logisticOnly.mainProbabilities.draw +
+        logisticOnly.mainProbabilities.away,
+    ).toBeCloseTo(100, 1);
+  });
+
+  it("puede leer pesos calibrados desde el resumen historico del dataset", () => {
+    const dataset = structuredClone(demoDataset);
+    dataset.match.id = "ensemble-calibration-config";
+    dataset.historical = {
+      calibration: {
+        sampleSize: 120,
+        brier: 0.5,
+        logLoss: 1.02,
+        rps: 0.18,
+        empirical: { home: 0.45, draw: 0.28, away: 0.27 },
+        confidenceMultiplier: 0.94,
+        modelConfig: {
+          label: "backtest-v1",
+          weights: {
+            dixonColes: 1,
+            simulation: 0,
+            logistic: 0,
+          },
+        },
+      },
+    };
+
+    const result = analyzeMatch(dataset);
+
+    expect(result.modelVersion).toContain("backtest-v1");
+    expect(result.calibration.applied).toBe(true);
+  });
 });

@@ -66,6 +66,52 @@ export function createMatchService({
     next.match.id = requestedId ?? scopedId(providerId, next.match.id);
     return next;
   };
+  const enrichListedMatchesFromCache = async (
+    matches: MatchDataset["match"][],
+    providerId: string,
+  ) => {
+    const cache =
+      snapshotCache ?? (injectedProviders ? undefined : await getDefaultSnapshotCache());
+    if (!cache) {
+      return {
+        matches: matches.map((match) => ({
+          ...match,
+          id: scopedId(providerId, match.id),
+        })),
+        warnings: [] as string[],
+      };
+    }
+
+    let hits = 0;
+    const enriched = await Promise.all(
+      matches.map(async (match) => {
+        const id = scopedId(providerId, match.id);
+        try {
+          const cached = await cache.getFreshDataset(id);
+          if (cached) {
+            hits += 1;
+            return {
+              ...cached.match,
+              id,
+            };
+          }
+        } catch {
+          // La lista no debe fallar si el cache persistente no esta disponible.
+        }
+        return {
+          ...match,
+          id,
+        };
+      }),
+    );
+
+    return {
+      matches: enriched,
+      warnings: hits
+        ? [`${hits} partido(s) enriquecidos desde cache persistente.`]
+        : [],
+    };
+  };
 
   async function providerQuotaWarning(providerId: string) {
     const { getApiUsageSnapshot } = await import(
@@ -104,16 +150,17 @@ export function createMatchService({
         try {
           const result = await provider.listMatches(date, competition);
           if (result.data.length) {
+            const enriched = await enrichListedMatchesFromCache(
+              result.data,
+              provider.id,
+            );
             return {
               mode: "api" as const,
               source: result.meta.source,
               fetchedAt: result.meta.fetchedAt,
-              warnings: result.meta.warnings,
+              warnings: [...result.meta.warnings, ...enriched.warnings],
               providerStatus: providerStatus(),
-              matches: result.data.map((match) => ({
-                ...match,
-                id: scopedId(provider.id, match.id),
-              })),
+              matches: enriched.matches,
             };
           }
           warnings.push(...result.meta.warnings);

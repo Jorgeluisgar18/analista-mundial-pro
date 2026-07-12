@@ -2,6 +2,9 @@ import {
   calculateConfidence,
   calculateModelStability,
 } from "@/lib/analysis/confidence";
+import {
+  resolveAnalysisModelConfig,
+} from "@/lib/analysis/ensembleConfig";
 import { buildFeatures } from "@/lib/analysis/features";
 import { DEFAULT_DIXON_COLES_RHO } from "@/lib/backtesting/dixon-coles-calibration";
 import { dixonColesMatrix } from "@/lib/models/dixonColes";
@@ -25,6 +28,7 @@ import type {
   RiskLevel,
   SourceRecord,
   ValueTier,
+  AnalysisModelConfigInput,
 } from "@/types/domain";
 
 const pct = (value: number) => Math.round(value * 1000) / 10;
@@ -493,10 +497,16 @@ function poissonGreaterThan(firstLambda: number, secondLambda: number) {
 
 export function analyzeMatch(
   dataset: MatchDataset,
-  options: { manuallyUpdated?: boolean } = {},
+  options: {
+    manuallyUpdated?: boolean;
+    modelConfig?: AnalysisModelConfigInput;
+  } = {},
 ): AnalysisResult {
   const features = buildFeatures(dataset);
   const calibrationSummary = dataset.historical?.calibration;
+  const modelConfig = resolveAnalysisModelConfig(
+    options.modelConfig ?? calibrationSummary?.modelConfig,
+  );
   const dixonColesRho =
     calibrationSummary?.dixonColesRho ?? DEFAULT_DIXON_COLES_RHO;
   const model = dixonColesMatrix(
@@ -516,18 +526,20 @@ export function analyzeMatch(
   const eloDelta = (dataset.home.elo - dataset.away.elo) / 400;
   const homeStrength = logisticProbability(
     [eloDelta, formDelta, attackDelta, defenceDelta],
-    [1.35, 0.62, 0.48, 0.4],
-    -0.08,
+    modelConfig.logistic.coefficients,
+    modelConfig.logistic.intercept,
   );
   const awayStrength = logisticProbability(
     [-eloDelta, -formDelta, -attackDelta, -defenceDelta],
-    [1.35, 0.62, 0.48, 0.4],
-    -0.08,
+    modelConfig.logistic.coefficients,
+    modelConfig.logistic.intercept,
   );
   const logisticDraw = clamp(
-    0.33 - Math.abs(homeStrength - awayStrength) * 0.18,
-    0.16,
-    0.33,
+    modelConfig.logistic.drawBase -
+      Math.abs(homeStrength - awayStrength) *
+        modelConfig.logistic.drawSensitivity,
+    modelConfig.logistic.drawMin,
+    modelConfig.logistic.drawMax,
   );
   const logisticTotal = homeStrength + awayStrength;
   const logisticHome = (homeStrength / logisticTotal) * (1 - logisticDraw);
@@ -541,9 +553,18 @@ export function analyzeMatch(
     ),
   });
   const blended = {
-    home: model.home * 0.6 + simulation.home * 0.2 + logisticHome * 0.2,
-    draw: model.draw * 0.6 + simulation.draw * 0.2 + logisticDraw * 0.2,
-    away: model.away * 0.6 + simulation.away * 0.2 + logisticAway * 0.2,
+    home:
+      model.home * modelConfig.weights.dixonColes +
+      simulation.home * modelConfig.weights.simulation +
+      logisticHome * modelConfig.weights.logistic,
+    draw:
+      model.draw * modelConfig.weights.dixonColes +
+      simulation.draw * modelConfig.weights.simulation +
+      logisticDraw * modelConfig.weights.logistic,
+    away:
+      model.away * modelConfig.weights.dixonColes +
+      simulation.away * modelConfig.weights.simulation +
+      logisticAway * modelConfig.weights.logistic,
   };
   const blendedTotal = blended.home + blended.draw + blended.away;
   blended.home /= blendedTotal;
@@ -853,7 +874,9 @@ export function analyzeMatch(
 
   return {
     id: `analysis-${dataset.match.id}`,
-    modelVersion: "AMP ensemble 1.1.0",
+    modelVersion: `AMP ensemble 1.1.0${
+      modelConfig.label ? ` · ${modelConfig.label}` : ""
+    }`,
     generatedAt: new Date().toISOString(),
     manuallyUpdated: Boolean(options.manuallyUpdated),
     match: dataset.match,

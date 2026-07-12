@@ -131,9 +131,9 @@ describe("matchService", () => {
         used: 91,
         limit: 100,
         period: "day",
-        periodKey: "2026-06-26",
-        resetsAt: "2026-06-27T00:00:00.000Z",
-        updatedAt: "2026-06-26T12:00:00.000Z",
+        periodKey: "2026-07-12",
+        resetsAt: "2026-07-13T00:00:00.000Z",
+        updatedAt: "2026-07-12T12:00:00.000Z",
       },
     ]);
     const providerCall = vi.fn();

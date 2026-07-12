@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   backtestRowsToCalibration,
+  deriveModelConfigFromBacktest,
   historicalMatchesToBacktestRows,
   outcomeFromScore,
   probabilitiesFromAnalysisResult,
@@ -98,5 +99,37 @@ describe("backtesting run helpers", () => {
       rows[0]?.probabilities.away ?? 0,
     );
     expect(rows[0]?.probabilities.home).not.toBe(rows[0]?.probabilities.away);
+  });
+
+  it("deriva modelConfig versionado desde metricas reales de backtesting", () => {
+    const summary = backtestRowsToCalibration([
+      {
+        probabilities: { home: 0.58, draw: 0.24, away: 0.18 },
+        outcome: "home",
+      },
+      {
+        probabilities: { home: 0.25, draw: 0.25, away: 0.5 },
+        outcome: "away",
+      },
+      {
+        probabilities: { home: 0.34, draw: 0.33, away: 0.33 },
+        outcome: "draw",
+      },
+    ]);
+
+    const config = deriveModelConfigFromBacktest(summary, {
+      modelVersion: "1.1.0",
+      source: "historicalMatch:rolling-offline",
+    });
+
+    expect(config.label).toContain("backtest-1.1.0");
+    expect(config.weights.dixonColes).toBeGreaterThan(0);
+    expect(config.weights.simulation).toBeGreaterThan(0);
+    expect(config.weights.logistic).toBeGreaterThan(0);
+    expect(
+      config.weights.dixonColes +
+        config.weights.simulation +
+        config.weights.logistic,
+    ).toBeCloseTo(1, 6);
   });
 });

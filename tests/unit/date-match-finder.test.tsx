@@ -54,6 +54,37 @@ describe("DateMatchFinder", () => {
     expect(screen.getAllByText(/COT/i).length).toBeGreaterThan(0);
   });
 
+  it("renderiza warnings duplicados sin keys repetidas de React", async () => {
+    const consoleError = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => undefined);
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          mode: "demo",
+          source: "Muestra local de respaldo",
+          warnings: ["match-snapshot-cache-hit", "match-snapshot-cache-hit"],
+          matches: [],
+        }),
+      }),
+    );
+
+    render(<DateMatchFinder initialDate="2026-06-15" />);
+    await userEvent.click(
+      screen.getByRole("button", { name: /buscar partidos/i }),
+    );
+
+    expect(await screen.findAllByText("match-snapshot-cache-hit")).toHaveLength(
+      2,
+    );
+    expect(consoleError).not.toHaveBeenCalledWith(
+      expect.stringContaining("same key"),
+      expect.anything(),
+    );
+  });
+
   it("limita resultados masivos y permite mostrar más partidos", async () => {
     const user = userEvent.setup();
     vi.stubGlobal(

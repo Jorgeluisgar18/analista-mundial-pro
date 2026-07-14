@@ -1,7 +1,9 @@
-import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { cleanup, render, screen } from "@testing-library/react";
+import { afterEach, describe, expect, it } from "vitest";
 import { MarketTable } from "@/components/analysis/MarketTable";
 import type { Prediction } from "@/types/domain";
+
+afterEach(cleanup);
 
 function prediction(overrides: Partial<Prediction>): Prediction {
   return {
@@ -48,5 +50,32 @@ describe("MarketTable", () => {
     expect(
       screen.getByTitle("Sin datos suficientes para sostener el mercado."),
     ).toHaveTextContent("No disponible");
+  });
+
+  it("explica por qué cada mercado merece más o menos confianza", () => {
+    render(
+      <MarketTable
+        predictions={[
+          prediction({
+            market: "Más de 2.5 goles",
+            probability: 58.2,
+            interval: [52, 64],
+            minimumOddForValue: 1.82,
+            availableOdd: 1.95,
+            marketProbability: 53.1,
+            modelEdge: 5.1,
+            expectedValue: 13.5,
+            evidenceStatus: "expected",
+            sourceIds: ["poisson", "odds", "lineups"],
+          }),
+        ]}
+      />,
+    );
+
+    expect(screen.getByText(/lectura del mercado/i)).toBeVisible();
+    expect(screen.getByText(/3 fuentes/i)).toBeVisible();
+    expect(screen.getByText(/cuota disponible 1.95/i)).toBeVisible();
+    expect(screen.getByText(/ventaja del modelo \+5.1 pp/i)).toBeVisible();
+    expect(screen.getByText(/rango 52-64%/i)).toBeVisible();
   });
 });

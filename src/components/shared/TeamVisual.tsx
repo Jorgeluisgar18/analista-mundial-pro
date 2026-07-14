@@ -56,6 +56,8 @@ const countryCodeByTeamName: Record<string, string> = {
   uruguay: "uy",
 };
 
+const DEFAULT_TEAM_COLORS: [string, string] = ["#12e6b2", "#60a5fa"];
+
 function normalizeTeamNameForFlag(name: string) {
   return name
     .trim()
@@ -85,6 +87,7 @@ export function TeamVisual({
   size = "compact",
 }: TeamVisualProps) {
   const fallback = team.flag ?? team.code;
+  const colors = team.colors ?? DEFAULT_TEAM_COLORS;
   const visualUrl =
     competitionKind === "NATIONAL" ? flagUrlFor(team) ?? team.logoUrl : team.logoUrl;
   const className = [
@@ -98,8 +101,8 @@ export function TeamVisual({
     <span
       className={className}
       style={{
-        "--team-primary": team.colors[0],
-        "--team-secondary": team.colors[1],
+        "--team-primary": colors[0],
+        "--team-secondary": colors[1],
       } as CSSProperties}
     >
       {visualUrl ? (

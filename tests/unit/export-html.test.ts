@@ -39,4 +39,17 @@ describe("renderAnalysisHtml", () => {
     expect(html).toContain("Monte Carlo");
     expect(html).toContain("Regresi");
   });
+
+  it("exporta una lectura visualmente auditable de evidencia por mercado", () => {
+    const html = renderAnalysisHtml(analyzeMatch(demoDataset));
+
+    expect(html).toContain("Ruta de lectura");
+    expect(html).toContain("Evidencia por mercado");
+    expect(html).toContain("Lectura del mercado");
+    expect(html).toContain("Fuentes usadas");
+    expect(html).toContain("Cuota disponible");
+    expect(html).toContain("Ventaja del modelo");
+    expect(html).toContain("Rango probable");
+    expect(html).toContain("@media print");
+  });
 });

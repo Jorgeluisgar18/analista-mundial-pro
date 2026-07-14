@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { readFile } from "node:fs/promises";
 import pg from "pg";
 
 function hasPostgresDatabaseUrl() {
@@ -81,7 +82,11 @@ test("busca y analiza un partido demo", async ({ page }) => {
   await expect(page).toHaveTitle(/Analista Mundial Pro/);
   await page.locator('input[aria-label="Fecha"]').fill("2026-06-15");
   await page.getByRole("button", { name: "Buscar partidos" }).click();
-  await page.getByRole("link", { name: /Colombia vs Brasil/ }).click();
+  const firstAnalysis = page.getByRole("link", {
+    name: "Abrir primer análisis",
+  });
+  await expect(firstAnalysis).toHaveAttribute("href", "/match/demo-col-bra");
+  await firstAnalysis.click();
   await expect(page).toHaveURL(/\/match\/demo-col-bra/);
   await expect(
     page.getByRole("heading", { name: "Lectura ejecutiva" }),
@@ -196,4 +201,69 @@ test("exporta un HTML autónomo", async ({ page }) => {
   await page.getByRole("button", { name: /Descargar informe/i }).first().click();
   const download = await downloadPromise;
   expect(download.suggestedFilename()).toContain("colombia-vs-brasil");
+  const path = await download.path();
+  expect(path).toBeTruthy();
+  const html = await readFile(path!, "utf8");
+  expect(html).toContain("Evidencia por mercado");
+  expect(html).toContain("Lectura del mercado");
+  expect(html).toContain("Ruta de lectura");
+});
+
+test("flujo completo permite revisar fuentes, health y export sin pantalla en blanco", async ({
+  page,
+}) => {
+  await page.route("**/api/matches?**", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        mode: "demo",
+        source: "Muestra local de respaldo",
+        fetchedAt: "2026-07-02T12:00:00.000Z",
+        warnings: [],
+        providerStatus: [],
+        matches: [
+          {
+            id: "demo-col-bra",
+            date: "2026-06-15",
+            time: "17:00",
+            kickoff: "2026-06-15T22:00:00.000Z",
+            status: "preliminary",
+            homeTeam: { id: "col", name: "Colombia", code: "COL" },
+            awayTeam: { id: "bra", name: "Brasil", code: "BRA" },
+            competition: {
+              id: "wc-2026",
+              name: "FIFA World Cup",
+              kind: "NATIONAL",
+              stage: "Grupo D",
+            },
+            venue: "MetLife Stadium",
+            city: "East Rutherford",
+            country: "Estados Unidos",
+            timezone: "America/Bogota",
+            dataOrigin: "DEMO",
+            fetchedAt: "2026-07-02T12:00:00.000Z",
+          },
+        ],
+      }),
+    });
+  });
+
+  await page.goto("/");
+  await expect(page.getByText("Estado del sistema")).toBeVisible();
+  await page.locator('input[aria-label="Fecha"]').fill("2026-06-15");
+  await page.getByRole("button", { name: "Buscar partidos" }).click();
+  const firstAnalysis = page.getByRole("link", {
+    name: "Abrir primer análisis",
+  });
+  await expect(firstAnalysis).toHaveAttribute("href", "/match/demo-col-bra");
+  await firstAnalysis.click();
+  await expect(page).toHaveURL(/\/match\/demo-col-bra/);
+  await page.getByRole("button", { name: /Fuentes/i }).click();
+  await page.getByRole("button", { name: "Pestaña Calidad" }).click();
+  await expect(page.getByText(/Versi/i).first()).toBeVisible();
+  await expect(page.getByText(/Calibraci/i).first()).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: /Descargar informe/i }).first(),
+  ).toBeVisible();
 });

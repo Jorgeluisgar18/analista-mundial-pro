@@ -63,4 +63,51 @@ describe("HealthPanel", () => {
     expect(screen.getByText(/modelo listo para análisis/i)).toBeVisible();
     expect(screen.getByText(/último backtest persistido/i)).toBeVisible();
   });
+
+  it("resume estado operativo de APIs, cuota, cache y persistencia", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          mode: "api-ready",
+          checkedAt: "2026-07-14T12:00:00.000Z",
+          database: "connected",
+          telemetryStatus: "connected",
+          providers: [
+            {
+              id: "api-football",
+              label: "API-Football",
+              configured: true,
+              purpose: "Fixtures y datos prepartido",
+              usage: {
+                provider: "API-Football",
+                used: 42,
+                limit: 100,
+                period: "day",
+                periodKey: "2026-07-14",
+                resetsAt: "2026-07-15T00:00:00.000Z",
+                updatedAt: "2026-07-14T11:55:00.000Z",
+              },
+              telemetry: {
+                provider: "API-Football",
+                total: 10,
+                failures: 0,
+                averageLatencyMs: 410,
+                lastObservedAt: "2026-07-14T11:55:00.000Z",
+              },
+            },
+          ],
+        }),
+      }),
+    );
+
+    render(<HealthPanel />);
+
+    expect(await screen.findByText(/resumen operativo/i)).toBeVisible();
+    expect(screen.getByText(/proveedores activos: 1\/1/i)).toBeVisible();
+    expect(screen.getByText(/cuota diaria usada: 42\/100/i)).toBeVisible();
+    expect(screen.getByText(/telemetría conectada/i)).toBeVisible();
+    expect(screen.getByText(/cache inteligente/i)).toBeVisible();
+  });
 });

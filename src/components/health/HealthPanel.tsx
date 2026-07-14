@@ -154,6 +154,58 @@ function weightPct(value?: number) {
   return `${Math.round((value ?? 0) * 100)}%`;
 }
 
+function OperationalSummary({ health }: { health: HealthData }) {
+  const configuredProviders = health.providers.filter(
+    (provider) => provider.configured,
+  ).length;
+  const dailyUsage = health.providers
+    .map((provider) => provider.usage)
+    .filter(
+      (usage): usage is ProviderUsage =>
+        usage !== null && usage.period === "day",
+    )
+    .reduce(
+      (total, usage) => ({
+        used: total.used + usage.used,
+        limit: total.limit + usage.limit,
+      }),
+      { used: 0, limit: 0 },
+    );
+  const telemetryLabel =
+    health.telemetryStatus === "connected"
+      ? "Telemetría conectada"
+      : "Telemetría no disponible";
+  const databaseLabel =
+    health.database === "connected" ? "Persistencia activa" : "Sin persistencia";
+
+  return (
+    <div className="health-operational-summary" aria-label="Resumen operativo">
+      <article>
+        <span>Resumen operativo</span>
+        <strong>
+          Proveedores activos: {configuredProviders}/{health.providers.length}
+        </strong>
+        <small>{databaseLabel}</small>
+      </article>
+      <article>
+        <span>Cuota y cache</span>
+        <strong>
+          Cuota diaria usada:{" "}
+          {dailyUsage.limit > 0
+            ? `${dailyUsage.used}/${dailyUsage.limit}`
+            : "sin uso diario"}
+        </strong>
+        <small>Cache inteligente protege llamadas repetidas y cuotas gratis.</small>
+      </article>
+      <article>
+        <span>Telemetría</span>
+        <strong>{telemetryLabel}</strong>
+        <small>Fallos, latencia y uso quedan auditables cuando hay BD.</small>
+      </article>
+    </div>
+  );
+}
+
 function ModelHealthCard({ modelHealth }: { modelHealth: ModelHealth }) {
   const modelConfig = modelHealth.backtesting.modelConfig;
 
@@ -316,6 +368,7 @@ export function HealthPanel() {
               <ModelHealthCard modelHealth={health.modelHealth} />
             </div>
           )}
+          <OperationalSummary health={health} />
           <div className="health-grid">
             {health.providers.map((p) => (
               <ProviderCard key={p.id} provider={p} />

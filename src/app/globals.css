@@ -1831,6 +1831,30 @@ textarea:focus-visible {
   line-height: 1.4;
 }
 
+.market-evidence-note,
+.market-evidence-tone {
+  padding: 8px 10px;
+  border: 1px solid rgba(18, 230, 178, 0.16);
+  border-radius: 12px;
+  background: rgba(18, 230, 178, 0.05);
+}
+
+.market-evidence-note span {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--accent);
+  font-family: var(--font-ui);
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.market-evidence-tone {
+  border-color: rgba(239, 199, 110, 0.18);
+  background: rgba(239, 199, 110, 0.05);
+}
+
 .market-table tbody tr {
   cursor: pointer;
   transition: background 0.15s ease;
@@ -2727,6 +2751,18 @@ textarea:focus-visible {
     var(--surface);
 }
 
+.model-trace-panel h3 {
+  grid-column: 1 / -1;
+  margin: 0;
+  padding: 14px 18px;
+  background: rgba(3, 13, 16, 0.78);
+  color: var(--accent);
+  font-family: var(--font-display);
+  font-size: 0.82rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
 .model-trace-panel span,
 .model-trace-panel strong {
   display: block;
@@ -3608,6 +3644,47 @@ textarea:focus-visible {
   gap: 16px;
 }
 
+.health-operational-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1px;
+  margin-bottom: 16px;
+  overflow: hidden;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-md);
+  background: var(--line);
+}
+
+.health-operational-summary article {
+  padding: 16px;
+  background:
+    linear-gradient(135deg, rgba(18, 230, 178, 0.08), transparent 44%),
+    var(--surface);
+}
+
+.health-operational-summary span,
+.health-operational-summary small {
+  display: block;
+  color: var(--muted);
+}
+
+.health-operational-summary span {
+  margin-bottom: 7px;
+  color: var(--accent);
+  font-family: var(--font-ui);
+  font-size: 0.68rem;
+  font-weight: 850;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.health-operational-summary strong {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--text-strong);
+  font-size: 0.95rem;
+}
+
 .health-provider {
   display: flex;
   flex-direction: column;
@@ -3808,6 +3885,10 @@ textarea:focus-visible {
   .health-meta {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .health-operational-summary {
+    grid-template-columns: 1fr;
   }
 
   .health-weight-grid {

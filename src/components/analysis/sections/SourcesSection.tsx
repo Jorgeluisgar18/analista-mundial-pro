@@ -42,6 +42,7 @@ export function SourcesSection({
         </div>
 
         <div className="model-trace-panel" aria-label="Trazabilidad del modelo">
+          <h3>Trazabilidad del modelo</h3>
           <article>
             <span>Versión del modelo</span>
             <strong>{analysis.modelVersion}</strong>

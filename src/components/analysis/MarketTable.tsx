@@ -1,4 +1,8 @@
 import type { Prediction } from "@/types/domain";
+import {
+  predictionEvidenceSummary,
+  predictionEvidenceTone,
+} from "@/lib/analysis/predictionEvidence";
 
 const evidenceLabels = {
   confirmed: "Confirmado",
@@ -65,6 +69,13 @@ export function MarketTable({
               <td>
                 <strong>{prediction.market}</strong>
                 <small>{prediction.reason}</small>
+                <small className="market-evidence-note">
+                  <span>Lectura del mercado</span>
+                  {predictionEvidenceSummary(prediction)}
+                </small>
+                <small className="market-evidence-tone">
+                  {predictionEvidenceTone(prediction)}
+                </small>
               </td>
               <td>
                 {prediction.probability === undefined ? (

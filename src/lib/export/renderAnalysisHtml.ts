@@ -2,6 +2,11 @@ import {
   APP_TIME_ZONE_ABBREVIATION,
   formatTimestampInAppTimeZone,
 } from "@/lib/time/colombia";
+import {
+  evidenceLabels,
+  predictionEvidenceSummary,
+  predictionEvidenceTone,
+} from "@/lib/analysis/predictionEvidence";
 import type { AnalysisResult, Prediction } from "@/types/domain";
 
 function escapeHtml(value: unknown) {
@@ -26,6 +31,8 @@ function predictionRows(predictions: Prediction[]) {
           <td>${formatPercent(prediction.probability)}</td>
           <td>${prediction.minimumOddForValue?.toFixed(2) ?? "-"}</td>
           <td>${prediction.expectedValue === undefined ? "-" : `${prediction.expectedValue.toFixed(1)}%`}</td>
+          <td><span class="evidence">${escapeHtml(evidenceLabels[prediction.evidenceStatus])}</span><small>Fuentes usadas: ${escapeHtml(String(prediction.sourceIds.length))}</small></td>
+          <td><strong>Lectura del mercado</strong><small>${escapeHtml(predictionEvidenceSummary(prediction))}</small><small>${escapeHtml(predictionEvidenceTone(prediction))}</small></td>
           <td>${escapeHtml(prediction.confidence.toFixed(1))}/10</td>
           <td><span class="risk">${escapeHtml(prediction.riskLevel)}</span><small>${escapeHtml(prediction.risk)}</small></td>
         </tr>`,
@@ -53,7 +60,7 @@ export function renderAnalysisHtml(analysis: AnalysisResult) {
         <section>
           <h2>${escapeHtml(category)}</h2>
           <table>
-            <thead><tr><th>Mercado</th><th>Probabilidad</th><th>Cuota min.</th><th>Valor esperado</th><th>Confianza</th><th>Riesgo</th></tr></thead>
+            <thead><tr><th>Mercado</th><th>Probabilidad</th><th>Cuota min.</th><th>Valor esperado</th><th>Evidencia</th><th>Lectura</th><th>Confianza</th><th>Riesgo</th></tr></thead>
             <tbody>${predictionRows(predictions ?? [])}</tbody>
           </table>
         </section>`,
@@ -105,11 +112,14 @@ export function renderAnalysisHtml(analysis: AnalysisResult) {
     .summary{margin:22px 0;padding:22px;border-left:3px solid var(--green);background:var(--surface);font:italic 18px/1.6 Georgia,serif}
     section{margin-top:24px}h2{text-transform:uppercase;letter-spacing:.04em;color:var(--green)}table{width:100%;border-collapse:collapse;background:var(--surface)}th,td{padding:12px;border:1px solid var(--line);text-align:left;vertical-align:top}th{color:var(--muted);font-size:10px;text-transform:uppercase}td small{display:block;margin-top:5px;color:var(--muted);line-height:1.4}.risk{color:var(--amber)}
     .sources{display:grid;gap:8px}.source{padding:14px;border:1px solid var(--line);background:var(--surface)}.source small{color:var(--muted)}
+    .reading-route{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;margin:22px 0;border:1px solid var(--line);background:var(--line)}
+    .reading-route span{padding:14px;background:var(--surface);color:var(--muted)}.reading-route strong{display:block;color:var(--green);font-size:11px;text-transform:uppercase;letter-spacing:.12em}.evidence{display:inline-block;color:var(--green);font-weight:700}
     .trace{display:grid;grid-template-columns:1.1fr .9fr;gap:1px;border:1px solid var(--line);background:linear-gradient(90deg,rgba(0,222,165,.18),rgba(116,168,255,.12))}
     .trace article,.trace ul{margin:0;padding:16px;background:var(--surface)}.trace span{display:block;color:var(--green);font-size:10px;letter-spacing:.12em;text-transform:uppercase}.trace strong{display:block;margin-top:7px;font-size:18px}.trace p,.trace li span{color:var(--muted);line-height:1.45}.trace ul{display:grid;gap:10px;list-style:none}.trace li strong{font-size:14px}
     .notice{margin-top:30px;padding:18px;border:1px solid var(--line);color:var(--muted)}.notice strong{color:var(--green)}
     footer{margin-top:20px;color:var(--muted);font-size:11px}
-    @media(max-width:700px){main{padding:14px}h1{font-size:32px}.probabilities,.trace{grid-template-columns:1fr}table{font-size:11px;display:block;overflow:auto}}
+    @media(max-width:700px){main{padding:14px}h1{font-size:32px}.probabilities,.trace,.reading-route{grid-template-columns:1fr}table{font-size:11px;display:block;overflow:auto}}
+    @media print{body{background:#fff;color:#111}main{padding:0}header,.summary,section,.notice{break-inside:avoid}.source,td,th{border-color:#bbb}.reading-route,.trace{background:#bbb}}
   </style>
 </head>
 <body>
@@ -124,6 +134,15 @@ export function renderAnalysisHtml(analysis: AnalysisResult) {
       <div>Visitante<strong>${analysis.mainProbabilities.away.toFixed(1)}%</strong></div>
     </div>
   </header>
+  <section aria-label="Ruta de lectura">
+    <h2>Ruta de lectura</h2>
+    <div class="reading-route">
+      <span><strong>1. Panorama</strong>Probabilidad base, contexto y confianza.</span>
+      <span><strong>2. Evidencia por mercado</strong>Fuentes usadas, Cuota disponible, Ventaja del modelo y Rango probable.</span>
+      <span><strong>3. Riesgo</strong>Alineaciones, clima, arbitraje y sensibilidad.</span>
+      <span><strong>4. Fuentes</strong>Trazabilidad, calibracion y hora Colombia.</span>
+    </div>
+  </section>
   <div class="summary">${escapeHtml(analysis.executiveSummary)}</div>
   <section>
     <h2>Escenarios</h2>

@@ -298,8 +298,8 @@ export function DateMatchFinder({ initialDate }: { initialDate: string }) {
             <details className="data-warnings">
               <summary>Notas sobre la consulta</summary>
               <ul>
-                {result.warnings.map((warning) => (
-                  <li key={warning}>{warning}</li>
+                {result.warnings.map((warning, index) => (
+                  <li key={`${warning}-${index}`}>{warning}</li>
                 ))}
               </ul>
             </details>

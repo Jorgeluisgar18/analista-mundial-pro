@@ -45,4 +45,22 @@ describe("TeamVisual", () => {
     expect(screen.queryByText("MNT")).not.toBeInTheDocument();
     expect(screen.queryByText("SAN")).not.toBeInTheDocument();
   });
+
+  it("usa colores seguros cuando un proveedor no entrega paleta", () => {
+    const providerTeam = {
+      id: "col",
+      name: "Colombia",
+      code: "COL",
+    } as TeamRef;
+
+    expect(() =>
+      render(
+        <TeamVisual
+          team={providerTeam}
+          competitionKind="NATIONAL"
+          size="compact"
+        />,
+      ),
+    ).not.toThrow();
+  });
 });

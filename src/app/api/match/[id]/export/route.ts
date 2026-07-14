@@ -18,7 +18,7 @@ export async function GET(
   const { id } = await context.params;
   const result = await getAnalysis(id);
   if (!result) return problem(404, "Partido no encontrado", id);
-  const html = renderAnalysisHtml(result.analysis);
+  const html = renderAnalysisHtml(result.analysis, result.dataset);
   const fileName = `${safeName(result.analysis.match.homeTeam.name)}-vs-${safeName(result.analysis.match.awayTeam.name)}.html`;
   return new Response(html, {
     headers: {

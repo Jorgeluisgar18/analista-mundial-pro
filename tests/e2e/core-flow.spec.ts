@@ -207,6 +207,9 @@ test("exporta un HTML autónomo", async ({ page }) => {
   expect(html).toContain("Evidencia por mercado");
   expect(html).toContain("Lectura del mercado");
   expect(html).toContain("Ruta de lectura");
+  expect(html).toContain("Alineaciones y disponibilidad");
+  expect(html).toContain("Jugadores clave");
+  expect(html).toContain("Contexto histórico");
 });
 
 test("flujo completo permite revisar fuentes, health y export sin pantalla en blanco", async ({

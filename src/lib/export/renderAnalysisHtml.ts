@@ -7,7 +7,7 @@ import {
   predictionEvidenceSummary,
   predictionEvidenceTone,
 } from "@/lib/analysis/predictionEvidence";
-import type { AnalysisResult, Prediction } from "@/types/domain";
+import type { AnalysisResult, MatchDataset, Prediction } from "@/types/domain";
 
 function escapeHtml(value: unknown) {
   return String(value)
@@ -53,7 +53,87 @@ function evidenceCards(items: string) {
   return `<div class="sources">${items}</div>`;
 }
 
-export function renderAnalysisHtml(analysis: AnalysisResult) {
+function lineupStatusLabel(lineup: MatchDataset["lineups"][number]) {
+  if (lineup.status === "official-partial") return "Oficial parcial";
+  if (lineup.status === "unavailable") return "XI no disponible";
+  if (lineup.confirmed || lineup.status === "confirmed") return "XI oficial";
+  return "XI esperado";
+}
+
+function teamNameForDatasetItem(dataset: MatchDataset, teamId: string) {
+  if (teamId === dataset.match.homeTeam.id) return dataset.match.homeTeam.name;
+  if (teamId === dataset.match.awayTeam.id) return dataset.match.awayTeam.name;
+  return "Equipo no identificado";
+}
+
+function starterStatusLabel(status: MatchDataset["players"][number]["starterStatus"]) {
+  if (status === "confirmed") return "Titular confirmado";
+  if (status === "expected") return "Titular esperado";
+  if (status === "inferred") return "Rol inferido";
+  if (status === "conflict") return "Dato en conflicto";
+  return "Titularidad no disponible";
+}
+
+function renderDatasetContext(dataset?: MatchDataset) {
+  if (!dataset) return "";
+
+  const lineups = dataset.lineups
+    .map(
+      (lineup) => `
+        <div class="source">
+          <strong>${escapeHtml(teamNameForDatasetItem(dataset, lineup.teamId))} · ${escapeHtml(lineupStatusLabel(lineup))} · ${escapeHtml(lineup.formation.value)}</strong>
+          <small>Fuente: ${escapeHtml(lineup.formation.source)} · Estado: ${escapeHtml(lineup.formation.status)}</small>
+          <small>${escapeHtml((lineup.starters ?? []).join(", ") || "Jugadores pendientes de fuente o proyección.")}</small>
+        </div>`,
+    )
+    .join("");
+
+  const players = [...dataset.players]
+    .sort((left, right) => Number(right.goalProbability ?? 0) - Number(left.goalProbability ?? 0))
+    .slice(0, 6)
+    .map(
+      (player) => `
+        <div class="source">
+          <strong>${escapeHtml(player.name)} · ${escapeHtml(teamNameForDatasetItem(dataset, player.teamId))}</strong>
+          <small>${escapeHtml(player.position)} · ${escapeHtml(starterStatusLabel(player.starterStatus))} · gol ${Math.round((player.goalProbability ?? 0) * 100)}% · tiros ${player.shots?.toFixed(1) ?? "No disponible"}</small>
+          <small>${player.starterStatus === "confirmed" ? "Lectura individual apoyada por titularidad confirmada." : "Lectura individual condicionada a que el XI esperado se mantenga."}</small>
+        </div>`,
+    )
+    .join("");
+
+  const formRows = [
+    [dataset.match.homeTeam.name, dataset.home, dataset.historical?.homeForm],
+    [dataset.match.awayTeam.name, dataset.away, dataset.historical?.awayForm],
+  ] as const;
+  const historical = formRows
+    .map(([team, base, form]) => {
+      const historicalDetail = form
+        ? `${form.matches} partidos históricos · forma ponderada ${form.weightedPointsPerGame.toFixed(2)} · ajustada por rival ${form.strengthAdjustedPointsPerGame.toFixed(2)} · porterías a cero ${(form.cleanSheetRate * 100).toFixed(0)}%`
+        : "Sin muestra histórica persistida; lectura limitada a forma normalizada del proveedor.";
+      return `
+        <div class="source">
+          <strong>${escapeHtml(team)} · Elo ${Math.round(base.elo)}</strong>
+          <small>${escapeHtml(historicalDetail)}</small>
+        </div>`;
+    })
+    .join("");
+
+  return `
+  <section>
+    <h2>Alineaciones y disponibilidad</h2>
+    ${evidenceCards(lineups || '<div class="source"><strong>Alineaciones no disponibles</strong><small>No hay XI esperado u oficial en el dataset exportado.</small></div>')}
+  </section>
+  <section>
+    <h2>Jugadores clave</h2>
+    ${evidenceCards(players || '<div class="source"><strong>Sin proyecciones individuales</strong><small>El dataset no incluye métricas por jugador.</small></div>')}
+  </section>
+  <section>
+    <h2>Contexto histórico</h2>
+    ${evidenceCards(historical)}
+  </section>`;
+}
+
+export function renderAnalysisHtml(analysis: AnalysisResult, dataset?: MatchDataset) {
   const groups = Object.entries(groupPredictionsByCategory(analysis.predictions))
     .map(
       ([category, predictions]) => `
@@ -66,6 +146,8 @@ export function renderAnalysisHtml(analysis: AnalysisResult) {
         </section>`,
     )
     .join("");
+
+  const datasetContext = renderDatasetContext(dataset);
 
   const scenarios = analysis.scenarios
     .map(
@@ -144,6 +226,7 @@ export function renderAnalysisHtml(analysis: AnalysisResult) {
     </div>
   </section>
   <div class="summary">${escapeHtml(analysis.executiveSummary)}</div>
+  ${datasetContext}
   <section>
     <h2>Escenarios</h2>
     ${evidenceCards(scenarios || '<div class="source"><strong>Sin escenarios destacados</strong><small>El modelo no encontro bifurcaciones relevantes para este snapshot.</small></div>')}

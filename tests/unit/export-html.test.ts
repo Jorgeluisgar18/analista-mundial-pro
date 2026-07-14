@@ -52,4 +52,42 @@ describe("renderAnalysisHtml", () => {
     expect(html).toContain("Rango probable");
     expect(html).toContain("@media print");
   });
+
+  it("incluye alineaciones, jugadores y contexto historico cuando recibe dataset", () => {
+    const dataset = structuredClone(demoDataset);
+    dataset.historical = {
+      homeForm: {
+        matches: 8,
+        weightedPointsPerGame: 1.88,
+        strengthAdjustedPointsPerGame: 1.71,
+        goalsFor: 1.5,
+        goalsAgainst: 0.9,
+        cleanSheetRate: 0.38,
+        source: "historical",
+      },
+      awayForm: {
+        matches: 10,
+        weightedPointsPerGame: 2.05,
+        strengthAdjustedPointsPerGame: 1.94,
+        goalsFor: 2.1,
+        goalsAgainst: 0.8,
+        cleanSheetRate: 0.44,
+        source: "historical",
+      },
+    };
+
+    const html = renderAnalysisHtml(analyzeMatch(dataset), dataset);
+
+    expect(html).toContain("Alineaciones y disponibilidad");
+    expect(html).toContain("XI esperado");
+    expect(html).toContain("Scouting de referencia");
+    expect(html).toContain("Vargas");
+    expect(html).toContain("Jugadores clave");
+    expect(html).toContain("Titular esperado");
+    expect(html).toContain("Luis Díaz");
+    expect(html).toContain("Contexto histórico");
+    expect(html).toContain("8 partidos históricos");
+    expect(html).toContain("forma ponderada 1.88");
+    expect(html).toContain("ajustada por rival 1.71");
+  });
 });

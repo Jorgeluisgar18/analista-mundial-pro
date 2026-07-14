@@ -105,9 +105,11 @@ export function renderAnalysisHtml(analysis: AnalysisResult) {
     .summary{margin:22px 0;padding:22px;border-left:3px solid var(--green);background:var(--surface);font:italic 18px/1.6 Georgia,serif}
     section{margin-top:24px}h2{text-transform:uppercase;letter-spacing:.04em;color:var(--green)}table{width:100%;border-collapse:collapse;background:var(--surface)}th,td{padding:12px;border:1px solid var(--line);text-align:left;vertical-align:top}th{color:var(--muted);font-size:10px;text-transform:uppercase}td small{display:block;margin-top:5px;color:var(--muted);line-height:1.4}.risk{color:var(--amber)}
     .sources{display:grid;gap:8px}.source{padding:14px;border:1px solid var(--line);background:var(--surface)}.source small{color:var(--muted)}
+    .trace{display:grid;grid-template-columns:1.1fr .9fr;gap:1px;border:1px solid var(--line);background:linear-gradient(90deg,rgba(0,222,165,.18),rgba(116,168,255,.12))}
+    .trace article,.trace ul{margin:0;padding:16px;background:var(--surface)}.trace span{display:block;color:var(--green);font-size:10px;letter-spacing:.12em;text-transform:uppercase}.trace strong{display:block;margin-top:7px;font-size:18px}.trace p,.trace li span{color:var(--muted);line-height:1.45}.trace ul{display:grid;gap:10px;list-style:none}.trace li strong{font-size:14px}
     .notice{margin-top:30px;padding:18px;border:1px solid var(--line);color:var(--muted)}.notice strong{color:var(--green)}
     footer{margin-top:20px;color:var(--muted);font-size:11px}
-    @media(max-width:700px){main{padding:14px}h1{font-size:32px}.probabilities{grid-template-columns:1fr}table{font-size:11px;display:block;overflow:auto}}
+    @media(max-width:700px){main{padding:14px}h1{font-size:32px}.probabilities,.trace{grid-template-columns:1fr}table{font-size:11px;display:block;overflow:auto}}
   </style>
 </head>
 <body>
@@ -135,6 +137,21 @@ export function renderAnalysisHtml(analysis: AnalysisResult) {
   <section>
     <h2>Surebets</h2>
     ${evidenceCards(arbitrage || '<div class="source"><strong>Sin surebet accionable</strong><small>No se detecto arbitraje deportivo con las cuotas disponibles.</small></div>')}
+  </section>
+  <section>
+    <h2>Trazabilidad del modelo</h2>
+    <div class="trace">
+      <article>
+        <span>Version del modelo</span>
+        <strong>${escapeHtml(analysis.modelVersion)}</strong>
+        <p>Combina forma reciente, fuerza historica, cuotas, alineaciones disponibles y calibracion contra resultados reales.</p>
+      </article>
+      <ul>
+        <li><strong>Poisson + Dixon-Coles</strong><span>Marcadores y dependencia de goles bajos.</span></li>
+        <li><strong>Monte Carlo</strong><span>Escenarios e incertidumbre de intensidades.</span></li>
+        <li><strong>Regresion logistica</strong><span>Forma, fuerza contextual y señal de mercado.</span></li>
+      </ul>
+    </div>
   </section>
   <section>
     <h2>Calidad de datos</h2>

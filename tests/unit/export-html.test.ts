@@ -29,4 +29,14 @@ describe("renderAnalysisHtml", () => {
     expect(html).toContain("Valor esperado");
     expect(html).toContain("Surebets");
   });
+
+  it("incluye trazabilidad del modelo y sus componentes", () => {
+    const html = renderAnalysisHtml(analyzeMatch(demoDataset));
+
+    expect(html).toContain("Trazabilidad del modelo");
+    expect(html).toContain("Versi");
+    expect(html).toContain("Poisson + Dixon-Coles");
+    expect(html).toContain("Monte Carlo");
+    expect(html).toContain("Regresi");
+  });
 });

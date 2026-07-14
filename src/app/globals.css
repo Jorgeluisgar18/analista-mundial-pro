@@ -3167,7 +3167,11 @@ textarea:focus-visible {
   }
 
   .analysis-content {
-    padding: 16px 12px calc(92px + env(safe-area-inset-bottom));
+    padding: 16px 12px calc(176px + env(safe-area-inset-bottom));
+  }
+
+  .analysis-section > :last-child {
+    scroll-margin-bottom: calc(176px + env(safe-area-inset-bottom));
   }
 
   .analysis-guidance {
@@ -3282,7 +3286,7 @@ textarea:focus-visible {
   }
 
   .analysis-app {
-    padding-bottom: calc(92px + env(safe-area-inset-bottom));
+    padding-bottom: calc(176px + env(safe-area-inset-bottom));
   }
 
   .mobile-responsible {
@@ -3291,17 +3295,19 @@ textarea:focus-visible {
 
   .mobile-actionbar {
     position: fixed;
-    right: 0;
-    bottom: 0;
-    left: 0;
+    right: 10px;
+    bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+    left: 10px;
     z-index: 30;
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    min-height: calc(62px + env(safe-area-inset-bottom, 0px));
-    padding-bottom: env(safe-area-inset-bottom, 0px);
-    border-top: 1px solid var(--line-strong);
-    background: rgba(3, 13, 16, 0.96);
-    backdrop-filter: blur(14px);
+    min-height: 58px;
+    overflow: hidden;
+    border: 1px solid var(--line-strong);
+    border-radius: 18px;
+    background: rgba(3, 13, 16, 0.9);
+    box-shadow: 0 18px 38px rgba(0, 0, 0, 0.38);
+    backdrop-filter: blur(18px);
   }
 
   .mobile-actionbar button,

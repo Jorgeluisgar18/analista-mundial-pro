@@ -26,6 +26,30 @@ test.describe("responsive layout", () => {
     expect(overflow).toBe(false);
   });
 
+  test("la barra móvil no tapa el contenido al final de la cabina", async ({ page }) => {
+    await page.goto("/match/demo-col-bra");
+    await page.getByRole("button", { name: /Fuentes/i }).first().click();
+    await page.evaluate(() =>
+      window.scrollTo(0, document.documentElement.scrollHeight),
+    );
+
+    await expect
+      .poll(async () =>
+        page.evaluate(() => {
+          const bar = document.querySelector(".mobile-actionbar");
+          const content = document.querySelector(".analysis-content");
+          const lastContent = content?.querySelector(
+            ".analysis-section > :last-child",
+          );
+          if (!bar || !lastContent) return true;
+          const barTop = bar.getBoundingClientRect().top;
+          const contentBottom = lastContent.getBoundingClientRect().bottom;
+          return contentBottom > barTop - 12;
+        }),
+      )
+      .toBe(false);
+  });
+
   test("la home no tiene desborde horizontal en tablet [768px]", async ({ page }) => {
     await page.setViewportSize({ width: 768, height: 900 });
     await page.goto("/");

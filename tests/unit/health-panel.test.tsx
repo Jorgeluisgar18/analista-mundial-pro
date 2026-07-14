@@ -60,5 +60,7 @@ describe("HealthPanel", () => {
     expect(screen.getByText(/DC 68%/i)).toBeVisible();
     expect(screen.getByText(/MC 17%/i)).toBeVisible();
     expect(screen.getByText(/LOG 15%/i)).toBeVisible();
+    expect(screen.getByText(/modelo listo para análisis/i)).toBeVisible();
+    expect(screen.getByText(/último backtest persistido/i)).toBeVisible();
   });
 });

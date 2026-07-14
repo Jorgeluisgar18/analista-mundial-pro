@@ -155,8 +155,12 @@ function weightPct(value?: number) {
 }
 
 function ModelHealthCard({ modelHealth }: { modelHealth: ModelHealth }) {
+  const modelConfig = modelHealth.backtesting.modelConfig;
+
   return (
-    <article className={`health-provider ${modelHealth.status === "connected" ? "on" : "off"}`}>
+    <article
+      className={`health-provider health-model-card ${modelHealth.status === "connected" ? "on" : "off"}`}
+    >
       <header>
         <span
           className={`health-dot ${modelHealth.status === "connected" ? "dot-on" : "dot-off"}`}
@@ -190,17 +194,27 @@ function ModelHealthCard({ modelHealth }: { modelHealth: ModelHealth }) {
             : modelHealth.backtesting.source ?? "Sin fuente guardada"}
         </span>
       </div>
-      {modelHealth.backtesting.modelConfig ? (
-        <div className="health-usage-row">
+      {modelConfig ? (
+        <div className="health-usage-row health-calibration">
           <span className="health-label">Pesos calibrados</span>
-          <span className="health-usage-label">
-            {modelHealth.backtesting.modelConfig.label ?? "config guardada"}
-          </span>
-          <span className="health-resets">
-            DC {weightPct(modelHealth.backtesting.modelConfig.weights?.dixonColes)}
-            {" · "}MC {weightPct(modelHealth.backtesting.modelConfig.weights?.simulation)}
-            {" · "}LOG {weightPct(modelHealth.backtesting.modelConfig.weights?.logistic)}
-          </span>
+          <div className="health-model-note">
+            <strong>Modelo listo para análisis</strong>
+            <span>Último backtest persistido: {modelConfig.label ?? "config guardada"}</span>
+          </div>
+          <div className="health-weight-grid" aria-label="Pesos calibrados del modelo">
+            <span className="health-weight-pill">
+              <small>Dixon-Coles</small>
+              <strong>DC {weightPct(modelConfig.weights?.dixonColes)}</strong>
+            </span>
+            <span className="health-weight-pill">
+              <small>Monte Carlo</small>
+              <strong>MC {weightPct(modelConfig.weights?.simulation)}</strong>
+            </span>
+            <span className="health-weight-pill">
+              <small>Logística</small>
+              <strong>LOG {weightPct(modelConfig.weights?.logistic)}</strong>
+            </span>
+          </div>
         </div>
       ) : null}
       {modelHealth.error && (

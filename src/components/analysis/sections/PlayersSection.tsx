@@ -67,6 +67,36 @@ const METRICS: Record<string, PlayerMetric[]> = {
   ],
 };
 
+const STARTER_STATUS_LABEL: Record<PlayerProjection["starterStatus"], string> = {
+  confirmed: "Titular confirmado",
+  expected: "Titular esperado",
+  inferred: "Rol inferido",
+  conflict: "Dato en conflicto",
+  unavailable: "Titularidad no disponible",
+};
+
+function teamNameForPlayer(dataset: MatchDataset, player: PlayerProjection) {
+  if (player.teamId === dataset.match.homeTeam.id) return dataset.match.homeTeam.name;
+  if (player.teamId === dataset.match.awayTeam.id) return dataset.match.awayTeam.name;
+  return "Equipo no identificado";
+}
+
+function playerEvidenceNote(player: PlayerProjection) {
+  if (player.starterStatus === "confirmed") {
+    return "Lectura individual apoyada por titularidad confirmada.";
+  }
+  if (player.starterStatus === "expected") {
+    return "Lectura individual condicionada a que el XI esperado se mantenga.";
+  }
+  if (player.starterStatus === "conflict") {
+    return "Lectura individual con conflicto entre fuentes; úsala solo como alerta.";
+  }
+  if (player.starterStatus === "unavailable") {
+    return "Lectura individual limitada: falta titularidad verificable.";
+  }
+  return "Lectura individual inferida por rol y métricas disponibles.";
+}
+
 export function PlayersSection({
   dataset,
   subsection,
@@ -106,7 +136,11 @@ export function PlayersSection({
             <div>
               <strong>{player.name}</strong>
               <small>
-                {player.position} · {player.starterStatus}
+                {teamNameForPlayer(dataset, player)} · {player.position} ·{" "}
+                {STARTER_STATUS_LABEL[player.starterStatus]}
+              </small>
+              <small className="player-evidence-note">
+                {playerEvidenceNote(player)}
               </small>
             </div>
             <dl>

@@ -567,7 +567,7 @@ describe("AnalysisCabin", () => {
     );
 
     expect(screen.getByText("Oficial parcial")).toBeVisible();
-    expect(screen.getByText("Arquero oficial")).toBeVisible();
+    expect(screen.getAllByText("Arquero oficial")[0]).toBeVisible();
   });
 
   it("explica cuando la actualizacion reutiliza cache para proteger cuota", async () => {

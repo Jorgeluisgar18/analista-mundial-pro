@@ -259,6 +259,16 @@ test("flujo completo permite revisar fuentes, health y export sin pantalla en bl
   await expect(firstAnalysis).toHaveAttribute("href", "/match/demo-col-bra");
   await firstAnalysis.click();
   await expect(page).toHaveURL(/\/match\/demo-col-bra/);
+  await page.getByRole("button", { name: /Plantillas/i }).click();
+  await expect(
+    page.getByLabel(/Campo táctico de Colombia en 4-2-3-1/i),
+  ).toBeVisible();
+  await expect(page.getByText(/Fuente: Scouting de referencia/i).first()).toBeVisible();
+  await page.getByRole("button", { name: /Jugadores/i }).click();
+  await expect(page.getByText(/Titular esperado/i).first()).toBeVisible();
+  await expect(
+    page.getByText(/Lectura individual condicionada/i).first(),
+  ).toBeVisible();
   await page.getByRole("button", { name: /Fuentes/i }).click();
   await page.getByRole("button", { name: "Pestaña Calidad" }).click();
   await expect(page.getByText(/Versi/i).first()).toBeVisible();

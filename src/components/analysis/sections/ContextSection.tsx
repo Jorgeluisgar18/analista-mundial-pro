@@ -1,6 +1,23 @@
 import { AnalysisSection } from "@/components/analysis/AnalysisSection";
 import type { AnalysisResult, MatchDataset } from "@/types/domain";
 
+type HistoricalForm = NonNullable<MatchDataset["historical"]>["homeForm"];
+
+function formDetail({
+  base,
+  historical,
+}: {
+  base: MatchDataset["home"];
+  historical?: HistoricalForm;
+}) {
+  const baseSummary = `${base.recentPointsPerGame.toFixed(2)} puntos por partido · ${base.goalsFor.toFixed(2)} goles a favor · ${base.goalsAgainst.toFixed(2)} en contra · Elo ${Math.round(base.elo)}.`;
+  if (!historical) {
+    return `${baseSummary} Sin muestra histórica persistida; lectura limitada a forma normalizada del proveedor.`;
+  }
+
+  return `${baseSummary} Histórico: ${historical.matches} partidos históricos, forma ponderada ${historical.weightedPointsPerGame.toFixed(2)}, ajustada por rival ${historical.strengthAdjustedPointsPerGame.toFixed(2)}, porterías a cero ${(historical.cleanSheetRate * 100).toFixed(0)}%.`;
+}
+
 function contextRows({
   analysis,
   dataset,
@@ -14,11 +31,17 @@ function contextRows({
     return [
       [
         `${analysis.match.homeTeam.name} · puntos por partido`,
-        `${dataset.home.recentPointsPerGame.toFixed(2)} puntos por partido · ${dataset.home.goalsFor.toFixed(2)} goles a favor · ${dataset.home.goalsAgainst.toFixed(2)} en contra.`,
+        formDetail({
+          base: dataset.home,
+          historical: dataset.historical?.homeForm,
+        }),
       ],
       [
         `${analysis.match.awayTeam.name} · puntos por partido`,
-        `${dataset.away.recentPointsPerGame.toFixed(2)} puntos por partido · ${dataset.away.goalsFor.toFixed(2)} goles a favor · ${dataset.away.goalsAgainst.toFixed(2)} en contra.`,
+        formDetail({
+          base: dataset.away,
+          historical: dataset.historical?.awayForm,
+        }),
       ],
     ];
   }

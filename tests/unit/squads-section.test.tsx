@@ -78,4 +78,42 @@ describe("SquadsSection", () => {
       ),
     ).toBeVisible();
   });
+
+  it("muestra alineaciones esperadas u oficiales en campo táctico con fuente y estado", () => {
+    const dataset = structuredClone(demoDataset);
+    dataset.lineups[0] = {
+      ...dataset.lineups[0],
+      status: "expected",
+      confirmed: false,
+      formation: {
+        ...dataset.lineups[0].formation,
+        value: "4-2-3-1",
+        status: "expected",
+        source: "Motor de alineación esperada",
+      },
+      starters: [
+        "Arquero esperado",
+        "Lateral derecho",
+        "Central uno",
+        "Central dos",
+        "Lateral izquierdo",
+        "Mediocentro uno",
+        "Mediocentro dos",
+        "Extremo derecho",
+        "Enganche",
+        "Extremo izquierdo",
+        "Delantero",
+      ],
+    };
+
+    render(<SquadsSection dataset={dataset} subsection="Alineaciones" />);
+
+    expect(
+      screen.getByLabelText(/Campo táctico de Colombia en 4-2-3-1/i),
+    ).toBeVisible();
+    expect(screen.getByText(/Motor de alineación esperada/i)).toBeVisible();
+    expect(screen.getAllByText(/XI esperado/i)[0]).toBeVisible();
+    expect(screen.getAllByText("Arquero esperado")[0]).toBeVisible();
+    expect(screen.getAllByText("Delantero")[0]).toBeVisible();
+  });
 });

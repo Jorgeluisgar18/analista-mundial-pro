@@ -1,4 +1,5 @@
 import { AnalysisSection } from "@/components/analysis/AnalysisSection";
+import { FormationPitch } from "@/components/analysis/FormationPitch";
 import type { MatchDataset, TeamRef } from "@/types/domain";
 
 type Lineup = MatchDataset["lineups"][number];
@@ -20,9 +21,9 @@ const EVIDENCE_LABEL: Record<Availability["evidence"]["status"], string> = {
 
 function lineupLabel(lineup: Lineup) {
   if (lineup.status === "official-partial") return "Oficial parcial";
-  if (lineup.status === "unavailable") return "No disponible";
-  if (lineup.confirmed || lineup.status === "confirmed") return "Confirmada";
-  return "Esperada";
+  if (lineup.status === "unavailable") return "XI no disponible";
+  if (lineup.confirmed || lineup.status === "confirmed") return "XI oficial";
+  return "XI esperado";
 }
 
 function teamForLineup(dataset: MatchDataset, lineup: Lineup) {
@@ -154,17 +155,16 @@ export function SquadsSection({
                   <h3>
                     {team.name} · {String(lineup.formation.value)}
                   </h3>
-                  {lineup.starters.length ? (
-                    <ol>
-                      {lineup.starters.map((player) => (
-                        <li key={player}>{player}</li>
-                      ))}
-                    </ol>
-                  ) : (
+                  <p className="lineup-source-note">
+                    Fuente: {lineup.formation.source}. Estado:{" "}
+                    {EVIDENCE_LABEL[lineup.formation.status]}.
+                  </p>
+                  <FormationPitch lineup={lineup} team={team} />
+                  {!lineup.starters.length ? (
                     <p className="empty-state">
                       Jugadores esperados pendientes de fuente o proyección.
                     </p>
-                  )}
+                  ) : null}
                 </article>
               );
             })

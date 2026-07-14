@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db/prisma";
+import type { AnalysisModelConfigInput } from "@/types/domain";
 
 type ModelHealthDatabase = Pick<typeof prisma, "calibrationRun" | "historicalTeamMatch">;
 
@@ -29,6 +30,7 @@ export interface ModelHealthSnapshot {
     dixonColesRho: number | null;
     rhoSampleSize: number | null;
     source: string | null;
+    modelConfig: AnalysisModelConfigInput | null;
   };
   error?: string;
 }
@@ -39,6 +41,7 @@ function parseCalibrationConfig(config: string) {
       dixonColesRho?: unknown;
       rhoSampleSize?: unknown;
       source?: unknown;
+      modelConfig?: unknown;
     };
     return {
       dixonColesRho:
@@ -52,14 +55,50 @@ function parseCalibrationConfig(config: string) {
           ? parsed.rhoSampleSize
           : null,
       source: typeof parsed.source === "string" ? parsed.source : null,
+      modelConfig: parseModelConfig(parsed.modelConfig),
     };
   } catch {
     return {
       dixonColesRho: null,
       rhoSampleSize: null,
       source: null,
+      modelConfig: null,
     };
   }
+}
+
+function finiteNumber(value: unknown) {
+  return typeof value === "number" && Number.isFinite(value);
+}
+
+function parseModelConfig(value: unknown): AnalysisModelConfigInput | null {
+  if (!value || typeof value !== "object") return null;
+  const input = value as {
+    label?: unknown;
+    weights?: unknown;
+  };
+  const weights =
+    input.weights && typeof input.weights === "object"
+      ? (input.weights as Record<string, unknown>)
+      : undefined;
+  const parsed: AnalysisModelConfigInput = {};
+  if (typeof input.label === "string" && input.label.trim()) {
+    parsed.label = input.label;
+  }
+  if (weights) {
+    parsed.weights = {
+      dixonColes: finiteNumber(weights.dixonColes)
+        ? Number(weights.dixonColes)
+        : undefined,
+      simulation: finiteNumber(weights.simulation)
+        ? Number(weights.simulation)
+        : undefined,
+      logistic: finiteNumber(weights.logistic)
+        ? Number(weights.logistic)
+        : undefined,
+    };
+  }
+  return parsed.label || parsed.weights ? parsed : null;
 }
 
 function daysSince(date: Date, now: Date) {
@@ -107,6 +146,7 @@ export async function getModelHealthSnapshot(
           dixonColesRho: null,
           rhoSampleSize: null,
           source: null,
+          modelConfig: null,
         };
     const latestRunAt = latestCalibration?.createdAt ?? null;
 
@@ -134,6 +174,7 @@ export async function getModelHealthSnapshot(
         dixonColesRho: config.dixonColesRho,
         rhoSampleSize: config.rhoSampleSize,
         source: config.source,
+        modelConfig: config.modelConfig,
       },
     };
   } catch (error) {
@@ -157,6 +198,7 @@ export async function getModelHealthSnapshot(
         dixonColesRho: null,
         rhoSampleSize: null,
         source: null,
+        modelConfig: null,
       },
       error:
         error instanceof Error

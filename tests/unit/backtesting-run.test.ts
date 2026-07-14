@@ -123,13 +123,20 @@ describe("backtesting run helpers", () => {
     });
 
     expect(config.label).toContain("backtest-1.1.0");
-    expect(config.weights.dixonColes).toBeGreaterThan(0);
-    expect(config.weights.simulation).toBeGreaterThan(0);
-    expect(config.weights.logistic).toBeGreaterThan(0);
-    expect(
-      config.weights.dixonColes +
-        config.weights.simulation +
-        config.weights.logistic,
-    ).toBeCloseTo(1, 6);
+    const weights = config.weights;
+    expect(weights).toBeDefined();
+    if (!weights) throw new Error("Expected calibrated weights");
+    const { dixonColes, simulation, logistic } = weights;
+    expect(dixonColes).toBeGreaterThan(0);
+    expect(simulation).toBeGreaterThan(0);
+    expect(logistic).toBeGreaterThan(0);
+    if (
+      dixonColes === undefined ||
+      simulation === undefined ||
+      logistic === undefined
+    ) {
+      throw new Error("Expected complete calibrated weights");
+    }
+    expect(dixonColes + simulation + logistic).toBeCloseTo(1, 6);
   });
 });

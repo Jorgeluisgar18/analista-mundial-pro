@@ -81,7 +81,7 @@ test("busca y analiza un partido demo", async ({ page }) => {
   await expect(page).toHaveTitle(/Analista Mundial Pro/);
   await page.locator('input[aria-label="Fecha"]').fill("2026-06-15");
   await page.getByRole("button", { name: "Buscar partidos" }).click();
-  await page.getByText("Colombia vs Brasil").click();
+  await page.getByRole("link", { name: /Colombia vs Brasil/ }).click();
   await expect(page).toHaveURL(/\/match\/demo-col-bra/);
   await expect(
     page.getByRole("heading", { name: "Lectura ejecutiva" }),

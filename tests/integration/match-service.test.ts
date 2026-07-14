@@ -131,8 +131,8 @@ describe("matchService", () => {
         used: 91,
         limit: 100,
         period: "day",
-        periodKey: "2026-07-12",
-        resetsAt: "2026-07-13T00:00:00.000Z",
+        periodKey: "2099-07-12",
+        resetsAt: "2099-07-13T00:00:00.000Z",
         updatedAt: "2026-07-12T12:00:00.000Z",
       },
     ]);

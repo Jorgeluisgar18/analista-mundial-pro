@@ -56,6 +56,14 @@ interface ModelHealth {
     dixonColesRho: number | null;
     rhoSampleSize: number | null;
     source: string | null;
+    modelConfig: {
+      label?: string;
+      weights?: {
+        dixonColes?: number;
+        simulation?: number;
+        logistic?: number;
+      };
+    } | null;
   };
   error?: string;
 }
@@ -142,6 +150,10 @@ function daysSinceLabel(days: number) {
   return days === 1 ? "hace 1 día" : `hace ${days} días`;
 }
 
+function weightPct(value?: number) {
+  return `${Math.round((value ?? 0) * 100)}%`;
+}
+
 function ModelHealthCard({ modelHealth }: { modelHealth: ModelHealth }) {
   return (
     <article className={`health-provider ${modelHealth.status === "connected" ? "on" : "off"}`}>
@@ -178,6 +190,19 @@ function ModelHealthCard({ modelHealth }: { modelHealth: ModelHealth }) {
             : modelHealth.backtesting.source ?? "Sin fuente guardada"}
         </span>
       </div>
+      {modelHealth.backtesting.modelConfig ? (
+        <div className="health-usage-row">
+          <span className="health-label">Pesos calibrados</span>
+          <span className="health-usage-label">
+            {modelHealth.backtesting.modelConfig.label ?? "config guardada"}
+          </span>
+          <span className="health-resets">
+            DC {weightPct(modelHealth.backtesting.modelConfig.weights?.dixonColes)}
+            {" · "}MC {weightPct(modelHealth.backtesting.modelConfig.weights?.simulation)}
+            {" · "}LOG {weightPct(modelHealth.backtesting.modelConfig.weights?.logistic)}
+          </span>
+        </div>
+      ) : null}
       {modelHealth.error && (
         <em className="health-no-usage">Detalle: {modelHealth.error}</em>
       )}

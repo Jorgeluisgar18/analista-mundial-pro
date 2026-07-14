@@ -29,6 +29,14 @@ describe("modelHealthService", () => {
               dixonColesRho: -0.06,
               rhoSampleSize: 96,
               rhoAverageLogLoss: 2.12,
+              modelConfig: {
+                label: "backtest-1.1.0-historical-120",
+                weights: {
+                  dixonColes: 0.68,
+                  simulation: 0.17,
+                  logistic: 0.15,
+                },
+              },
             }),
             createdAt: new Date("2026-07-07T12:00:00Z"),
           };
@@ -47,5 +55,13 @@ describe("modelHealthService", () => {
     expect(snapshot.backtesting.status).toBe("ready");
     expect(snapshot.backtesting.daysSinceLastRun).toBe(2);
     expect(snapshot.backtesting.dixonColesRho).toBe(-0.06);
+    expect(snapshot.backtesting.modelConfig).toEqual({
+      label: "backtest-1.1.0-historical-120",
+      weights: {
+        dixonColes: 0.68,
+        simulation: 0.17,
+        logistic: 0.15,
+      },
+    });
   });
 });

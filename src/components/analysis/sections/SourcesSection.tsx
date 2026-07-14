@@ -41,6 +41,31 @@ export function SourcesSection({
           />
         </div>
 
+        <div className="model-trace-panel" aria-label="Trazabilidad del modelo">
+          <article>
+            <span>Versión del modelo</span>
+            <strong>{analysis.modelVersion}</strong>
+            <p>
+              Esta lectura combina forma reciente, fuerza histórica, cuotas,
+              alineaciones disponibles y calibración contra resultados reales.
+            </p>
+          </article>
+          <ul>
+            <li>
+              <strong>Poisson + Dixon-Coles</strong>
+              <span>Marcadores y dependencia de goles bajos.</span>
+            </li>
+            <li>
+              <strong>Monte Carlo</strong>
+              <span>Escenarios e incertidumbre de intensidades.</span>
+            </li>
+            <li>
+              <strong>Regresión logística</strong>
+              <span>Forma, fuerza contextual y señal de mercado.</span>
+            </li>
+          </ul>
+        </div>
+
         <div
           className="calibration-strip"
           aria-label="Calibración histórica del modelo"

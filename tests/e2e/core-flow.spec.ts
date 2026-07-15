@@ -207,6 +207,10 @@ test("exporta un HTML autónomo", async ({ page }) => {
   expect(html).toContain("Evidencia por mercado");
   expect(html).toContain("Lectura del mercado");
   expect(html).toContain("Ruta de lectura");
+  expect(html).toContain("Cancha táctica simplificada");
+  expect(html).toContain("Bajas por tipo");
+  expect(html).toContain("Calidad por proveedor");
+  expect(html).toContain("Resumen de cuotas");
   expect(html).toContain("Alineaciones y disponibilidad");
   expect(html).toContain("Jugadores clave");
   expect(html).toContain("Contexto histórico");

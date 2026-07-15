@@ -90,4 +90,53 @@ describe("renderAnalysisHtml", () => {
     expect(html).toContain("forma ponderada 1.88");
     expect(html).toContain("ajustada por rival 1.71");
   });
+
+  it("exporta cancha, bajas por tipo, calidad por proveedor y resumen de cuotas", () => {
+    const dataset = structuredClone(demoDataset);
+    dataset.availability = [
+      ...dataset.availability,
+      {
+        id: "demo-injury-1",
+        teamId: "bra",
+        player: "Neymar",
+        type: "injured",
+        impact: "Menos creatividad entre líneas.",
+        replacement: "Rodrygo",
+        evidence: {
+          value: "Lesionado",
+          status: "expected",
+          sourceType: "provider",
+          source: "Parte médico de referencia",
+          observedAt: "2026-06-25T12:30:00-05:00",
+        },
+      },
+      {
+        id: "demo-suspension-1",
+        teamId: "col",
+        player: "Daniel Muñoz",
+        type: "suspended",
+        impact: "Reduce profundidad por derecha.",
+        replacement: "Santiago Arias",
+        evidence: {
+          value: "Suspendido",
+          status: "confirmed",
+          sourceType: "official",
+          source: "Reporte disciplinario",
+          observedAt: "2026-06-25T12:45:00-05:00",
+        },
+      },
+    ];
+
+    const html = renderAnalysisHtml(analyzeMatch(dataset), dataset);
+
+    expect(html).toContain("Cancha táctica simplificada");
+    expect(html).toContain("Bajas por tipo");
+    expect(html).toContain("Lesionados");
+    expect(html).toContain("Suspendidos");
+    expect(html).toContain("En duda");
+    expect(html).toContain("Calidad por proveedor");
+    expect(html).toContain("Resumen de cuotas");
+    expect(html).toContain("Mercado de referencia");
+    expect(html).toContain("1X2");
+  });
 });

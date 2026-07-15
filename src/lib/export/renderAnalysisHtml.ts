@@ -74,6 +74,151 @@ function starterStatusLabel(status: MatchDataset["players"][number]["starterStat
   return "Titularidad no disponible";
 }
 
+function lineupRows(formation: string, starters: string[]) {
+  const outfieldRows = formation
+    .split("-")
+    .map((value) => Number.parseInt(value, 10))
+    .filter((value) => Number.isFinite(value) && value > 0);
+  const expectedCount = 1 + outfieldRows.reduce((total, value) => total + value, 0);
+  const safeStarters =
+    starters.length >= expectedCount
+      ? starters.slice(0, expectedCount)
+      : [
+          ...starters,
+          ...Array.from(
+            { length: Math.max(0, expectedCount - starters.length) },
+            (_, index) => `Jugador pendiente ${index + 1}`,
+          ),
+        ];
+  const rows = [[safeStarters[0] ?? "Portero pendiente"]];
+  let cursor = 1;
+  for (const count of outfieldRows) {
+    rows.push(safeStarters.slice(cursor, cursor + count));
+    cursor += count;
+  }
+
+  return rows
+    .map(
+      (row) => `
+        <div class="pitch-row">
+          ${row.map((player) => `<span>${escapeHtml(player)}</span>`).join("")}
+        </div>`,
+    )
+    .join("");
+}
+
+function availabilityLabel(type: MatchDataset["availability"][number]["type"]) {
+  if (type === "injured") return "Lesionados";
+  if (type === "suspended") return "Suspendidos";
+  return "En duda";
+}
+
+function availabilityByType(dataset: MatchDataset) {
+  const groups = {
+    injured: dataset.availability.filter((item) => item.type === "injured"),
+    suspended: dataset.availability.filter((item) => item.type === "suspended"),
+    doubt: dataset.availability.filter((item) => item.type === "doubt"),
+  };
+
+  return (Object.keys(groups) as Array<keyof typeof groups>)
+    .map((type) => {
+      const items = groups[type];
+      const rows = items
+        .map(
+          (item) => `
+            <tr>
+              <td><strong>${escapeHtml(item.player)}</strong><small>${escapeHtml(teamNameForDatasetItem(dataset, item.teamId))}</small></td>
+              <td>${escapeHtml(item.impact)}</td>
+              <td>${escapeHtml(item.replacement ?? "Sin reemplazo proyectado")}</td>
+              <td>${escapeHtml(item.evidence.source)}<small>${escapeHtml(evidenceLabels[item.evidence.status])} · ${escapeHtml(formatTimestampInAppTimeZone(item.evidence.observedAt))}</small></td>
+            </tr>`,
+        )
+        .join("");
+      return `
+        <article class="availability-card">
+          <h3>${escapeHtml(availabilityLabel(type))}</h3>
+          ${
+            rows
+              ? `<table><thead><tr><th>Jugador</th><th>Impacto</th><th>Reemplazo</th><th>Fuente</th></tr></thead><tbody>${rows}</tbody></table>`
+              : `<p>Sin ${escapeHtml(availabilityLabel(type).toLowerCase())} reportados en este snapshot.</p>`
+          }
+        </article>`;
+    })
+    .join("");
+}
+
+function providerQualityRows(dataset: MatchDataset) {
+  return dataset.sources
+    .map(
+      (source) => `
+        <tr>
+          <td><strong>${escapeHtml(source.label)}</strong><small>${escapeHtml(source.type)}</small></td>
+          <td>${escapeHtml(evidenceLabels[source.status])}</td>
+          <td>${escapeHtml(formatTimestampInAppTimeZone(source.observedAt))}</td>
+          <td>${escapeHtml(source.detail)}</td>
+        </tr>`,
+    )
+    .join("");
+}
+
+function oddsRows(dataset: MatchDataset) {
+  return dataset.odds
+    .slice(0, 24)
+    .map(
+      (odd) => `
+        <tr>
+          <td>${escapeHtml(odd.bookmaker)}</td>
+          <td>${escapeHtml(odd.market)}</td>
+          <td>${escapeHtml(odd.outcome)}</td>
+          <td>${odd.odd.toFixed(2)}</td>
+          <td>${escapeHtml(formatTimestampInAppTimeZone(odd.observedAt))}</td>
+        </tr>`,
+    )
+    .join("");
+}
+
+function renderDatasetAudit(dataset?: MatchDataset) {
+  if (!dataset) return "";
+
+  const tacticalPitches = dataset.lineups
+    .map(
+      (lineup) => `
+        <div class="source">
+          <strong>${escapeHtml(teamNameForDatasetItem(dataset, lineup.teamId))} · ${escapeHtml(lineup.formation.value)}</strong>
+          <small>${escapeHtml(lineupStatusLabel(lineup))} · ${escapeHtml(lineup.formation.source)}</small>
+          <div class="pitch" aria-label="Cancha táctica simplificada">
+            <strong>Cancha táctica simplificada</strong>
+            ${lineupRows(lineup.formation.value, [...(lineup.starters ?? [])])}
+          </div>
+        </div>`,
+    )
+    .join("");
+
+  return `
+  <section>
+    <h2>Cancha táctica simplificada</h2>
+    ${evidenceCards(tacticalPitches || '<div class="source"><strong>Sin cancha táctica</strong><small>No hay XI suficiente para dibujar una formación.</small></div>')}
+  </section>
+  <section>
+    <h2>Bajas por tipo</h2>
+    <div class="availability-grid">${availabilityByType(dataset)}</div>
+  </section>
+  <section>
+    <h2>Calidad por proveedor</h2>
+    <table>
+      <thead><tr><th>Fuente</th><th>Estado</th><th>Observado</th><th>Detalle</th></tr></thead>
+      <tbody>${providerQualityRows(dataset) || '<tr><td colspan="4">Sin fuentes registradas en este snapshot.</td></tr>'}</tbody>
+    </table>
+  </section>
+  <section>
+    <h2>Resumen de cuotas</h2>
+    <table>
+      <thead><tr><th>Casa</th><th>Mercado</th><th>Selección</th><th>Cuota</th><th>Observado</th></tr></thead>
+      <tbody>${oddsRows(dataset) || '<tr><td colspan="5">Cuotas no disponibles para este snapshot.</td></tr>'}</tbody>
+    </table>
+  </section>`;
+}
+
 function renderDatasetContext(dataset?: MatchDataset) {
   if (!dataset) return "";
 
@@ -148,6 +293,7 @@ export function renderAnalysisHtml(analysis: AnalysisResult, dataset?: MatchData
     .join("");
 
   const datasetContext = renderDatasetContext(dataset);
+  const datasetAudit = renderDatasetAudit(dataset);
 
   const scenarios = analysis.scenarios
     .map(
@@ -194,6 +340,8 @@ export function renderAnalysisHtml(analysis: AnalysisResult, dataset?: MatchData
     .summary{margin:22px 0;padding:22px;border-left:3px solid var(--green);background:var(--surface);font:italic 18px/1.6 Georgia,serif}
     section{margin-top:24px}h2{text-transform:uppercase;letter-spacing:.04em;color:var(--green)}table{width:100%;border-collapse:collapse;background:var(--surface)}th,td{padding:12px;border:1px solid var(--line);text-align:left;vertical-align:top}th{color:var(--muted);font-size:10px;text-transform:uppercase}td small{display:block;margin-top:5px;color:var(--muted);line-height:1.4}.risk{color:var(--amber)}
     .sources{display:grid;gap:8px}.source{padding:14px;border:1px solid var(--line);background:var(--surface)}.source small{color:var(--muted)}
+    .pitch{margin-top:12px;padding:12px;border:1px solid rgba(0,222,165,.25);border-radius:16px;background:linear-gradient(180deg,rgba(0,222,165,.12),rgba(0,222,165,.03))}.pitch>strong{display:block;margin-bottom:10px;color:var(--green);font-size:11px;text-transform:uppercase;letter-spacing:.12em}.pitch-row{display:flex;justify-content:center;gap:8px;margin:7px 0}.pitch-row span{min-width:72px;padding:6px 8px;border:1px solid var(--line);border-radius:999px;background:rgba(6,16,21,.72);text-align:center;font-size:11px}
+    .availability-grid{display:grid;gap:12px}.availability-card{padding:14px;border:1px solid var(--line);background:var(--surface)}.availability-card h3{margin:0 0 10px;color:var(--green);font-size:13px;text-transform:uppercase;letter-spacing:.08em}.availability-card p{color:var(--muted)}
     .reading-route{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;margin:22px 0;border:1px solid var(--line);background:var(--line)}
     .reading-route span{padding:14px;background:var(--surface);color:var(--muted)}.reading-route strong{display:block;color:var(--green);font-size:11px;text-transform:uppercase;letter-spacing:.12em}.evidence{display:inline-block;color:var(--green);font-weight:700}
     .trace{display:grid;grid-template-columns:1.1fr .9fr;gap:1px;border:1px solid var(--line);background:linear-gradient(90deg,rgba(0,222,165,.18),rgba(116,168,255,.12))}
@@ -227,6 +375,7 @@ export function renderAnalysisHtml(analysis: AnalysisResult, dataset?: MatchData
   </section>
   <div class="summary">${escapeHtml(analysis.executiveSummary)}</div>
   ${datasetContext}
+  ${datasetAudit}
   <section>
     <h2>Escenarios</h2>
     ${evidenceCards(scenarios || '<div class="source"><strong>Sin escenarios destacados</strong><small>El modelo no encontro bifurcaciones relevantes para este snapshot.</small></div>')}

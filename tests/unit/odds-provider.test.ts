@@ -131,6 +131,31 @@ describe("The Odds API provider", () => {
     expect(result.meta.warnings.join(" ")).toMatch(/no se consumi[oó] cuota/i);
   });
 
+  it("evita emparejar equipos solo por tokens genericos", async () => {
+    const match = premierLeagueMatch();
+    match.homeTeam = { ...match.homeTeam, name: "Manchester United" };
+    match.awayTeam = { ...match.awayTeam, name: "Real Madrid" };
+    const fetcher = vi.fn().mockResolvedValueOnce(
+      response([
+        {
+          id: "wrong-united",
+          sport_key: "soccer_epl",
+          sport_title: "EPL",
+          commence_time: "2026-08-15T19:00:00Z",
+          home_team: "United",
+          away_team: "Real",
+        },
+      ]),
+    );
+    const provider = new TheOddsApiProvider("test-key", fetcher);
+
+    const result = await provider.getOdds(match);
+
+    expect(fetcher).toHaveBeenCalledTimes(1);
+    expect(result.data).toEqual([]);
+    expect(result.meta.warnings.join(" ")).toMatch(/no se consumi[oó] cuota/i);
+  });
+
   it("permite configurar markets, regiones, bookmakers y timeout", async () => {
     const fetcher = vi
       .fn()

@@ -5,6 +5,7 @@ import type {
   TeamRef,
 } from "@/types/domain";
 import { resilientFetch } from "@/lib/providers/http";
+import { providerTeamNamesMatch } from "@/lib/providers/teamMatching";
 
 interface TheSportsDbConfig {
   apiKey: string;
@@ -35,28 +36,11 @@ function stringValue(...values: unknown[]) {
   return undefined;
 }
 
-function normalizeText(value: string) {
-  return value
-    .normalize("NFD")
-    .replace(/\p{Diacritic}/gu, "")
-    .toLowerCase()
-    .replace(/\b(brasil)\b/g, "brazil")
-    .replace(/[^a-z0-9]+/g, " ")
-    .trim();
-}
-
-function namesMatch(left?: string, right?: string) {
-  if (!left || !right) return false;
-  const a = normalizeText(left);
-  const b = normalizeText(right);
-  return a === b || a.includes(b) || b.includes(a);
-}
-
 function eventMatches(event: Record<string, unknown>, match: NormalizedMatch) {
   return (
     stringValue(event.dateEvent) === match.date &&
-    namesMatch(stringValue(event.strHomeTeam), match.homeTeam.name) &&
-    namesMatch(stringValue(event.strAwayTeam), match.awayTeam.name)
+    providerTeamNamesMatch(stringValue(event.strHomeTeam), match.homeTeam.name) &&
+    providerTeamNamesMatch(stringValue(event.strAwayTeam), match.awayTeam.name)
   );
 }
 
@@ -144,12 +128,12 @@ export class TheSportsDbEnrichmentProvider {
     const homeTeam = homeTeams
       .map(asRecord)
       .find((item) =>
-        namesMatch(stringValue(item.strTeam), dataset.match.homeTeam.name),
+        providerTeamNamesMatch(stringValue(item.strTeam), dataset.match.homeTeam.name),
       );
     const awayTeam = awayTeams
       .map(asRecord)
       .find((item) =>
-        namesMatch(stringValue(item.strTeam), dataset.match.awayTeam.name),
+        providerTeamNamesMatch(stringValue(item.strTeam), dataset.match.awayTeam.name),
       );
 
     const enriched: MatchDataset = structuredClone(dataset);

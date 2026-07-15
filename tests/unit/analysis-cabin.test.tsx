@@ -475,6 +475,7 @@ describe("AnalysisCabin", () => {
     expect(drawer).toHaveAttribute("aria-modal", "true");
     expect(screen.getByText(/Modelo Matemático/i)).toBeInTheDocument();
     expect(screen.getByText(/Masa de Probabilidad Dixon-Coles/i)).toBeInTheDocument();
+    expect(drawer.querySelectorAll("[style]").length).toBe(0);
 
     await userEvent.keyboard("{Escape}");
     expect(screen.queryByRole("dialog", { name: /Más de 2.5 goles/i })).not.toBeInTheDocument();

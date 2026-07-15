@@ -2975,7 +2975,7 @@ textarea:focus-visible {
   z-index: 50;
   display: flex;
   justify-content: end;
-  background: rgba(0, 5, 7, 0.7);
+  background: rgba(0, 6, 9, 0.76);
   backdrop-filter: blur(5px);
 }
 
@@ -2985,7 +2985,9 @@ textarea:focus-visible {
   padding: 25px;
   overflow-y: auto;
   border-left: 1px solid var(--line-strong);
-  background: #071417;
+  background:
+    radial-gradient(circle at 0% 0%, rgba(18, 230, 178, 0.08), transparent 35%),
+    #09161b;
   box-shadow: -30px 0 70px rgba(0, 0, 0, 0.35);
 }
 
@@ -3029,6 +3031,213 @@ textarea:focus-visible {
 .drawer-status {
   color: var(--amber);
   font-size: 11px;
+}
+
+.detail-drawer-content {
+  display: grid;
+  gap: 24px;
+  margin-top: 24px;
+}
+
+.drawer-card {
+  padding: 18px;
+  border: 1px solid var(--line-strong);
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.drawer-card-probability {
+  background: #0a1f24;
+}
+
+.drawer-card-formula {
+  border-left: 3px solid var(--emerald);
+  background: #0e211e;
+}
+
+.drawer-card-risk {
+  border-left: 3px solid var(--coral);
+  background: #1a0f0f;
+}
+
+.drawer-card-title,
+.drawer-card-kicker {
+  display: block;
+  color: var(--muted);
+  font-family: var(--font-ui);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.drawer-card-title {
+  margin-bottom: 14px;
+}
+
+.drawer-card-kicker {
+  color: var(--emerald);
+  font-size: 9px;
+}
+
+.drawer-card h4 {
+  margin-top: 6px;
+  font-family: var(--font-ui);
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.drawer-card code {
+  display: block;
+  margin-block: 12px;
+  padding: 10px;
+  overflow-x: auto;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.3);
+  color: var(--emerald-soft);
+  font-size: 11px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.drawer-card p,
+.drawer-card small {
+  color: var(--muted);
+  font-family: var(--font-copy);
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.drawer-card-risk .drawer-card-kicker,
+.drawer-card-risk h4 {
+  color: var(--coral);
+}
+
+.drawer-card-risk p {
+  color: #f2cccc;
+}
+
+.drawer-card-risk small,
+.drawer-note,
+.drawer-empty-note {
+  color: var(--muted-2);
+}
+
+.drawer-note {
+  margin-top: 12px;
+  font-size: 10px;
+  font-style: italic;
+}
+
+.drawer-metric-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.drawer-metric-grid-separated {
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+
+.drawer-metric > span {
+  display: block;
+  color: var(--muted);
+  font-size: 9px;
+  text-transform: uppercase;
+}
+
+.drawer-metric-value {
+  display: block;
+  margin-top: 4px;
+  font-size: 28px;
+  font-weight: 900;
+}
+
+.drawer-metric-value-compact {
+  margin-top: 2px;
+  font-size: 16px;
+}
+
+.drawer-metric-value-emerald {
+  color: var(--emerald);
+}
+
+.drawer-metric-value-amber {
+  color: var(--amber);
+}
+
+.drawer-metric-value-muted {
+  color: #78928b;
+}
+
+.drawer-metric small {
+  display: block;
+  color: var(--muted-2);
+  font-size: 10px;
+}
+
+.drawer-source-list {
+  display: grid;
+  gap: 10px;
+}
+
+.drawer-source-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.drawer-source-row strong {
+  display: block;
+  font-size: 11px;
+  text-transform: uppercase;
+}
+
+.drawer-source-row span {
+  color: var(--muted-2);
+  font-size: 9px;
+}
+
+.drawer-source-status {
+  min-width: 96px;
+  text-align: right;
+}
+
+.drawer-source-status > span:last-of-type {
+  color: var(--emerald);
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.drawer-source-status small {
+  display: block;
+  margin-top: 2px;
+  color: var(--muted-2);
+  font-size: 8px;
+}
+
+.evidence-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-right: 6px;
+  border-radius: 50%;
+  background: var(--amber);
+}
+
+.evidence-dot-confirmed {
+  background: var(--emerald);
+}
+
+.evidence-dot-conflict {
+  background: var(--coral);
 }
 
 .mobile-actionbar {
@@ -4220,16 +4429,6 @@ textarea {
 
 .health-provider.off {
   opacity: 0.72;
-}
-
-.drawer-backdrop {
-  background: rgba(0, 6, 9, 0.76);
-}
-
-.update-drawer {
-  background:
-    radial-gradient(circle at 0% 0%, rgba(18, 230, 178, 0.08), transparent 35%),
-    #09161b;
 }
 
 @media (prefers-reduced-motion: reduce) {

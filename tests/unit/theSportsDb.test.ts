@@ -95,4 +95,52 @@ describe("TheSportsDB client", () => {
       ]),
     );
   });
+
+  it("evita enriquecer equipos por tokens genericos compartidos", async () => {
+    const dataset = structuredClone(demoDataset);
+    dataset.match.homeTeam = {
+      ...dataset.match.homeTeam,
+      name: "Manchester United",
+      logoUrl: undefined,
+    };
+    dataset.match.awayTeam = {
+      ...dataset.match.awayTeam,
+      name: "Real Madrid",
+      logoUrl: undefined,
+    };
+    const fetcher = vi.fn(async (input: URL | Request | string) => {
+      const url = new URL(String(input));
+      if (url.pathname.endsWith("/eventsday.php")) {
+        return Response.json({ events: [] });
+      }
+      if (url.pathname.endsWith("/searchteams.php")) {
+        const team = url.searchParams.get("t");
+        return Response.json({
+          teams: [
+            {
+              idTeam: team === "Manchester United" ? "wrong-1" : "wrong-2",
+              strTeam:
+                team === "Manchester United" ? "United" : "Real",
+              strTeamBadge:
+                team === "Manchester United"
+                  ? "https://img.example/leeds.png"
+                  : "https://img.example/sociedad.png",
+            },
+          ],
+        });
+      }
+      return Response.json({});
+    });
+    const provider = new TheSportsDbEnrichmentProvider({
+      apiKey: "123",
+      baseUrl: "https://www.thesportsdb.com/api/v1/json",
+      timeoutMs: 8000,
+      fetcher: fetcher as typeof fetch,
+    });
+
+    const result = await provider.enrich(dataset);
+
+    expect(result.data.match.homeTeam.logoUrl).toBeUndefined();
+    expect(result.data.match.awayTeam.logoUrl).toBeUndefined();
+  });
 });

@@ -1,5 +1,6 @@
 import { normalizeOddOutcome } from "@/lib/models/odds";
 import { resilientFetch } from "@/lib/providers/http";
+import { providerTeamNamesMatch } from "@/lib/providers/teamMatching";
 import type {
   Fetcher,
   OddsProvider,
@@ -111,25 +112,6 @@ function quotaFromHeaders(headers: Headers) {
   };
 }
 
-function normalizeTeamName(value: string) {
-  return value
-    .normalize("NFD")
-    .replace(/\p{Diacritic}/gu, "")
-    .toLowerCase()
-    .replace(/&/g, " and ")
-    .replace(/\b(fc|cf|club|de|la|el|the|sc|ac|cd|ud)\b/g, " ")
-    .replace(/[^a-z0-9]+/g, " ")
-    .trim()
-    .replace(/\s+/g, " ");
-}
-
-function teamNamesMatch(left: string, right: string) {
-  const a = normalizeTeamName(left);
-  const b = normalizeTeamName(right);
-  if (!a || !b) return false;
-  return a === b || a.includes(b) || b.includes(a);
-}
-
 function hoursBetween(leftIso: string, rightIso: string) {
   return Math.abs(new Date(leftIso).getTime() - new Date(rightIso).getTime()) /
     3_600_000;
@@ -137,11 +119,11 @@ function hoursBetween(leftIso: string, rightIso: string) {
 
 function eventMatches(event: OddsApiEvent, match: NormalizedMatch, windowHours: number) {
   const directTeams =
-    teamNamesMatch(event.home_team, match.homeTeam.name) &&
-    teamNamesMatch(event.away_team, match.awayTeam.name);
+    providerTeamNamesMatch(event.home_team, match.homeTeam.name) &&
+    providerTeamNamesMatch(event.away_team, match.awayTeam.name);
   const swappedTeams =
-    teamNamesMatch(event.home_team, match.awayTeam.name) &&
-    teamNamesMatch(event.away_team, match.homeTeam.name);
+    providerTeamNamesMatch(event.home_team, match.awayTeam.name) &&
+    providerTeamNamesMatch(event.away_team, match.homeTeam.name);
   return (
     (directTeams || swappedTeams) &&
     hoursBetween(event.commence_time, match.kickoff) <= windowHours

@@ -69,6 +69,7 @@ Remove-Item Env:\SMOKE_BASE_URL
 
 - Reglas del owner: `AGENTS.md`
 - QA real mas reciente: `docs/qa/qa-real-providers-2026-07-14.md`
+- Runbook QA APIs reales: `docs/qa/real-api-qa-runbook.md`
 - Smoke produccion: `docs/qa/production-smoke.md`
 - Setup proveedores: `docs/guides/provider-setup.md`
 - Auditoria externa archivada: `docs/audits/informe-final-auditoria.md`
@@ -78,6 +79,7 @@ Remove-Item Env:\SMOKE_BASE_URL
 
 | Fecha | IA | Tareas | Resultado | Siguiente paso |
 |---|---|---|---|---|
+| 2026-07-15 | Codex | Barrido baja/media prioridad: MarketDetailDrawer sin estilos inline propios, estilos del drawer consolidados en CSS, matching de equipos/proveedores endurecido contra tokens genericos, runbook QA con APIs reales agregado. | Verificado: focales del drawer/Odds/TheSportsDB OK, `npx vitest run --pool=threads --maxWorkers=4` 218 passed/9 skipped, `npm run test:e2e` 11 passed/1 skipped, `npm run build` OK, `npx tsc --noEmit` OK, `npm run lint` OK, `git diff --check` OK. Secret scan activo sin llaves reales. | Revisar diff y pedir autorizacion si se quiere commit/push. |
 | 2026-07-15 | Codex | Segundo barrido multiagente: provider errors ya no se esconden como 404, rate limit persistente degrada a memoria si falla Postgres, overrides limita body real sin depender de `Content-Length`, surebets y rails moviles mejoran accesibilidad, Node alineado a 22, docs de produccion historica aclaradas, matriz QA con entradas sugeridas, test de encoding cubre docs/tests/scripts activos y CSS `.local-mode` huerfano eliminado. | Verificado: `npm test` 216 passed/9 skipped, `npm run test:e2e` 11 passed/1 skipped, `npm run build` OK, `npx tsc --noEmit` OK, `npm run lint` OK, `git diff --check` OK. Secret scan activo sin llaves reales. | Commit y push autorizados por owner al cierre de esta sesion. |
 | 2026-07-15 | Codex | Auditoria multiagente read-only por dominios: frontend/UI, backend/API, proveedores/modelo/datos y docs/config/tests. Limpieza P1/P2 con TDD: slots visuales de alineaciones fuera de `starters`, una sola observacion de jugador cuando no hay datos individuales, contador de API usage monotonico, home con fecha Colombia actual, GET/export sin persistencia, historico best-effort, estado de providers consistente, Footballdata.io no confirma stats vacias, MarketTable con boton semantico, docs activas depuradas y smoke productivo exige URL explicita. | Verificado: `npm test` 211 passed/9 skipped, `npm run test:e2e` 11 passed/1 skipped, `npm run build` OK, `npx tsc --noEmit` OK, `npm run lint` OK, `git diff --check` OK. Secret scan activo y amplio sin llaves reales. | Si el owner autoriza, revisar diff final y hacer commit local. No hacer push/deploy sin autorizacion explicita. |
 | 2026-07-14 | Codex | Cierre QA real/export: smoke local, busquedas por Mundial/Premier/Champions/LaLiga/fecha vacia, export HTML local y produccion solo lectura. | Commit `02c7a2f`. Local OK; produccion historica respondio 404, por tanto smoke productivo pendiente. | Confirmar URL activa/Netlify antes de certificar produccion. |

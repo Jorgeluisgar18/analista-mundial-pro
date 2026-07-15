@@ -100,11 +100,26 @@ Resultado esperado:
 - `/api/matches?date=YYYY-MM-DD` debe devolver una respuesta estructurada para la fecha consultada.
 - Ninguna variable secreta debe aparecer en respuestas JSON ni en HTML.
 
-## Verificado en producción
+## Verificacion historica de produccion
 
-**2026-06-29:** `/api/health` reporta `database: connected`, `databaseRecords: 2`, `databaseError: null`.
-Smoke test (`npm run smoke:production`) pasa con `ok: true`, `database: connected`, `matchCount: 2`.
-Neon está funcionando correctamente en el entorno de producción de Netlify.
+**Historico 2026-06-29:** `/api/health` reporto `database: connected`, `databaseRecords: 2`, `databaseError: null`.
+El smoke test (`npm run smoke:production`) paso en esa fecha con `ok: true`, `database: connected`, `matchCount: 2`.
+
+**Estado actual:** produccion debe volver a confirmarse antes de certificarla. La URL historica de Netlify respondio 404 en la ultima QA solo lectura. Usa `docs/internal/handoff.md` y `docs/qa/production-smoke.md` como fuente viva antes de cualquier deploy o smoke post-deploy.
+
+## Scripts con escritura en base de datos
+
+Antes de ejecutar estos comandos, confirma que `DATABASE_URL` apunta al entorno correcto. Si apunta a Neon/produccion, el impacto es real.
+
+| Script | Escritura | Uso recomendado |
+|---|---:|---|
+| `npm run db:migrate` | Si | Solo desarrollo local. Usa `prisma migrate dev`; no usar contra produccion. |
+| `npm run db:deploy` | Si | Migraciones controladas en entorno objetivo. |
+| `npm run db:seed` | Si | Carga seed minimo; revisar entorno antes de correr. |
+| `npm run db:cleanup` | Si | Borra snapshots/rate-limit buckets antiguos segun retencion. |
+| `npm run openfootball:import` | Si | Importa historico OpenFootball a Postgres. |
+| `npm run historical:elo-backfill` | Si | Recalcula/persiste Elo historico. |
+| `npm run backtest` | Puede escribir | Puede versionar `modelConfig` si la DB esta habilitada. Usa `BACKTEST_DISABLE_DATABASE=1` para modo solo evaluacion cuando aplique. |
 
 ## Riesgos conocidos
 

@@ -848,18 +848,16 @@ export function analyzeMatch(
       );
     });
   } else {
-    Array.from({ length: 5 }, (_, index) =>
-      predictions.push(
-        makePrediction({
-          id: `player-unavailable-${index}`,
-          category: "players",
-          market: "Dato de jugador no disponible",
-          confidence: 1,
-          reason: "Dato no disponible en la fuente actual.",
-          risk: "No se calcula sin historial individual y titularidad.",
-          sourceIds,
-        }),
-      ),
+    predictions.push(
+      makePrediction({
+        id: "player-unavailable",
+        category: "players",
+        market: "Dato de jugador no disponible",
+        confidence: 1,
+        reason: "Dato no disponible en la fuente actual.",
+        risk: "No se calcula sin historial individual y titularidad.",
+        sourceIds,
+      }),
     );
   }
 

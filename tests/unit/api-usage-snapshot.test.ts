@@ -1,5 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
-import { selectActiveUsageRecords } from "@/lib/services/apiUsageService";
+import {
+  nextUsageValue,
+  selectActiveUsageRecords,
+} from "@/lib/services/apiUsageService";
 
 vi.mock("server-only", () => ({}));
 
@@ -35,5 +38,13 @@ describe("selectActiveUsageRecords", () => {
       { provider: "API-Football", periodKey: "2026-07-08" },
       { provider: "The Odds API", periodKey: "2026-07" },
     ]);
+  });
+});
+
+describe("nextUsageValue", () => {
+  it("no permite que el contador retroceda cuando el proveedor reporta menos uso", () => {
+    expect(nextUsageValue(10, 7)).toBe(10);
+    expect(nextUsageValue(10, undefined)).toEqual({ increment: 1 });
+    expect(nextUsageValue(10, 14)).toBe(14);
   });
 });

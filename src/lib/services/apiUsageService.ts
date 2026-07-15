@@ -29,6 +29,12 @@ function periodBounds(period: UsagePeriod, occurredAt: Date) {
   };
 }
 
+export function nextUsageValue(currentUsed: number, reportedUsed?: number) {
+  return reportedUsed === undefined
+    ? { increment: 1 }
+    : Math.max(currentUsed, reportedUsed);
+}
+
 export async function recordApiUsage(event: ProviderUsageEvent) {
   const occurredAt = event.occurredAt ?? new Date();
   const { periodKey, resetsAt } = periodBounds(event.period, occurredAt);
@@ -37,18 +43,25 @@ export async function recordApiUsage(event: ProviderUsageEvent) {
     (event.remaining === undefined
       ? undefined
       : Math.max(0, event.limit - event.remaining));
+  const where = {
+    provider_periodKey: {
+      provider: event.provider,
+      periodKey,
+    },
+  };
+  const existing =
+    reportedUsed === undefined
+      ? null
+      : await prisma.apiUsage.findUnique({
+          where,
+          select: { used: true },
+        });
 
   await prisma.apiUsage.upsert({
-    where: {
-      provider_periodKey: {
-        provider: event.provider,
-        periodKey,
-      },
-    },
+    where,
     update: {
       period: event.period,
-      used:
-        reportedUsed === undefined ? { increment: 1 } : reportedUsed,
+      used: nextUsageValue(existing?.used ?? 0, reportedUsed),
       limit: event.limit,
       resetsAt,
     },

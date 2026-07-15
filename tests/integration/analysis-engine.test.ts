@@ -27,6 +27,7 @@ describe("analysisEngine", () => {
     const playerMarkets = result.predictions.filter(
       (prediction) => prediction.category === "players",
     );
+    expect(playerMarkets).toHaveLength(1);
     expect(
       playerMarkets.every(
         (prediction) => prediction.evidenceStatus === "unavailable",

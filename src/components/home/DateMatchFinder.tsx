@@ -279,7 +279,7 @@ export function DateMatchFinder({ initialDate }: { initialDate: string }) {
                   type="button"
                   onClick={() => applyPreset("2026-07-01", "wc-2026")}
                 >
-                  Probar Mundial con datos reales
+                  Probar ejemplo Mundial
                 </button>
                 <button
                   className="ghost-button"
@@ -288,7 +288,7 @@ export function DateMatchFinder({ initialDate }: { initialDate: string }) {
                     applyPreset("2026-07-08", "champions-league")
                   }
                 >
-                  Probar Champions disponible
+                  Probar ejemplo Champions
                 </button>
               </div>
             </div>

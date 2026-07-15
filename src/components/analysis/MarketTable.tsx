@@ -55,16 +55,6 @@ export function MarketTable({
           {predictions.map((prediction) => (
             <tr
               key={prediction.id}
-              onClick={() => onSelectPrediction?.(prediction)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  e.preventDefault();
-                  onSelectPrediction?.(prediction);
-                }
-              }}
-              tabIndex={onSelectPrediction ? 0 : undefined}
-              role={onSelectPrediction ? "button" : undefined}
-              aria-label={`Detalle del mercado ${prediction.market}`}
             >
               <td>
                 <strong>{prediction.market}</strong>
@@ -76,6 +66,15 @@ export function MarketTable({
                 <small className="market-evidence-tone">
                   {predictionEvidenceTone(prediction)}
                 </small>
+                {onSelectPrediction ? (
+                  <button
+                    type="button"
+                    className="table-action-button"
+                    onClick={() => onSelectPrediction(prediction)}
+                  >
+                    Ver detalle de {prediction.market}
+                  </button>
+                ) : null}
               </td>
               <td>
                 {prediction.probability === undefined ? (

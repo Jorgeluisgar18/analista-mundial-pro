@@ -117,6 +117,7 @@ export function AnalysisCabin({
                 type="button"
                 key={section.id}
                 className={activeSection === section.id ? "active" : ""}
+                aria-current={activeSection === section.id ? "page" : undefined}
                 onClick={() => selectSection(section)}
               >
                 {section.label.replace(/0\d · /, "")}
@@ -130,6 +131,7 @@ export function AnalysisCabin({
                 className={activeSubsection === subsection ? "active" : ""}
                 key={subsection}
                 aria-label={`Pestaña ${subsection}`}
+                aria-current={activeSubsection === subsection ? "page" : undefined}
                 onClick={() => setActiveSubsection(subsection)}
               >
                 {subsection}

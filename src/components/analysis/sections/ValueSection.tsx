@@ -11,6 +11,8 @@ export function ValueSection({
   subsection: string;
   onSelectPrediction?: (prediction: Prediction) => void;
 }) {
+  const surebetDescriptionId = "surebet-description";
+
   if (subsection === "Surebets") {
     return (
       <AnalysisSection
@@ -20,11 +22,19 @@ export function ValueSection({
             El valor compara la probabilidad del modelo con la probabilidad
             implícita sin margen. No garantiza rentabilidad.
             {" "}
-            <span
+            <button
+              type="button"
               className="tooltip-trigger"
-              title="Un surebet ocurre cuando la suma de las inversas de las cuotas de todos los resultados posibles es menor a 1: Σ (1/cuotaᵢ) < 1. Garantiza beneficio teórico independientemente del resultado. En la práctica, comisiones, límites y latencia pueden eliminar la oportunidad."
+              aria-label="Que es un surebet"
+              aria-describedby={surebetDescriptionId}
             >
               ⓘ
+            </button>
+            <span id={surebetDescriptionId} className="sr-only">
+              Un surebet ocurre cuando la suma de las inversas de las cuotas de
+              todos los resultados posibles es menor a 1. Garantiza beneficio
+              teórico independientemente del resultado, aunque comisiones,
+              límites y latencia pueden eliminar la oportunidad.
             </span>
           </>
         }

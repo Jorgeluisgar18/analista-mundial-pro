@@ -8,20 +8,6 @@ import type {
 const DEFAULT_FORMATION = "4-2-3-1";
 const DEFAULT_ALTERNATIVE = "4-3-3";
 
-const SLOT_LABELS = [
-  "POR esperado",
-  "LD esperado",
-  "DFC esperado 1",
-  "DFC esperado 2",
-  "LI esperado",
-  "MC esperado 1",
-  "MC esperado 2",
-  "ED esperado",
-  "MCO esperado",
-  "EI esperado",
-  "DC esperado",
-];
-
 function isUnavailableFormation(lineup: LineupProjection) {
   const value = String(lineup.formation.value ?? "").toLowerCase();
   return (
@@ -79,10 +65,6 @@ function expectedStarters(dataset: MatchDataset, teamId: string) {
     .map((player) => player.name);
 
   const starters = [...new Set(candidates)].slice(0, 11);
-  for (const slot of SLOT_LABELS) {
-    if (starters.length >= 11) break;
-    starters.push(slot);
-  }
   return starters;
 }
 

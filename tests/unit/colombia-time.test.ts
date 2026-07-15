@@ -5,6 +5,7 @@ import {
   formatTimeInAppTimeZone,
   nextIsoDate,
   normalizeKickoffForAppTimeZone,
+  todayInAppTimeZone,
 } from "@/lib/time/colombia";
 
 describe("horario Colombia", () => {
@@ -27,5 +28,14 @@ describe("horario Colombia", () => {
   it("calcula la siguiente fecha ISO para ventanas UTC de respaldo", () => {
     expect(nextIsoDate("2026-06-15")).toBe("2026-06-16");
     expect(nextIsoDate("2026-12-31")).toBe("2027-01-01");
+  });
+
+  it("calcula la fecha actual en horario Colombia para valores por defecto", () => {
+    expect(todayInAppTimeZone(new Date("2026-07-15T04:30:00.000Z"))).toBe(
+      "2026-07-14",
+    );
+    expect(todayInAppTimeZone(new Date("2026-07-15T15:00:00.000Z"))).toBe(
+      "2026-07-15",
+    );
   });
 });

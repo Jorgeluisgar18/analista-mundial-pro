@@ -2,6 +2,7 @@ import Link from "next/link";
 import { DateMatchFinder } from "@/components/home/DateMatchFinder";
 import { HealthPanel } from "@/components/health/HealthPanel";
 import { ResponsibleGamingNotice } from "@/components/shared/ResponsibleGamingNotice";
+import { todayInAppTimeZone } from "@/lib/time/colombia";
 
 export default function Home() {
   return (
@@ -107,7 +108,7 @@ export default function Home() {
           </div>
         </section>
         <div id="partidos">
-          <DateMatchFinder initialDate="2026-06-15" />
+          <DateMatchFinder initialDate={todayInAppTimeZone()} />
         </div>
         <section className="principles" id="metodologia">
           <article>

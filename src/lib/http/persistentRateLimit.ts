@@ -40,6 +40,11 @@ function rateLimitProblem(limit: number, resetsAt: Date) {
   return response;
 }
 
+function withStorage(response: Response | null, storage: string) {
+  response?.headers.set("x-ratelimit-storage", storage);
+  return response;
+}
+
 async function consumeBucket(
   database: RateLimitDatabase,
   scope: string,
@@ -113,13 +118,21 @@ export async function checkPersistentRateLimit(
     return fallback;
   }
 
-  const result = await consumeBucket(
-    selectedDatabase,
-    scope,
-    clientAddress(request),
-    limit,
-    windowMs,
-  );
+  let result: Awaited<ReturnType<typeof consumeBucket>>;
+  try {
+    result = await consumeBucket(
+      selectedDatabase,
+      scope,
+      clientAddress(request),
+      limit,
+      windowMs,
+    );
+  } catch {
+    return withStorage(
+      checkRateLimit(request, scope, { limit, windowMs }),
+      "memory-fallback-db-error",
+    );
+  }
 
   if (!result.allowed) return rateLimitProblem(limit, result.resetsAt);
   return null;

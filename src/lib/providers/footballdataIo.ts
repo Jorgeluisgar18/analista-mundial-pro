@@ -178,6 +178,10 @@ function normalizeTeamStats(stats: Record<string, unknown>, elo: number) {
   };
 }
 
+function hasNumericStats(stats: Record<string, unknown>) {
+  return Object.values(stats).some((value) => numberValue(value) !== undefined);
+}
+
 function formatPercent(value?: number) {
   return value === undefined ? undefined : `${Math.round(value * 100)}%`;
 }
@@ -316,8 +320,12 @@ export class FootballdataIoProvider implements FootballProvider {
 
     const stats = dataRecord(statsBody ?? {});
     const probabilities = dataRecord(probabilitiesBody ?? {});
-    const homeStats = normalizeTeamStats(asRecord(stats.home), 1505);
-    const awayStats = normalizeTeamStats(asRecord(stats.away), 1495);
+    const homeStatsRecord = asRecord(stats.home);
+    const awayStatsRecord = asRecord(stats.away);
+    const hasRealStats =
+      hasNumericStats(homeStatsRecord) || hasNumericStats(awayStatsRecord);
+    const homeStats = normalizeTeamStats(homeStatsRecord, 1505);
+    const awayStats = normalizeTeamStats(awayStatsRecord, 1495);
     const probabilitySource = probabilityDetail(probabilities);
 
     const unavailableEvidence = (
@@ -386,9 +394,9 @@ export class FootballdataIoProvider implements FootballProvider {
           id: "footballdata-io-stats",
           label: "Footballdata.io · stats",
           type: "provider",
-          status: Object.keys(stats).length ? "confirmed" : "unavailable",
+          status: hasRealStats ? "confirmed" : "unavailable",
           observedAt: fetchedAt,
-          detail: Object.keys(stats).length
+          detail: hasRealStats
             ? "Estadísticas normalizadas de equipos."
             : "Stats no disponibles en la respuesta actual.",
         },
@@ -411,7 +419,7 @@ export class FootballdataIoProvider implements FootballProvider {
         source: "Footballdata.io",
         fetchedAt,
         isStale: false,
-        warnings: Object.keys(stats).length
+        warnings: hasRealStats
           ? []
           : ["Footballdata.io no devolvió stats para este partido."],
       },

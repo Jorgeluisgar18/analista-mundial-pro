@@ -27,6 +27,32 @@ function requestBodyTooLarge(request: Request) {
   );
 }
 
+async function readJsonBodyWithLimit(request: Request) {
+  const rawBody = await request.text();
+  const bodyBytes = new TextEncoder().encode(rawBody).length;
+  if (bodyBytes > MAX_MANUAL_OVERRIDE_BODY_BYTES) {
+    return {
+      problem: problem(
+        413,
+        "Solicitud demasiado grande",
+        "Los cambios manuales deben enviarse como JSON compacto menor a 32 KB.",
+      ),
+    };
+  }
+
+  try {
+    return { payload: JSON.parse(rawBody) as unknown };
+  } catch {
+    return {
+      problem: problem(
+        400,
+        "JSON invalido",
+        "El cuerpo de la solicitud debe contener JSON valido.",
+      ),
+    };
+  }
+}
+
 export async function POST(
   request: Request,
   context: { params: Promise<{ id: string }> },
@@ -49,16 +75,9 @@ export async function POST(
   const sizeProblem = requestBodyTooLarge(request);
   if (sizeProblem) return sizeProblem;
 
-  let payload: unknown;
-  try {
-    payload = await request.json();
-  } catch {
-    return problem(
-      400,
-      "JSON inválido",
-      "El cuerpo de la solicitud debe contener JSON válido.",
-    );
-  }
+  const bodyResult = await readJsonBodyWithLimit(request);
+  if (bodyResult.problem) return bodyResult.problem;
+  const payload = bodyResult.payload;
   const parsed = manualOverrideSchema.safeParse(payload);
   if (!parsed.success) {
     return problem(400, "Cambio inválido", "Revisa los campos enviados.", {

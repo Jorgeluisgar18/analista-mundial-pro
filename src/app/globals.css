@@ -170,16 +170,6 @@ svg {
   color: var(--emerald);
 }
 
-.local-mode {
-  justify-self: end;
-  color: var(--emerald-soft);
-  font-family: var(--font-ui);
-  font-size: 10px;
-  font-weight: 800;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-}
-
 .home-hero {
   position: relative;
   display: grid;
@@ -1856,12 +1846,32 @@ textarea:focus-visible {
 }
 
 .market-table tbody tr {
-  cursor: pointer;
   transition: background 0.15s ease;
 }
 
 .market-table tbody tr:hover {
   background: #0d2522;
+}
+
+.table-action-button {
+  margin-top: 10px;
+  padding: 7px 10px;
+  border: 1px solid rgba(18, 230, 178, 0.35);
+  border-radius: 999px;
+  background: rgba(18, 230, 178, 0.08);
+  color: var(--emerald);
+  font-family: var(--font-ui);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.table-action-button:focus-visible,
+.table-action-button:hover {
+  border-color: var(--emerald);
+  background: rgba(18, 230, 178, 0.16);
 }
 
 .table-probability {
@@ -3409,10 +3419,6 @@ textarea:focus-visible {
     font-size: 8px;
   }
 
-  .local-mode {
-    display: none;
-  }
-
   .hero-copy h1 {
     font-size: 50px;
   }
@@ -3926,6 +3932,7 @@ textarea:focus-visible {
 }
 
 .tooltip-trigger {
+  border: 0;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -3937,6 +3944,11 @@ textarea:focus-visible {
   font-size: 11px;
   cursor: help;
   vertical-align: middle;
+}
+
+.tooltip-trigger:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
 }
 
 .sr-only {
@@ -3972,7 +3984,6 @@ textarea:focus-visible {
 .brand > span,
 .brand > small,
 .home-header nav a,
-.local-mode,
 .section-kicker,
 .primary-button,
 .secondary-button,

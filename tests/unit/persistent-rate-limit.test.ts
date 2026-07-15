@@ -79,4 +79,26 @@ describe("persistent rate limit", () => {
     expect(blocked?.status).toBe(429);
     expect(blocked?.headers.get("x-ratelimit-storage")).toBe("postgres");
   });
+
+  it("degrada a memoria si el bucket persistente falla", async () => {
+    const request = new Request("http://local/api/test", {
+      headers: { "x-forwarded-for": "203.0.113.9" },
+    });
+    const database = {
+      async $transaction() {
+        throw new Error("RateLimitBucket no disponible");
+      },
+    };
+
+    const blocked = await checkPersistentRateLimit(request, "db-fallback-test", {
+      limit: 0,
+      windowMs: 60_000,
+      database,
+    });
+
+    expect(blocked?.status).toBe(429);
+    expect(blocked?.headers.get("x-ratelimit-storage")).toBe(
+      "memory-fallback-db-error",
+    );
+  });
 });

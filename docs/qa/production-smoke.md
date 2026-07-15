@@ -1,48 +1,38 @@
-# Production Smoke Check
+# Production smoke check
 
-Este smoke sirve para validar un deploy de Netlify después de subir cambios a producción. Es una comprobación corta: confirma que la app responde, que la base de datos está conectada y que el endpoint de partidos mantiene una respuesta estructurada.
+Este smoke valida una URL productiva o preview ya desplegada. No ejecuta deploy.
 
-## Comando
+## Requisito
 
-```bash
-npm run smoke:production
-```
+`SMOKE_BASE_URL` es obligatorio. No uses URLs históricas sin confirmarlas en Netlify.
 
-Por defecto usa:
-
-```text
-https://shiny-torte-4f01e2.netlify.app
-```
-
-Para validar otro deploy:
-
-```bash
-SMOKE_BASE_URL=https://tu-sitio.netlify.app npm run smoke:production
-```
-
-En PowerShell:
+PowerShell:
 
 ```powershell
-$env:SMOKE_BASE_URL = "https://tu-sitio.netlify.app"
+$env:SMOKE_BASE_URL = "https://tu-sitio-activo.netlify.app"
 npm run smoke:production
 Remove-Item Env:\SMOKE_BASE_URL
 ```
 
+Bash:
+
+```bash
+SMOKE_BASE_URL=https://tu-sitio-activo.netlify.app npm run smoke:production
+```
+
 ## Qué valida
 
-- `/api/health` devuelve un objeto y reporta `database: "connected"`.
-- `/api/provider-status` devuelve un objeto.
-- `/api/matches?date=2026-06-15` devuelve un objeto con `matches` como arreglo.
+- `/api/health` responde JSON y reporta base de datos conectada.
+- `/api/provider-status` responde JSON.
+- `/api/matches?date=2026-06-15` responde JSON con `matches` como arreglo.
 
 ## Qué no valida
 
-- No prueba todo el frontend.
-- No mide precisión estadística ni calidad de predicciones.
-- No confirma alineaciones, lesiones, cuotas ni datos de última hora.
-- No reemplaza Playwright ni las auditorías manuales antes de cambios grandes.
+- No recorre todo el frontend.
+- No sustituye Playwright.
+- No certifica precisión estadística.
+- No confirma datos de última hora como alineaciones oficiales, lesiones o cuotas.
 
 ## Seguridad y consumo
 
-El script no imprime secretos. Solo muestra URL base, estado de base de datos y cantidad de partidos recibidos.
-
-Para ahorrar créditos y cuota de proveedores, ejecútalo una vez después de un deploy real, no en cada commit local.
+El script no imprime secretos. Ejecutarlo solo después de un deploy autorizado para evitar consumo innecesario de hosting/proveedores.

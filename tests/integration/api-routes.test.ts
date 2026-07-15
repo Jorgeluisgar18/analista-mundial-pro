@@ -1,6 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
 import { GET as getMatches } from "@/app/api/matches/route";
+import { GET as getCompetitions } from "@/app/api/competitions/route";
 import { GET as getProviderStatus } from "@/app/api/provider-status/route";
+import { GET as getUsage } from "@/app/api/usage/route";
 import { POST as analyzeMatchRoute } from "@/app/api/match/[id]/analyze/route";
 import { POST as refreshMatchRoute } from "@/app/api/match/[id]/refresh/route";
 import { POST as createOverride } from "@/app/api/match/[id]/overrides/route";
@@ -107,6 +109,37 @@ describe("API routes", () => {
     expect(JSON.stringify(body)).not.toMatch(/api-football-secret|odds-secret/i);
   });
 
+  it("usa la misma fuente de verdad de proveedores en competitions y usage", async () => {
+    const previousFootballApi = process.env.FOOTBALL_API_KEY;
+    const previousFootballData = process.env.FOOTBALL_DATA_API_KEY;
+    const previousFootballdataIo = process.env.FOOTBALLDATA_IO_API_KEY;
+    const previousSportsDb = process.env.THE_SPORTSDB_API_KEY;
+    try {
+      delete process.env.FOOTBALL_API_KEY;
+      delete process.env.FOOTBALL_DATA_API_KEY;
+      process.env.FOOTBALLDATA_IO_API_KEY = "valid-footballdata-key";
+      process.env.THE_SPORTSDB_API_KEY = "123";
+
+      const competitions = await (await getCompetitions()).json();
+      const usage = await (await getUsage()).json();
+
+      expect(competitions.mode).toBe("api-ready");
+      expect(usage.configured).toHaveProperty("TheSportsDB", true);
+    } finally {
+      if (previousFootballApi === undefined) delete process.env.FOOTBALL_API_KEY;
+      else process.env.FOOTBALL_API_KEY = previousFootballApi;
+      if (previousFootballData === undefined) delete process.env.FOOTBALL_DATA_API_KEY;
+      else process.env.FOOTBALL_DATA_API_KEY = previousFootballData;
+      if (previousFootballdataIo === undefined) {
+        delete process.env.FOOTBALLDATA_IO_API_KEY;
+      } else {
+        process.env.FOOTBALLDATA_IO_API_KEY = previousFootballdataIo;
+      }
+      if (previousSportsDb === undefined) delete process.env.THE_SPORTSDB_API_KEY;
+      else process.env.THE_SPORTSDB_API_KEY = previousSportsDb;
+    }
+  });
+
   it("rechaza JSON malformado en cambios manuales", async () => {
     let response: Response | undefined;
     try {
@@ -147,6 +180,30 @@ describe("API routes", () => {
               new TextEncoder().encode(largePayload).length,
             ),
           }),
+          body: largePayload,
+        }),
+        { params: Promise.resolve({ id: "demo-col-bra" }) },
+      ),
+    );
+    const body = await response.json();
+
+    expect(response.status).toBe(413);
+    expect(body.title).toMatch(/solicitud demasiado grande/i);
+  });
+
+  it("rechaza payloads demasiado grandes aunque falte content-length", async () => {
+    const largePayload = JSON.stringify({
+      type: "absence",
+      description: "x".repeat(40_000),
+      teamId: demoDataset.match.homeTeam.id,
+      impact: "high",
+      area: "attack",
+    });
+    const response = await withAnalystToken(() =>
+      createOverride(
+        new Request("http://local/api/match/demo-col-bra/overrides", {
+          method: "POST",
+          headers: analystHeaders(),
           body: largePayload,
         }),
         { params: Promise.resolve({ id: "demo-col-bra" }) },

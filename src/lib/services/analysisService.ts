@@ -261,9 +261,16 @@ export function createAnalysisService({
           value: override.value ?? undefined,
         })),
       );
-      await historicalSignals.ingestFinishedDataset(adjustedDataset);
-      const historicallyEnrichedDataset =
-        await historicalSignals.enrich(adjustedDataset);
+      let historicallyEnrichedDataset = adjustedDataset;
+      try {
+        if (options.persist !== false) {
+          await historicalSignals.ingestFinishedDataset(adjustedDataset);
+        }
+        historicallyEnrichedDataset =
+          await historicalSignals.enrich(adjustedDataset);
+      } catch (error) {
+        console.warn("No se pudo enriquecer el histórico:", error);
+      }
       const lineupReadyDataset = withExpectedLineups(historicallyEnrichedDataset);
       const manuallyUpdated =
         Boolean(options.manuallyUpdated) || storedOverrides.length > 0;

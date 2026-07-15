@@ -257,9 +257,54 @@ describe("AnalysisCabin", () => {
     );
 
     expect(screen.getByText(/margen teórico/i)).toBeVisible();
+    expect(
+      screen.getByRole("button", { name: /que es un surebet/i }),
+    ).toHaveAttribute("aria-describedby");
+    expect(screen.getAllByText(/beneficio te[oó]rico/i).length).toBeGreaterThan(0);
     expect(screen.getByText(/Casa A/i)).toBeVisible();
     expect(screen.getByText(/Casa B/i)).toBeVisible();
     expect(screen.getByText(/Casa C/i)).toBeVisible();
+  });
+
+  it("expone semanticamente la seccion y subseccion activas en los rails moviles", async () => {
+    render(
+      <AnalysisCabin
+        initialAnalysis={analyzeMatch(demoDataset)}
+        dataset={demoDataset}
+      />,
+    );
+
+    const mobileSectionRail = screen.getByRole("navigation", {
+      name: /categor[ií]as/i,
+    });
+    const mobileSubsectionRail = screen.getByRole("navigation", {
+      name: /subsecciones/i,
+    });
+
+    expect(
+      within(mobileSectionRail).getByRole("button", { name: /resumen/i }),
+    ).toHaveAttribute("aria-current", "page");
+    expect(
+      within(mobileSubsectionRail).getByRole("button", { name: /panorama/i }),
+    ).toHaveAttribute("aria-current", "page");
+
+    await userEvent.click(
+      within(mobileSectionRail).getByRole("button", {
+        name: /valor y riesgo/i,
+      }),
+    );
+    await userEvent.click(
+      within(mobileSubsectionRail).getByRole("button", { name: /surebets/i }),
+    );
+
+    expect(
+      within(mobileSectionRail).getByRole("button", {
+        name: /valor y riesgo/i,
+      }),
+    ).toHaveAttribute("aria-current", "page");
+    expect(
+      within(mobileSubsectionRail).getByRole("button", { name: /surebets/i }),
+    ).toHaveAttribute("aria-current", "page");
   });
 
   it("renderiza contexto, táctica y porteros con equipos genéricos", async () => {
@@ -311,7 +356,7 @@ describe("AnalysisCabin", () => {
     expect(screen.getAllByText(/River Azul/i).length).toBeGreaterThan(0);
   });
 
-  it("explica riesgos de porteros segÃºn el volumen real del rival", async () => {
+  it("explica riesgos de porteros segun el volumen real del rival", async () => {
     const dataset = structuredClone(demoDataset);
     dataset.match.homeTeam.name = "Local Volumen";
     dataset.match.awayTeam.name = "Visitante Bajo";
@@ -408,7 +453,7 @@ describe("AnalysisCabin", () => {
     );
   });
 
-  it("abre el desglose detallado del mercado al hacer clic en una fila de la tabla y se cierra con Escape", async () => {
+  it("abre el desglose detallado del mercado con un boton accesible y se cierra con Escape", async () => {
     render(
       <AnalysisCabin
         initialAnalysis={analyzeMatch(demoDataset)}
@@ -421,8 +466,10 @@ describe("AnalysisCabin", () => {
     );
     await userEvent.click(screen.getByRole("button", { name: /^goles$/i }));
 
-    const row = screen.getByRole("button", { name: /Detalle del mercado Más de 2.5 goles/i });
-    await userEvent.click(row);
+    const detailButton = screen.getByRole("button", {
+      name: /Ver detalle de Más de 2.5 goles/i,
+    });
+    await userEvent.click(detailButton);
 
     const drawer = screen.getByRole("dialog", { name: /Más de 2.5 goles/i });
     expect(drawer).toHaveAttribute("aria-modal", "true");

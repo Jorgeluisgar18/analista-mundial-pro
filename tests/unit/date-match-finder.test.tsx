@@ -183,7 +183,7 @@ describe("DateMatchFinder", () => {
     await user.click(screen.getByRole("button", { name: /buscar partidos/i }));
     await user.click(
       await screen.findByRole("button", {
-        name: /probar mundial con datos reales/i,
+        name: /probar ejemplo mundial/i,
       }),
     );
 

@@ -1,5 +1,10 @@
-const baseUrl =
-  process.env.SMOKE_BASE_URL ?? "https://shiny-torte-4f01e2.netlify.app";
+const baseUrl = process.env.SMOKE_BASE_URL;
+
+if (!baseUrl) {
+  throw new Error(
+    "SMOKE_BASE_URL es obligatorio. Confirma la URL activa de Netlify antes de ejecutar el smoke de producción.",
+  );
+}
 
 async function readJson(path: string) {
   const response = await fetch(`${baseUrl}${path}`, { cache: "no-store" });

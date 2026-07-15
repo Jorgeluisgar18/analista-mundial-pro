@@ -21,6 +21,25 @@ import type { MatchSnapshotCache } from "@/lib/cache/matchSnapshotCache";
 
 let defaultSnapshotCache: MatchSnapshotCache | undefined;
 
+export class MatchProviderUnavailableError extends Error {
+  readonly status = 503;
+
+  constructor(
+    readonly providerId: string,
+    message: string,
+    readonly cause?: unknown,
+  ) {
+    super(message);
+    this.name = "MatchProviderUnavailableError";
+  }
+}
+
+export function isMatchProviderUnavailableError(
+  error: unknown,
+): error is MatchProviderUnavailableError {
+  return error instanceof MatchProviderUnavailableError;
+}
+
 async function getDefaultSnapshotCache() {
   if (!defaultSnapshotCache) {
     const { createMatchSnapshotCache } = await import(
@@ -198,6 +217,7 @@ export function createMatchService({
       const demoDataset = getDemoDatasetById(id);
       if (demoDataset) return demoDataset;
       const requested = splitScopedId(id);
+      const providerErrors: MatchProviderUnavailableError[] = [];
       if (!bypassCache) {
         const cache =
           snapshotCache ?? (injectedProviders ? undefined : await getDefaultSnapshotCache());
@@ -360,9 +380,20 @@ export function createMatchService({
             }
             return result.data;
           }
-        } catch {
-          // El siguiente proveedor puede aportar el dato.
+        } catch (error) {
+          providerErrors.push(
+            new MatchProviderUnavailableError(
+              provider.id,
+              error instanceof Error
+                ? error.message
+                : "Proveedor temporalmente no disponible.",
+              error,
+            ),
+          );
         }
+      }
+      if (providerErrors.length) {
+        throw providerErrors[0];
       }
       return null;
     },

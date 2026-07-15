@@ -1,4 +1,5 @@
 import { supportedCompetitions } from "@/lib/providers/competitionCatalog";
+import { hasConfiguredFootballProvider } from "@/lib/providers/providerConfig";
 
 export async function GET() {
   return Response.json({
@@ -9,6 +10,6 @@ export async function GET() {
       kind: competition.kind,
       footballDataCode: competition.footballDataCode,
     })),
-    mode: process.env.FOOTBALL_API_KEY ? "api-ready" : "demo",
+    mode: hasConfiguredFootballProvider() ? "api-ready" : "demo",
   });
 }

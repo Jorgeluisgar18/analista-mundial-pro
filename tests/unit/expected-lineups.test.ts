@@ -3,7 +3,7 @@ import { demoDataset } from "@/data/demo";
 import { withExpectedLineups } from "@/lib/lineups/expectedLineups";
 
 describe("expected lineups", () => {
-  it("creates expected player names for both teams when provider returns no lineup rows", () => {
+  it("does not persist visual slot placeholders as player names", () => {
     const dataset = structuredClone(demoDataset);
     dataset.match.homeTeam = {
       ...dataset.match.homeTeam,
@@ -27,10 +27,7 @@ describe("expected lineups", () => {
       expect(lineup.confirmed).toBe(false);
       expect(lineup.formation.value).toBe("4-2-3-1");
       expect(lineup.formation.status).toBe("expected");
-      expect(lineup.starters).toHaveLength(11);
-      expect(lineup.starters).toEqual(
-        expect.arrayContaining(["POR esperado", "DC esperado"]),
-      );
+      expect(lineup.starters).toEqual([]);
     }
     expect(enriched.sources).toEqual(
       expect.arrayContaining([

@@ -68,6 +68,10 @@ export function formatTimestampInAppTimeZone(value: string | Date) {
   return `${parts.displayDate} · ${parts.time} ${APP_TIME_ZONE_ABBREVIATION}`;
 }
 
+export function todayInAppTimeZone(now: Date = new Date()) {
+  return formatDateInAppTimeZone(now);
+}
+
 export function nextIsoDate(date: string) {
   const parsed = new Date(`${date}T00:00:00.000Z`);
   if (Number.isNaN(parsed.getTime())) return date;

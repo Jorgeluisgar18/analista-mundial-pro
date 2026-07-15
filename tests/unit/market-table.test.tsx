@@ -1,5 +1,6 @@
 import { cleanup, render, screen } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import userEvent from "@testing-library/user-event";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { MarketTable } from "@/components/analysis/MarketTable";
 import type { Prediction } from "@/types/domain";
 
@@ -77,5 +78,25 @@ describe("MarketTable", () => {
     expect(screen.getByText(/cuota disponible 1.95/i)).toBeVisible();
     expect(screen.getByText(/ventaja del modelo \+5.1 pp/i)).toBeVisible();
     expect(screen.getByText(/rango 52-64%/i)).toBeVisible();
+  });
+  it("usa un boton semantico para abrir el detalle del mercado", async () => {
+    const user = userEvent.setup();
+    const onSelectPrediction = vi.fn();
+    const row = prediction({ market: "Brasil gana" });
+
+    render(
+      <MarketTable
+        predictions={[row]}
+        onSelectPrediction={onSelectPrediction}
+      />,
+    );
+
+    const detailButton = screen.getByRole("button", { name: /Brasil gana/i });
+    expect(detailButton.tagName).toBe("BUTTON");
+
+    await user.click(detailButton);
+
+    expect(screen.queryAllByRole("button")).toHaveLength(1);
+    expect(onSelectPrediction).toHaveBeenCalledWith(row);
   });
 });

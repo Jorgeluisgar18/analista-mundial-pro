@@ -61,4 +61,32 @@ describeWithDatabase("API usage telemetry", () => {
       period: "day",
     });
   });
+
+  it("no retrocede el consumo si el proveedor reporta un valor menor", async () => {
+    const { recordApiUsage, getApiUsageSnapshot } = await import(
+      "@/lib/services/apiUsageService"
+    );
+    const occurredAt = new Date("2026-06-25T16:00:00Z");
+
+    await recordApiUsage({
+      provider,
+      period: "day",
+      limit: 100,
+      used: 10,
+      occurredAt,
+    });
+    await recordApiUsage({
+      provider,
+      period: "day",
+      limit: 100,
+      used: 7,
+      occurredAt,
+    });
+
+    const row = (await getApiUsageSnapshot()).find(
+      (item) => item.provider === provider,
+    );
+
+    expect(row?.used).toBe(10);
+  });
 });

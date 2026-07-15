@@ -2,6 +2,7 @@ import { checkPersistentRateLimit } from "@/lib/http/persistentRateLimit";
 import { requireSameOrigin } from "@/lib/http/requestGuards";
 import { problem } from "@/lib/http/problem";
 import { getAnalysis } from "@/lib/services/analysisService";
+import { isMatchProviderUnavailableError } from "@/lib/services/matchService";
 
 export async function POST(
   request: Request,
@@ -20,7 +21,19 @@ export async function POST(
   if (limitProblem) return limitProblem;
 
   const { id } = await context.params;
-  const result = await getAnalysis(id);
+  let result: Awaited<ReturnType<typeof getAnalysis>>;
+  try {
+    result = await getAnalysis(id);
+  } catch (error) {
+    if (isMatchProviderUnavailableError(error)) {
+      return problem(
+        503,
+        "Proveedor temporalmente no disponible",
+        `No fue posible consultar ${error.providerId}. Intenta de nuevo o usa cache/datos complementarios.`,
+      );
+    }
+    throw error;
+  }
   if (!result) return problem(404, "Partido no encontrado", id);
   return Response.json(result.analysis);
 }

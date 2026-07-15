@@ -302,4 +302,41 @@ describe("Footballdata.io provider", () => {
       }),
     );
   });
+  it("no confirma stats cuando el proveedor solo devuelve objetos vacios", async () => {
+    const fetcher = vi.fn(async (input: URL | Request | string) => {
+      const url = new URL(String(input));
+      if (url.pathname.endsWith("/matches/910")) {
+        return Response.json({
+          success: true,
+          data: {
+            match_id: 910,
+            match_date: "2026-08-16T02:30:00Z",
+            league: { id: 44, name: "Premier League", country: "England" },
+            home_team: { id: 1, name: "Arsenal" },
+            away_team: { id: 2, name: "Chelsea" },
+          },
+          meta: {},
+        });
+      }
+      if (url.pathname.endsWith("/matches/910/stats")) {
+        return Response.json({
+          success: true,
+          data: { home: {}, away: {} },
+          meta: {},
+        });
+      }
+      return Response.json({ success: true, data: null, meta: {} });
+    });
+    const provider = new FootballdataIoProvider(
+      "test-token",
+      fetcher as typeof fetch,
+    );
+
+    const result = await provider.getMatch("910");
+    const statsSource = result.data?.sources.find(
+      (source) => source.id === "footballdata-io-stats",
+    );
+
+    expect(statsSource?.status).not.toBe("confirmed");
+  });
 });

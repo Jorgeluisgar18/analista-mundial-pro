@@ -124,6 +124,37 @@ describe("matchService", () => {
     expect(detail?.match.homeTeam.name).toBe("Equipo correcto");
   });
 
+  it("diferencia un fallo de proveedor de un partido inexistente", async () => {
+    const service = createMatchService({
+      providers: {
+        football: [
+          {
+            id: "api-football",
+            async listMatches() {
+              return {
+                data: [],
+                meta: {
+                  source: "API-Football",
+                  fetchedAt: new Date().toISOString(),
+                  isStale: false,
+                  warnings: [],
+                },
+              };
+            },
+            async getMatch() {
+              throw new Error("Cuota agotada temporalmente");
+            },
+          },
+        ],
+      },
+    });
+
+    await expect(service.getById("api-football--provider-down", true)).rejects.toMatchObject({
+      status: 503,
+      providerId: "api-football",
+    });
+  });
+
   it("protege la cuota gratis de API-Football y evita llamar al proveedor cuando queda reserva baja", async () => {
     mockedGetApiUsageSnapshot.mockResolvedValueOnce([
       {
@@ -632,7 +663,7 @@ describe("matchService", () => {
     expect(providerCall).toHaveBeenCalledTimes(1);
   });
 
-  it("deduplica consultas simultÃ¡neas sin bypass para proteger cuota del proveedor", async () => {
+  it("deduplica consultas simultaneas sin bypass para proteger cuota del proveedor", async () => {
     const providerDataset = structuredClone(demoDataset);
     providerDataset.match.id = "external-concurrent-cache-test";
     providerDataset.match.dataOrigin = "API";

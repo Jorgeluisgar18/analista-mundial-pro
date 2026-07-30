@@ -15,6 +15,9 @@ describe("expected lineups", () => {
     expect(enriched.lineups.every((lineup) => lineup.status === "unavailable")).toBe(
       true,
     );
+    expect(enriched.lineups[0]?.formation.value).toBe(
+      "Alineación no disponible para partido finalizado",
+    );
     expect(
       enriched.sources.some((source) => source.id === "expected-lineups"),
     ).toBe(false);

@@ -1,9 +1,9 @@
 # Empalme actual - Analista Mundial Pro
 
 **Fecha:** 2026-07-30
-**Rama:** `codex/production-readiness`
-**Ultimo commit remoto verificado antes de esta limpieza:** `02c7a2f feat: expand export QA coverage`
-**Produccion:** URL Netlify pendiente de confirmar. La URL historica `https://shiny-torte-4f01e2.netlify.app` respondio 404 en el ultimo smoke solo lectura. No certificar produccion hasta confirmar URL/deploy.
+**Rama:** `master` (verificada desde `codex/release-production`)
+**Ultimo commit remoto verificado:** `ec6ba7c fix: harden production search integrity`
+**Produccion:** `https://analista-mundial-pro.netlify.app` activa; el deploy de `ec6ba7c` quedó `ready`.
 **Regla operativa:** no hacer deploy manual ni promover Netlify sin autorizacion explicita del owner.
 
 ## 1. Estado actual confiable
@@ -79,6 +79,7 @@ Remove-Item Env:\SMOKE_BASE_URL
 
 | Fecha | IA | Tareas | Resultado | Siguiente paso |
 |---|---|---|---|---|
+| 2026-07-30 | Codex | QA real ampliada y revisión visual de producción. | Premier (2026-08-15), LaLiga (2026-08-15) y Champions (2026-08-26) devolvieron HTTP 200 con vacío explicado: sin calendario publicado por los proveedores disponibles, sin pantalla blanca ni mezcla de competiciones. Mundial (2026-07-01) devolvió dos partidos reales con bandera y horario COT; la cabina mostró fuentes, cobertura y estados `unavailable` para XI de un partido finalizado, sin once inventado. The Odds API está configurada; para el encuentro terminado no existió mercado prepartido y se mostró como no disponible. Se corrigió la codificación de “Alineación no disponible para partido finalizado”. Verificado: 4 tests de alineaciones, TypeScript, lint, build y `git diff --check`. | Hacer commit y push autorizados por owner; Netlify debe ejecutar el deploy automático y luego repetir smoke mínimo. |
 | 2026-07-30 | Codex | Correccion de los hallazgos QA y configuracion operativa de Netlify. | TDD: lista vacia real devuelve API 200 solo tras una respuesta exitosa; fallo total sigue como 503. Un partido finalizado sin XI se marca `unavailable` y no genera once esperado; un XI confirmado se preserva. Netlify: builds continuos reactivados y `ODDS_API_KEY` creada como secreto de produccion (sin exponer valor). Verificado: 24 tests focalizados, TypeScript, lint, build Next.js y `git diff --check`. La suite Vitest completa quedo bloqueada en este entorno aun en modo serial; se detuvo el proceso propio sin tocar procesos del usuario. | No hay push/deploy aun. Con autorizacion explicita: commit, push a master, esperar build y ejecutar una unica QA de cuotas. Repetir suite completa en CI/local estable antes de certificar cierre total. |
 | 2026-07-30 | Codex | Diagnostico de auto-deploy Netlify y QA real controlada en produccion. | Netlify esta vinculado a GitHub/master, pero **Build status = Stopped**: causa verificada de que los pushes no disparen builds. Mundial y Champions devolvieron calendario real; Premier, LaLiga y fecha vacia respondieron 503. Evidencia en `docs/qa/qa-real-providers-2026-07-30.md`: vacio tratado como error, alineacion esperada para partido terminado y The Odds API sin configurar. API-Football termino en 7/100, bajo el tope acordado. | Reactivar builds solo con confirmacion del owner; corregir semantica de lista vacia, configurar `ODDS_API_KEY` en Netlify y repetir QA de cuotas. |
 | 2026-07-30 | Codex | Tasks 1-5: política *fail-closed*, rutas/Health/UI, E2E/CI, contratos de cache/telemetría y documentación operativa. | Producción no usa fixtures demo; dev/test/CI usan fixtures locales sin cuota ni llamadas externas. Verificado: 36 tests focalizados, `npx tsc --noEmit`, `npx prisma validate`, lint, E2E normal y serial (11 passed/1 skipped en cada modo), cobertura 85.08% statements, build y `git diff --check`. Prisma CLI ahora prioriza `DIRECT_URL` para migraciones; `npx prisma migrate status` confirmó las 4 migraciones y esquema Neon al día. Deploy Netlify listo el 2026-07-30; smoke `GET /api/health` devolvió 200, `operational`, DB y telemetría conectadas, cuatro proveedores configurados. | Mantener QA real acotada por cuota y revisar despliegues futuros con el smoke documentado. |

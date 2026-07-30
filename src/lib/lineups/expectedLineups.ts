@@ -82,13 +82,13 @@ function expectedFormationEvidence(observedAt = new Date().toISOString()) {
 
 function unavailableFormationEvidence(observedAt = new Date().toISOString()) {
   return {
-    value: "AlineaciÃ³n no disponible para partido finalizado",
+    value: "Alineación no disponible para partido finalizado",
     status: "unavailable" as const,
     sourceType: "inferred" as const,
     source: "Control de integridad de alineaciones",
     observedAt,
     note:
-      "No se infiere un once probable despuÃ©s de que el partido ha finalizado.",
+      "No se infiere un once probable después de que el partido ha finalizado.",
   };
 }
 

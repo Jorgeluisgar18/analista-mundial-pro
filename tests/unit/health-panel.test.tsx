@@ -9,6 +9,32 @@ afterEach(() => {
 });
 
 describe("HealthPanel", () => {
+  it("muestra la información degradada sanitizada recibida con 503", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: false,
+        status: 503,
+        statusText: "Service Unavailable",
+        json: async () => ({
+          mode: "degraded",
+          checkedAt: "2026-07-28T12:00:00.000Z",
+          providers: [],
+          database: "unavailable",
+          databaseError: "Base de datos no disponible.",
+          telemetryStatus: "unavailable",
+        }),
+      }),
+    );
+
+    render(<HealthPanel />);
+
+    expect(await screen.findByText(/servicio degradado/i)).toBeVisible();
+    expect(screen.getAllByText(/sin persistencia/i)).toHaveLength(2);
+    expect(screen.getByText(/base de datos no disponible/i)).toBeVisible();
+    expect(screen.queryByText(/503 Service Unavailable/i)).not.toBeInTheDocument();
+  });
+
   it("muestra la configuracion calibrada del modelo cuando health la expone", async () => {
     vi.stubGlobal(
       "fetch",

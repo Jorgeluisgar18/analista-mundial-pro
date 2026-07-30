@@ -69,7 +69,7 @@ interface ModelHealth {
 }
 
 interface HealthData {
-  mode: "demo" | "api-ready";
+  mode: "demo" | "api-ready" | "development-demo" | "operational" | "degraded";
   checkedAt: string;
   providers: ProviderInfo[];
   database: "connected" | "unavailable";
@@ -77,6 +77,41 @@ interface HealthData {
   telemetryStatus?: "connected" | "unavailable";
   databaseError?: string | null;
   modelHealth?: ModelHealth;
+}
+
+const healthLoadError = "No se pudo cargar el estado del sistema.";
+
+function isHealthData(value: unknown): value is HealthData {
+  if (!value || typeof value !== "object") return false;
+
+  const data = value as Partial<HealthData>;
+  return (
+    (data.mode === "demo" ||
+      data.mode === "api-ready" ||
+      data.mode === "development-demo" ||
+      data.mode === "operational" ||
+      data.mode === "degraded") &&
+    typeof data.checkedAt === "string" &&
+    Array.isArray(data.providers) &&
+    (data.database === "connected" || data.database === "unavailable")
+  );
+}
+
+async function loadHealth(): Promise<HealthData> {
+  const res = await fetch("/api/health");
+  let data: unknown;
+
+  try {
+    data = await res.json();
+  } catch {
+    throw new Error(healthLoadError);
+  }
+
+  if (!isHealthData(data) || (!res.ok && data.mode !== "degraded")) {
+    throw new Error(healthLoadError);
+  }
+
+  return data;
 }
 
 function UsageBar({ used, limit }: { used: number; limit: number }) {
@@ -286,9 +321,7 @@ export function HealthPanel() {
 
     async function loadInitialHealth() {
       try {
-        const res = await fetch("/api/health");
-        if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
-        const data = (await res.json()) as HealthData;
+        const data = await loadHealth();
         if (!cancelled) setHealth(data);
       } catch (e: unknown) {
         if (!cancelled) {
@@ -307,9 +340,7 @@ export function HealthPanel() {
     setLoading(true);
     setErr("");
     try {
-      const res = await fetch("/api/health");
-      if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
-      setHealth(await res.json());
+      setHealth(await loadHealth());
     } catch (e: unknown) {
       setErr(e instanceof Error ? e.message : "Error al cargar estado");
     } finally {
@@ -322,11 +353,13 @@ export function HealthPanel() {
       <h2 className="health-heading">
         Estado del sistema
         <span className={`health-mode mode-${health?.mode ?? "loading"}`}>
-          {health?.mode === "api-ready"
+          {health?.mode === "api-ready" || health?.mode === "operational"
             ? "Datos reales listos"
-            : health?.mode === "demo"
+            : health?.mode === "demo" || health?.mode === "development-demo"
               ? "Respaldo local"
-              : "Cargando..."}
+              : health?.mode === "degraded"
+                ? "Servicio degradado"
+                : "Cargando..."}
         </span>
       </h2>
 

@@ -2,12 +2,17 @@ import "server-only";
 import { createHash } from "node:crypto";
 import { analyzeMatch } from "@/lib/analysis/analysisEngine";
 import { prisma } from "@/lib/db/prisma";
+import { getDatabaseRuntimeStatus } from "@/lib/db/prisma";
 import { applyManualOverrides } from "@/lib/overrides/applyManualOverrides";
 import { withExpectedLineups } from "@/lib/lineups/expectedLineups";
 import { normalizeDatasetMetadata } from "@/lib/providers/normalizeDataset";
 import { matchService as defaultMatchService } from "@/lib/services/matchService";
 import { createHistoricalSignalService } from "@/lib/services/historicalSignalService";
 import type { AnalysisResult, MatchDataset } from "@/types/domain";
+import {
+  createRuntimePolicy,
+  ProductionDataUnavailableError,
+} from "@/lib/runtime/productionPolicy";
 
 function hashDataset(dataset: MatchDataset) {
   return createHash("sha256")
@@ -212,9 +217,13 @@ interface AnalysisMatchService {
 export function createAnalysisService({
   matchService = defaultMatchService,
   database = prisma,
+  databaseRuntimeStatus = getDatabaseRuntimeStatus,
+  runtimePolicy = createRuntimePolicy(),
 }: {
   matchService?: AnalysisMatchService;
   database?: typeof prisma;
+  databaseRuntimeStatus?: typeof getDatabaseRuntimeStatus;
+  runtimePolicy?: ReturnType<typeof createRuntimePolicy>;
 } = {}) {
   const historicalSignals = createHistoricalSignalService(database);
   return {
@@ -227,6 +236,15 @@ export function createAnalysisService({
         strictPersistence?: boolean;
       } = {},
     ) {
+      if (
+        runtimePolicy.isProduction &&
+        databaseRuntimeStatus().status !== "configured"
+      ) {
+        throw new ProductionDataUnavailableError(
+          "Database runtime is unavailable.",
+          "La configuración operativa no está disponible.",
+        );
+      }
       const dataset = await matchService.getById(matchId, options.bypassCache);
       if (!dataset) return null;
       const normalizedDataset = normalizeDatasetMetadata(dataset);

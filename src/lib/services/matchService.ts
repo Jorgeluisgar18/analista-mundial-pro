@@ -18,6 +18,10 @@ import type {
 } from "@/lib/providers/types";
 import type { MatchDataset } from "@/types/domain";
 import type { MatchSnapshotCache } from "@/lib/cache/matchSnapshotCache";
+import {
+  createRuntimePolicy,
+  ProductionDataUnavailableError,
+} from "@/lib/runtime/productionPolicy";
 
 let defaultSnapshotCache: MatchSnapshotCache | undefined;
 
@@ -55,6 +59,7 @@ export function createMatchService({
   providers: injectedProviders,
   now = () => new Date(),
   snapshotCache,
+  runtimePolicy = createRuntimePolicy(),
 }: {
   env?: ProviderEnvironment;
   providers?: {
@@ -65,6 +70,7 @@ export function createMatchService({
   };
   now?: () => Date;
   snapshotCache?: Pick<MatchSnapshotCache, "getFreshDataset">;
+  runtimePolicy?: ReturnType<typeof createRuntimePolicy>;
 } = {}) {
   const providers = injectedProviders ?? createProviderRegistry(env);
   const inFlightDatasetLookups = new Map<string, Promise<MatchDataset | null>>();
@@ -104,10 +110,13 @@ export function createMatchService({
     let hits = 0;
     const enriched = await Promise.all(
       matches.map(async (match) => {
-        const id = scopedId(providerId, match.id);
+          const id = scopedId(providerId, match.id);
         try {
           const cached = await cache.getFreshDataset(id);
-          if (cached) {
+          if (
+            cached &&
+            (runtimePolicy.allowsDemoData || cached.match.dataOrigin !== "DEMO")
+          ) {
             hits += 1;
             return {
               ...cached.match,
@@ -191,6 +200,12 @@ export function createMatchService({
         }
       }
 
+      if (!runtimePolicy.allowsDemoData) {
+        throw new ProductionDataUnavailableError(
+          "No real football provider returned matches.",
+          "No hay datos reales disponibles para esta consulta en este momento.",
+        );
+      }
       const matches = demoMatches.filter(
         (match) =>
           match.date === date &&
@@ -214,15 +229,28 @@ export function createMatchService({
     },
 
     async getById(id: string, bypassCache?: boolean): Promise<MatchDataset | null> {
-      const demoDataset = getDemoDatasetById(id);
-      if (demoDataset) return demoDataset;
+      if (runtimePolicy.allowsDemoData) {
+        const demoDataset = getDemoDatasetById(id);
+        if (demoDataset) return demoDataset;
+      }
       const requested = splitScopedId(id);
       const providerErrors: MatchProviderUnavailableError[] = [];
       if (!bypassCache) {
         const cache =
           snapshotCache ?? (injectedProviders ? undefined : await getDefaultSnapshotCache());
         const cached = await cache?.getFreshDataset(id);
-        if (cached) return structuredClone(cached);
+        if (cached) {
+          if (
+            !runtimePolicy.allowsDemoData &&
+            cached.match.dataOrigin === "DEMO"
+          ) {
+            throw new ProductionDataUnavailableError(
+              "Demo dataset was found in the snapshot cache.",
+              "No hay datos reales disponibles para esta consulta en este momento.",
+            );
+          }
+          return structuredClone(cached);
+        }
         const inFlight = inFlightDatasetLookups.get(id);
         if (inFlight) {
           const shared = await inFlight;

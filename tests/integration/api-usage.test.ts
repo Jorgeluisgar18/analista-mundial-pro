@@ -1,5 +1,6 @@
-import { afterEach, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { prisma } from "@/lib/db/prisma";
+import { FootballDataProvider } from "@/lib/providers/footballData";
 import { describeWithDatabase } from "../helpers/database";
 
 vi.mock("server-only", () => ({}));
@@ -88,5 +89,30 @@ describeWithDatabase("API usage telemetry", () => {
     );
 
     expect(row?.used).toBe(10);
+  });
+});
+
+describe("API usage telemetry sin persistencia", () => {
+  it("mantiene exitosa la consulta deportiva cuando falla persistir el uso", async () => {
+    const fetcher = vi.fn(async () => Response.json({ matches: [] }));
+    const usageReporter = vi
+      .fn()
+      .mockRejectedValue(new Error("Postgres no disponible"));
+    const provider = new FootballDataProvider(
+      "test-token",
+      fetcher as typeof fetch,
+      usageReporter,
+    );
+
+    const result = await provider.listMatches("2026-08-15");
+
+    expect(result.data).toEqual([]);
+    expect(fetcher).toHaveBeenCalledOnce();
+    expect(usageReporter).toHaveBeenCalledOnce();
+    expect(usageReporter).toHaveBeenCalledWith({
+      provider: "Football-Data.org",
+      period: "minute",
+      limit: 10,
+    });
   });
 });

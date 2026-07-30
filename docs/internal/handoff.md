@@ -1,9 +1,9 @@
 # Empalme actual - Analista Mundial Pro
 
-**Fecha:** 2026-07-15  
-**Rama:** `master`  
-**Ultimo commit remoto verificado antes de esta limpieza:** `02c7a2f feat: expand export QA coverage`  
-**Produccion:** URL Netlify pendiente de confirmar. La URL historica `https://shiny-torte-4f01e2.netlify.app` respondio 404 en el ultimo smoke solo lectura. No certificar produccion hasta confirmar URL/deploy.  
+**Fecha:** 2026-07-30
+**Rama:** `codex/production-readiness`
+**Ultimo commit remoto verificado antes de esta limpieza:** `02c7a2f feat: expand export QA coverage`
+**Produccion:** URL Netlify pendiente de confirmar. La URL historica `https://shiny-torte-4f01e2.netlify.app` respondio 404 en el ultimo smoke solo lectura. No certificar produccion hasta confirmar URL/deploy.
 **Regla operativa:** no hacer deploy manual ni promover Netlify sin autorizacion explicita del owner.
 
 ## 1. Estado actual confiable
@@ -79,6 +79,7 @@ Remove-Item Env:\SMOKE_BASE_URL
 
 | Fecha | IA | Tareas | Resultado | Siguiente paso |
 |---|---|---|---|---|
+| 2026-07-30 | Codex | Tasks 1-5: política *fail-closed*, rutas/Health/UI, E2E/CI, contratos de cache/telemetría y documentación operativa. | Producción no usa fixtures demo; dev/test/CI usan fixtures locales sin cuota ni llamadas externas. Verificado: 36 tests focalizados, `npx tsc --noEmit`, `npx prisma validate`, lint, E2E normal y serial (11 passed/1 skipped en cada modo), cobertura 85.08% statements, build y `git diff --check`. Prisma CLI ahora prioriza `DIRECT_URL` para migraciones; `npx prisma migrate status` confirmó las 4 migraciones y esquema Neon al día. Sin push, deploy, smoke externo ni APIs reales. | Con URL productiva activa y autorización expresa, ejecutar smoke externo tras deploy. |
 | 2026-07-15 | Codex | Barrido baja/media prioridad: MarketDetailDrawer sin estilos inline propios, estilos del drawer consolidados en CSS, matching de equipos/proveedores endurecido contra tokens genericos, runbook QA con APIs reales agregado. | Verificado: focales del drawer/Odds/TheSportsDB OK, `npx vitest run --pool=threads --maxWorkers=4` 218 passed/9 skipped, `npm run test:e2e` 11 passed/1 skipped, `npm run build` OK, `npx tsc --noEmit` OK, `npm run lint` OK, `git diff --check` OK. Secret scan activo sin llaves reales. | Revisar diff y pedir autorizacion si se quiere commit/push. |
 | 2026-07-15 | Codex | Segundo barrido multiagente: provider errors ya no se esconden como 404, rate limit persistente degrada a memoria si falla Postgres, overrides limita body real sin depender de `Content-Length`, surebets y rails moviles mejoran accesibilidad, Node alineado a 22, docs de produccion historica aclaradas, matriz QA con entradas sugeridas, test de encoding cubre docs/tests/scripts activos y CSS `.local-mode` huerfano eliminado. | Verificado: `npm test` 216 passed/9 skipped, `npm run test:e2e` 11 passed/1 skipped, `npm run build` OK, `npx tsc --noEmit` OK, `npm run lint` OK, `git diff --check` OK. Secret scan activo sin llaves reales. | Commit y push autorizados por owner al cierre de esta sesion. |
 | 2026-07-15 | Codex | Auditoria multiagente read-only por dominios: frontend/UI, backend/API, proveedores/modelo/datos y docs/config/tests. Limpieza P1/P2 con TDD: slots visuales de alineaciones fuera de `starters`, una sola observacion de jugador cuando no hay datos individuales, contador de API usage monotonico, home con fecha Colombia actual, GET/export sin persistencia, historico best-effort, estado de providers consistente, Footballdata.io no confirma stats vacias, MarketTable con boton semantico, docs activas depuradas y smoke productivo exige URL explicita. | Verificado: `npm test` 211 passed/9 skipped, `npm run test:e2e` 11 passed/1 skipped, `npm run build` OK, `npx tsc --noEmit` OK, `npm run lint` OK, `git diff --check` OK. Secret scan activo y amplio sin llaves reales. | Si el owner autoriza, revisar diff final y hacer commit local. No hacer push/deploy sin autorizacion explicita. |

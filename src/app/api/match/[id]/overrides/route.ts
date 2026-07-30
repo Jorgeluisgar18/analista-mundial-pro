@@ -4,8 +4,14 @@ import { checkPersistentRateLimit } from "@/lib/http/persistentRateLimit";
 import { requireSameOrigin } from "@/lib/http/requestGuards";
 import { problem } from "@/lib/http/problem";
 import { applyDemoManualOverride } from "@/lib/overrides/demoOverrideService";
+import { getDemoDatasetById } from "@/data/demo";
 import { getAnalysis } from "@/lib/services/analysisService";
 import { manualOverrideSchema } from "@/lib/validation/schemas";
+import {
+  createRuntimePolicy,
+  isProductionDataUnavailableError,
+} from "@/lib/runtime/productionPolicy";
+import { productionDataProblem } from "@/lib/http/productionDataProblem";
 
 const MAX_MANUAL_OVERRIDE_BODY_BYTES = 32_768;
 
@@ -84,7 +90,20 @@ export async function POST(
       issues: parsed.error.issues,
     });
   }
-  const demoResult = applyDemoManualOverride(id, parsed.data);
+  const runtimePolicy = createRuntimePolicy();
+  let demoResult: ReturnType<typeof applyDemoManualOverride> = null;
+  try {
+    if (runtimePolicy.allowsDemoData) {
+      demoResult = applyDemoManualOverride(id, parsed.data);
+    } else if (getDemoDatasetById(id)) {
+      runtimePolicy.assertDemoAllowed();
+    }
+  } catch (error) {
+    if (isProductionDataUnavailableError(error)) {
+      return productionDataProblem(error);
+    }
+    throw error;
+  }
   if (demoResult) return Response.json(demoResult, { status: 201 });
 
   const databaseRuntime = getDatabaseRuntimeStatus();

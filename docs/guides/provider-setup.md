@@ -1,6 +1,11 @@
 # Configuración de APIs reales
 
-Analista Mundial Pro funciona en modo demo sin claves, pero para usar partidos reales de Mundial, ligas europeas y competiciones UEFA necesitas configurar proveedores externos.
+En desarrollo y pruebas, Analista Mundial Pro puede funcionar con fixtures locales sin claves ni consumo de cuota. Para consultar partidos reales de Mundial, ligas europeas y competiciones UEFA, configura proveedores externos.
+
+## Comportamiento por entorno
+
+- Desarrollo, test y CI usan fixtures aislados cuando corresponda; no llaman proveedores externos ni gastan cuota.
+- Producción es *fail-closed*: no devuelve fixtures ni partidos demo. Si faltan persistencia o datos reales, la ruta informa indisponibilidad segura (`503`) en lugar de sustituirlos por datos de muestra.
 
 ## Variables de entorno
 
@@ -60,7 +65,7 @@ Después de configurar claves:
 
 ## Plan gratuito y límites
 
-La primera integración real usa API-FOOTBALL con el plan gratis. La app registra el consumo reportado por el proveedor y protege una reserva diaria: si el último registro indica que quedan muy pocas solicitudes, omite nuevas llamadas a API-FOOTBALL y vuelve a demo/cache con una advertencia visible.
+La primera integración real usa API-FOOTBALL con el plan gratis. La app registra el consumo reportado por el proveedor y protege una reserva diaria: si el último registro indica que quedan muy pocas solicitudes, evita nuevas llamadas y usa únicamente datos reales cacheados cuando existan; en producción nunca los sustituye por demo. En desarrollo/test, los fixtures locales no consumen cuota.
 
 The Odds API queda configurado con un flujo conservador para el plan gratis:
 

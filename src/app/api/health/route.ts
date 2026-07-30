@@ -4,6 +4,7 @@ import { getProviderStatus } from "@/lib/providers/providerConfig";
 import { hasConfiguredFootballProvider } from "@/lib/providers/providerConfig";
 import { getDatabaseRuntimeStatus, prisma } from "@/lib/db/prisma";
 import { getModelHealthSnapshot } from "@/lib/services/modelHealthService";
+import { createRuntimePolicy } from "@/lib/runtime/productionPolicy";
 
 const usageProviderByStatusId = {
   "api-football": "API-Football",
@@ -14,14 +15,42 @@ const usageProviderByStatusId = {
   "open-meteo": "Open-Meteo",
 } as const;
 
+function unavailableModelHealth() {
+  return {
+    status: "unavailable" as const,
+    checkedAt: new Date().toISOString(),
+    elo: {
+      status: "unavailable" as const,
+      totalRows: 0,
+      rowsWithOpponentElo: 0,
+      coverage: 0,
+    },
+    backtesting: {
+      status: "unavailable" as const,
+      latestRunAt: null,
+      daysSinceLastRun: null,
+      sampleSize: 0,
+      brier: null,
+      logLoss: null,
+      rps: null,
+      dixonColesRho: null,
+      rhoSampleSize: null,
+      source: null,
+      modelConfig: null,
+    },
+    error: "Estado de salud del modelo no disponible.",
+  };
+}
+
 export async function GET() {
+  const runtimePolicy = createRuntimePolicy();
   const providerStatus = getProviderStatus();
   const databaseRuntime = getDatabaseRuntimeStatus();
   const databaseProbe =
     databaseRuntime.status === "configured"
       ? await prisma.apiUsage
           .count()
-          .then((records) => ({
+          .then((records: number) => ({
             status: "connected" as const,
             records,
           }))
@@ -36,7 +65,7 @@ export async function GET() {
       : {
           status: "unavailable" as const,
           records: 0,
-          error: databaseRuntime.error,
+          error: "Base de datos no disponible.",
         };
   const usage =
     databaseProbe.status === "connected"
@@ -61,33 +90,23 @@ export async function GET() {
   const modelHealth =
     databaseProbe.status === "connected"
       ? await getModelHealthSnapshot()
-      : {
-          status: "unavailable" as const,
-          checkedAt: new Date().toISOString(),
-          elo: {
-            status: "unavailable" as const,
-            totalRows: 0,
-            rowsWithOpponentElo: 0,
-            coverage: 0,
-          },
-          backtesting: {
-            status: "unavailable" as const,
-            latestRunAt: null,
-            daysSinceLastRun: null,
-            sampleSize: 0,
-            brier: null,
-            logLoss: null,
-            rps: null,
-            dixonColesRho: null,
-            rhoSampleSize: null,
-            source: null,
-          },
-          error: databaseRuntime.error,
-        };
+          .then((snapshot) =>
+            snapshot.error
+              ? { ...snapshot, error: "Estado de salud del modelo no disponible." }
+              : snapshot,
+          )
+          .catch(unavailableModelHealth)
+      : unavailableModelHealth();
   const apiReady = hasConfiguredFootballProvider();
+  const isOperational = apiReady && databaseProbe.status === "connected";
+  const mode = isOperational
+    ? "operational"
+    : runtimePolicy.isProduction
+      ? "degraded"
+      : "development-demo";
 
   return Response.json({
-    mode: apiReady ? "api-ready" : "demo",
+    mode,
     checkedAt: new Date().toISOString(),
     providers: providerStatus.map((p) => ({
       id: p.id,
@@ -110,6 +129,8 @@ export async function GET() {
     databaseRecords:
       databaseProbe.status === "connected" ? databaseProbe.records : 0,
     databaseError:
-      databaseProbe.status === "unavailable" ? databaseProbe.error : null,
-  });
+      databaseProbe.status === "unavailable"
+        ? "Base de datos no disponible."
+        : null,
+  }, { status: mode === "degraded" ? 503 : 200 });
 }

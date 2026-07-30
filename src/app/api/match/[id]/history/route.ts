@@ -1,12 +1,36 @@
-import { prisma } from "@/lib/db/prisma";
+import { getDatabaseRuntimeStatus, prisma } from "@/lib/db/prisma";
 import { getDemoDatasetById } from "@/data/demo";
 import { problem } from "@/lib/http/problem";
+import {
+  createRuntimePolicy,
+  isProductionDataUnavailableError,
+  ProductionDataUnavailableError,
+} from "@/lib/runtime/productionPolicy";
+import { productionDataProblem } from "@/lib/http/productionDataProblem";
 
 export async function GET(
   _request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
   const { id } = await context.params;
+  const runtimePolicy = createRuntimePolicy();
+  try {
+    if (getDemoDatasetById(id)) runtimePolicy.assertDemoAllowed();
+    if (
+      runtimePolicy.isProduction &&
+      getDatabaseRuntimeStatus().status !== "configured"
+    ) {
+      throw new ProductionDataUnavailableError(
+        "Database runtime is unavailable.",
+        "La configuración operativa no está disponible.",
+      );
+    }
+  } catch (error) {
+    if (isProductionDataUnavailableError(error)) {
+      return productionDataProblem(error);
+    }
+    throw error;
+  }
   if (getDemoDatasetById(id)) {
     return Response.json({ analyses: [], overrides: [] });
   }

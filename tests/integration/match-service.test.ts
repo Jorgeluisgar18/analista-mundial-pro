@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { demoDataset } from "@/data/demo";
 import { createMatchService } from "@/lib/services/matchService";
 import { getApiUsageSnapshot } from "@/lib/services/apiUsageService";
+import { createRuntimePolicy } from "@/lib/runtime/productionPolicy";
 
 vi.mock("@/lib/services/apiUsageService", () => ({
   getApiUsageSnapshot: vi.fn(async () => []),
@@ -16,6 +17,101 @@ describe("matchService", () => {
     const result = await service.listByDate("2026-06-15");
     expect(result.mode).toBe("demo");
     expect(result.matches[0]?.dataOrigin).toBe("DEMO");
+  });
+
+  it("en producción no reemplaza la falta de cobertura real por datos demo", async () => {
+    const service = createMatchService({
+      env: {},
+      runtimePolicy: createRuntimePolicy({ NODE_ENV: "production" }),
+    });
+
+    await expect(service.listByDate("2026-06-15")).rejects.toMatchObject({
+      status: 503,
+      name: "ProductionDataUnavailableError",
+    });
+  });
+
+  it("en producción no abre datasets demo por id", async () => {
+    const service = createMatchService({
+      env: {},
+      runtimePolicy: createRuntimePolicy({ NODE_ENV: "production" }),
+    });
+
+    await expect(service.getById("demo-col-bra")).resolves.toBeNull();
+  });
+
+  it("en producción rechaza un snapshot fresco que contiene datos demo", async () => {
+    const service = createMatchService({
+      env: {},
+      runtimePolicy: createRuntimePolicy({ NODE_ENV: "production" }),
+      snapshotCache: {
+        async getFreshDataset() {
+          return structuredClone(demoDataset);
+        },
+      },
+    });
+
+    await expect(service.getById("real-provider--cached")).rejects.toMatchObject({
+      status: 503,
+      name: "ProductionDataUnavailableError",
+    });
+  });
+
+  it("en producción conserva la lista real si el snapshot de enriquecimiento es demo", async () => {
+    const listedMatch = {
+      ...demoDataset.match,
+      id: "real-listed",
+      dataOrigin: "API" as const,
+      homeTeam: { ...demoDataset.match.homeTeam, name: "Local real" },
+      awayTeam: { ...demoDataset.match.awayTeam, name: "Visitante real" },
+    };
+    const service = createMatchService({
+      runtimePolicy: createRuntimePolicy({ NODE_ENV: "production" }),
+      snapshotCache: {
+        async getFreshDataset() {
+          return structuredClone(demoDataset);
+        },
+      },
+      providers: {
+        football: [
+          {
+            id: "api-football",
+            async listMatches() {
+              return {
+                data: [listedMatch],
+                meta: {
+                  source: "API-Football",
+                  fetchedAt: "2026-06-15T12:00:00.000Z",
+                  isStale: false,
+                  warnings: [],
+                },
+              };
+            },
+            async getMatch() {
+              return {
+                data: null,
+                meta: {
+                  source: "API-Football",
+                  fetchedAt: "2026-06-15T12:00:00.000Z",
+                  isStale: false,
+                  warnings: [],
+                },
+              };
+            },
+          },
+        ],
+      },
+    });
+
+    const result = await service.listByDate("2026-06-15");
+
+    expect(result.matches[0]).toMatchObject({
+      id: "api-football--real-listed",
+      dataOrigin: "API",
+      homeTeam: { name: "Local real" },
+      awayTeam: { name: "Visitante real" },
+    });
+    expect(JSON.stringify(result.matches)).not.toContain("demo-col-bra");
   });
 
   it("devuelve vacío para una fecha demo sin partidos", async () => {

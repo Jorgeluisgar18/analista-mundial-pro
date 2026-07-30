@@ -86,8 +86,10 @@ test("busca y analiza un partido demo", async ({ page }) => {
     name: "Abrir primer análisis",
   });
   await expect(firstAnalysis).toHaveAttribute("href", "/match/demo-col-bra");
-  await firstAnalysis.click();
-  await expect(page).toHaveURL(/\/match\/demo-col-bra/);
+  await Promise.all([
+    page.waitForURL(/\/match\/demo-col-bra/),
+    firstAnalysis.click(),
+  ]);
   await expect(
     page.getByRole("heading", { name: "Lectura ejecutiva" }),
   ).toBeVisible();
@@ -264,8 +266,10 @@ test("flujo completo permite revisar fuentes, health y export sin pantalla en bl
     name: "Abrir primer análisis",
   });
   await expect(firstAnalysis).toHaveAttribute("href", "/match/demo-col-bra");
-  await firstAnalysis.click();
-  await expect(page).toHaveURL(/\/match\/demo-col-bra/);
+  await Promise.all([
+    page.waitForURL(/\/match\/demo-col-bra/),
+    firstAnalysis.click(),
+  ]);
   await page.getByRole("button", { name: /Plantillas/i }).click();
   await expect(
     page.getByLabel(/Campo táctico de Colombia en 4-2-3-1/i),

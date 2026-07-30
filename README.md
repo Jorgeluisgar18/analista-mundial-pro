@@ -52,7 +52,7 @@ Abre:
 http://localhost:3000
 ```
 
-Para usar datos reales, crea un `.env.local` a partir de `.env.example` y agrega tus propias claves de proveedores.
+Para usar datos reales, crea un `.env.local` a partir de `.env.example` y agrega tus propias claves de proveedores. En desarrollo y pruebas la aplicación puede usar fixtures locales, sin consumir cuota ni llamar proveedores externos. En producción opera con datos reales: si no están disponibles, responde de forma segura en vez de mostrar partidos demo.
 
 ## Scripts principales
 
@@ -68,6 +68,8 @@ npm run test:e2e  # pruebas end-to-end
 
 - `docs/data-sources/provider-onboarding.md`: guía para agregar ligas, proveedores, escudos/importadores y QA local.
 - `docs/qa/manual-search-matrix.md`: matriz manual para validar búsquedas, cabina y estados vacíos.
+- `docs/guides/provider-setup.md`: configuración técnica y comportamiento de proveedores por entorno.
+- `docs/qa/real-api-qa-runbook.md`: ronda autorizada de QA con APIs reales y presupuesto de cuota.
 
 ## Estado del proyecto
 

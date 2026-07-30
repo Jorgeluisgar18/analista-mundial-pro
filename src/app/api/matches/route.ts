@@ -1,5 +1,7 @@
 import { problem } from "@/lib/http/problem";
 import { matchService } from "@/lib/services/matchService";
+import { isProductionDataUnavailableError } from "@/lib/runtime/productionPolicy";
+import { productionDataProblem } from "@/lib/http/productionDataProblem";
 import { isoDateSchema } from "@/lib/validation/schemas";
 
 export async function GET(request: Request) {
@@ -14,6 +16,14 @@ export async function GET(request: Request) {
     );
   }
   const competition = url.searchParams.get("competition") ?? undefined;
-  const result = await matchService.listByDate(parsed.data, competition);
+  let result: Awaited<ReturnType<typeof matchService.listByDate>>;
+  try {
+    result = await matchService.listByDate(parsed.data, competition);
+  } catch (error) {
+    if (isProductionDataUnavailableError(error)) {
+      return productionDataProblem(error);
+    }
+    throw error;
+  }
   return Response.json(result);
 }

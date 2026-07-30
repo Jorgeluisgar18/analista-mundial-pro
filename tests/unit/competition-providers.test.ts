@@ -227,4 +227,38 @@ describe("filtros por proveedor", () => {
       "https://crests.football-data.org/1.png",
     );
   });
+
+  it("Football-Data construye una cabina navegable para un partido listado", async () => {
+    const fetcher = vi.fn(async () =>
+      Response.json({
+        id: 564634,
+        utcDate: "2026-08-15T18:00:00Z",
+        status: "SCHEDULED",
+        venue: "Estadio de prueba",
+        competition: {
+          id: 2014,
+          name: "Primera Division",
+          area: { name: "Spain" },
+        },
+        homeTeam: { id: 1, name: "Local", tla: "LOC" },
+        awayTeam: { id: 2, name: "Visitante", tla: "VIS" },
+      }),
+    );
+    const provider = new FootballDataProvider("test", fetcher as typeof fetch);
+
+    const result = await provider.getMatch("564634");
+    const requestedUrl = firstRequestedUrl(fetcher);
+
+    expect(requestedUrl.pathname).toBe("/v4/matches/564634");
+    expect(result.data?.match.id).toBe("564634");
+    expect(result.data?.match.venue).toBe("Estadio de prueba");
+    expect(result.data?.lineups.every((lineup) => lineup.confirmed === false)).toBe(
+      true,
+    );
+    expect(result.data?.sources).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: "football-data-match", status: "confirmed" }),
+      ]),
+    );
+  });
 });

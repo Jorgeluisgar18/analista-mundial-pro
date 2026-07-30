@@ -219,15 +219,6 @@ function shouldUseBroadDateSearch(competition?: string) {
   return findSupportedCompetition(competition)?.slug === "wc-2026";
 }
 
-function shouldSkipApiFootballFreeSeason(date: string, competition?: string) {
-  const supported = findSupportedCompetition(competition);
-  return Boolean(
-    supported &&
-      supported.kind === "CLUB" &&
-      seasonFromDate(date) > 2024,
-  );
-}
-
 export class ApiFootballProvider implements FootballProvider {
   readonly id = "api-football";
 
@@ -336,20 +327,6 @@ export class ApiFootballProvider implements FootballProvider {
     date: string,
     competition?: string,
   ): Promise<ProviderResult<NormalizedMatch[]>> {
-    if (shouldSkipApiFootballFreeSeason(date, competition)) {
-      return {
-        data: [],
-        meta: {
-          source: "API-Football",
-          fetchedAt: new Date().toISOString(),
-          isStale: false,
-          warnings: [
-            "API-Football omitido para esta liga/temporada en plan gratuito; se intenta con proveedores complementarios.",
-          ],
-        },
-      };
-    }
-
     const leagueId = shouldUseBroadDateSearch(competition)
       ? undefined
       : resolveApiFootballLeague(competition);

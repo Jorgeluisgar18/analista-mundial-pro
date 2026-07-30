@@ -3,6 +3,23 @@ import { demoDataset } from "@/data/demo";
 import { withExpectedLineups } from "@/lib/lineups/expectedLineups";
 
 describe("expected lineups", () => {
+  it("does not infer an expected XI for a finished match without provider lineups", () => {
+    const dataset = structuredClone(demoDataset);
+    dataset.match.status = "finished";
+    dataset.lineups = [];
+    dataset.players = [];
+
+    const enriched = withExpectedLineups(dataset);
+
+    expect(enriched.lineups).toHaveLength(2);
+    expect(enriched.lineups.every((lineup) => lineup.status === "unavailable")).toBe(
+      true,
+    );
+    expect(
+      enriched.sources.some((source) => source.id === "expected-lineups"),
+    ).toBe(false);
+  });
+
   it("does not persist visual slot placeholders as player names", () => {
     const dataset = structuredClone(demoDataset);
     dataset.match.homeTeam = {

@@ -31,6 +31,46 @@ describe("matchService", () => {
     });
   });
 
+  it("returns an empty API list in production when a provider responds successfully without matches", async () => {
+    const service = createMatchService({
+      runtimePolicy: createRuntimePolicy({ NODE_ENV: "production" }),
+      providers: {
+        football: [
+          {
+            id: "api-football",
+            async listMatches() {
+              return {
+                data: [],
+                meta: {
+                  source: "API-Football",
+                  fetchedAt: "2026-07-30T19:00:00.000Z",
+                  isStale: false,
+                  warnings: ["API-Football: no coverage for the requested date."],
+                },
+              };
+            },
+            async getMatch() {
+              return {
+                data: null,
+                meta: {
+                  source: "API-Football",
+                  fetchedAt: "2026-07-30T19:00:00.000Z",
+                  isStale: false,
+                  warnings: [],
+                },
+              };
+            },
+          },
+        ],
+      },
+    });
+
+    await expect(service.listByDate("2035-01-01")).resolves.toMatchObject({
+      mode: "api",
+      matches: [],
+    });
+  });
+
   it("en producción no abre datasets demo por id", async () => {
     const service = createMatchService({
       env: {},

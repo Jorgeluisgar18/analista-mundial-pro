@@ -169,6 +169,7 @@ export function createMatchService({
   const service = {
     async listByDate(date: string, competition?: string) {
       const warnings: string[] = [];
+      let hasSuccessfulProviderResponse = false;
       for (const provider of providers.football) {
         const quotaWarning = await providerQuotaWarning(provider.id);
         if (quotaWarning) {
@@ -177,6 +178,7 @@ export function createMatchService({
         }
         try {
           const result = await provider.listMatches(date, competition);
+          hasSuccessfulProviderResponse = true;
           if (result.data.length) {
             const enriched = await enrichListedMatchesFromCache(
               result.data,
@@ -201,6 +203,16 @@ export function createMatchService({
       }
 
       if (!runtimePolicy.allowsDemoData) {
+        if (hasSuccessfulProviderResponse) {
+          return {
+            mode: "api" as const,
+            source: "Cobertura de proveedores",
+            fetchedAt: new Date().toISOString(),
+            warnings,
+            providerStatus: providerStatus(),
+            matches: [],
+          };
+        }
         throw new ProductionDataUnavailableError(
           "No real football provider returned matches.",
           "No hay datos reales disponibles para esta consulta en este momento.",

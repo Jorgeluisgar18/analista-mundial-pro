@@ -80,12 +80,34 @@ function expectedFormationEvidence(observedAt = new Date().toISOString()) {
   };
 }
 
+function unavailableFormationEvidence(observedAt = new Date().toISOString()) {
+  return {
+    value: "AlineaciÃ³n no disponible para partido finalizado",
+    status: "unavailable" as const,
+    sourceType: "inferred" as const,
+    source: "Control de integridad de alineaciones",
+    observedAt,
+    note:
+      "No se infiere un once probable despuÃ©s de que el partido ha finalizado.",
+  };
+}
+
 function missingLineup(teamId: string): LineupProjection {
   return {
     teamId,
     formation: expectedFormationEvidence(),
     alternativeFormation: DEFAULT_ALTERNATIVE,
     status: "expected",
+    confirmed: false,
+    starters: [],
+  };
+}
+
+function unavailableLineup(teamId: string): LineupProjection {
+  return {
+    teamId,
+    formation: unavailableFormationEvidence(),
+    status: "unavailable",
     confirmed: false,
     starters: [],
   };
@@ -125,6 +147,26 @@ export function withExpectedLineups(dataset: MatchDataset): MatchDataset {
     next.match.homeTeam.id,
     next.match.awayTeam.id,
   ].filter(Boolean);
+
+  if (next.match.status === "finished") {
+    const existingLineups = new Map(
+      next.lineups.map((lineup) => [lineup.teamId, lineup]),
+    );
+    next.lineups = requiredTeamIds.map((teamId) => {
+      const lineup = existingLineups.get(teamId);
+      if (!lineup?.confirmed) return unavailableLineup(teamId);
+      return {
+        ...lineup,
+        status: lineup.starters.length >= 11 ? "confirmed" : "official-partial",
+      };
+    });
+    next.sources = next.sources.filter(
+      (source) =>
+        !["expected-lineups", "partial-official-lineups"].includes(source.id),
+    );
+    return next;
+  }
+
   const existingTeamIds = new Set(next.lineups.map((lineup) => lineup.teamId));
   for (const teamId of requiredTeamIds) {
     if (!existingTeamIds.has(teamId)) {

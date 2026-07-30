@@ -139,7 +139,7 @@ describe("filtros por proveedor", () => {
     expect(result.data[0].competition.name).toBe("FIFA World Cup");
   });
 
-  it("Football-Data traduce el slug al código competitions", async () => {
+  it("Football-Data consulta el subrecurso de la competición", async () => {
     const fetcher = vi.fn(async () => Response.json({ matches: [] }));
     const provider = new FootballDataProvider(
       "test",
@@ -149,7 +149,8 @@ describe("filtros por proveedor", () => {
     await provider.listMatches("2026-08-15", "premier-league");
     const requestedUrl = firstRequestedUrl(fetcher);
 
-    expect(requestedUrl.searchParams.get("competitions")).toBe("PL");
+    expect(requestedUrl.pathname).toBe("/v4/competitions/PL/matches");
+    expect(requestedUrl.searchParams.has("competitions")).toBe(false);
     expect(requestedUrl.searchParams.get("dateFrom")).toBe("2026-08-15");
     expect(requestedUrl.searchParams.get("dateTo")).toBe("2026-08-16");
   });

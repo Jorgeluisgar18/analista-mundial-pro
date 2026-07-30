@@ -26,13 +26,14 @@ export class FootballDataProvider implements FootballProvider {
     date: string,
     competition?: string,
   ): Promise<ProviderResult<NormalizedMatch[]>> {
-    const url = new URL("https://api.football-data.org/v4/matches");
+    const competitionCode = resolveFootballDataCompetition(competition);
+    const url = new URL(
+      competitionCode
+        ? `https://api.football-data.org/v4/competitions/${competitionCode}/matches`
+        : "https://api.football-data.org/v4/matches",
+    );
     url.searchParams.set("dateFrom", date);
     url.searchParams.set("dateTo", nextIsoDate(date));
-    const competitionCode = resolveFootballDataCompetition(competition);
-    if (competitionCode) {
-      url.searchParams.set("competitions", competitionCode);
-    }
     const response = await resilientFetch(this.fetcher, url, {
       headers: { "X-Auth-Token": this.apiKey },
       signal: AbortSignal.timeout(8_000),

@@ -2,9 +2,13 @@
 
 Este smoke valida una URL productiva o preview ya desplegada. No ejecuta deploy.
 
+## Estado actual: bloqueado
+
+No ejecutar este smoke todavía. Permanece bloqueado hasta que el owner confirme la URL activa y autorice expresamente la ejecución. La URL histórica no es una sustitución válida. Esta documentación no autoriza deploy, promoción ni llamadas externas.
+
 ## Requisito
 
-`SMOKE_BASE_URL` es obligatorio. No uses URLs históricas sin confirmarlas en Netlify.
+Tras esa confirmación y autorización, `SMOKE_BASE_URL` es obligatorio. No uses URLs históricas sin confirmarlas en Netlify.
 
 PowerShell:
 

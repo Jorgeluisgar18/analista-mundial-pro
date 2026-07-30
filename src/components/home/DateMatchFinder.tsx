@@ -83,8 +83,8 @@ export function DateMatchFinder({ initialDate }: { initialDate: string }) {
         </div>
         <p>
           Las fechas se interpretan en horario Colombia. Los datos reales se
-          consultan desde el servidor; si no hay cobertura, se muestra una
-          muestra local claramente marcada.
+          consultan desde el servidor; la muestra local solo está disponible en
+          desarrollo y pruebas.
         </p>
       </div>
 

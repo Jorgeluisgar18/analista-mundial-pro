@@ -9,6 +9,7 @@ Este runbook se usa cuando el owner autoriza una ronda de QA con proveedores rea
 - TheSportsDB: puede usarse con mayor libertad en plan gratuito, pero registrar errores/latencia.
 - Football-Data.org y Footballdata.io: registrar si el proveedor devuelve calendario sin detalle o datos parciales.
 - No ejecutar smoke productivo sin `SMOKE_BASE_URL` confirmado.
+- Registrar solo lo que devuelva el proveedor o la aplicación; no completar resultados, alineaciones, cuotas ni estados con valores inventados.
 
 ## Preparacion local
 
@@ -23,17 +24,17 @@ Verifica en `/api/provider-status` que los proveedores esperados aparezcan confi
 
 ## Casos minimos
 
-| Bloque | Entrada sugerida | Proveedor esperado | Validacion |
+| Bloque | Entrada de la ronda | Fuente a observar | Validacion factual |
 |---|---|---|---|
-| Mundial/selecciones | Fecha FIFA/Mundial conocida, competicion `all` o Mundial | API-Football + TheSportsDB | Hora COT, banderas, vacio explicado si no hay calendario. |
-| Premier League | Fecha de jornada EPL | Football-Data.org/API-Football/The Odds API | Lista o vacio explicado; no abrir odds si `/events` no encontro partido. |
-| Champions League | Fecha de jornada UEFA | API-Football/The Odds API | Competicion correcta, proveedor y calidad visibles. |
-| LaLiga | Fecha de jornada LaLiga | Football-Data.org/The Odds API | Logos/escudos si existen; mensajes claros si no hay detalle. |
-| Fecha sin partidos | `2035-01-01` | Todos | Sin pantalla blanca; estado vacio y fuente explicada. |
-| Alineacion esperada | Partido futuro a mas de 1 hora | API-Football/cache | Formacion esperada sin inventar nombres. |
-| Alineacion oficial/parcial | Partido cercano con XI disponible | API-Football | Estado oficial/parcial visible y nombres preservados. |
-| Cuotas no disponibles | Partido real sin mercado odds | The Odds API | Mercados no prometen value betting accionable. |
-| Export HTML | Cabina con datos reales/parciales | App local | Incluye fuentes, calidad, cancha, odds y trazabilidad. |
+| Mundial/selecciones | Fecha FIFA/Mundial confirmada durante la ronda; competición Mundial o `all` | API-Football y, si aplica, TheSportsDB | Mostrar únicamente los partidos devueltos, hora COT y fuente; si no hay calendario, estado vacío explicado. |
+| Premier League | Fecha de jornada EPL confirmada | Football-Data.org y/o API-Football; The Odds API solo tras coincidencia en `/events` | Competición y calidad/fuente visibles; lista o vacío según la respuesta real. |
+| Champions League | Fecha de jornada UEFA confirmada | API-Football; The Odds API solo tras coincidencia en `/events` | Competición y proveedor visibles; no afirmar cobertura que la respuesta no contenga. |
+| LaLiga | Fecha de jornada LaLiga confirmada | Football-Data.org y/o API-Football; The Odds API si aplica | Identidad del partido y fuente visibles; escudos o detalle solo si fueron devueltos. |
+| Fecha sin partidos | `2035-01-01` | Todos los configurados | Sin pantalla blanca: estado vacío y fuente explicada, sin fixtures de sustitución. |
+| Alineación esperada | Partido futuro con formación prevista devuelta por la fuente | API-Football o caché real | Estado “esperada”; no inventar nombres, posiciones ni confirmación oficial. |
+| Alineación oficial/parcial | Partido cercano con XI o estado de alineación devuelto por la fuente | API-Football | Estado “oficial” o “parcial” según la fuente; preservar nombres devueltos y no elevar un estado parcial. |
+| Sin cuotas | Partido real sin mercado tras la búsqueda conservadora | The Odds API | Indicar ausencia de mercado/fuente; no prometer value betting ni fabricar cuotas. |
+| Export HTML | Cabina resuelta con datos reales o parciales | Aplicación local | Exportar solo los datos disponibles, con fuentes, calidad, cancha cuando exista, cuotas cuando existan y trazabilidad. |
 
 ## Evidencia a registrar
 

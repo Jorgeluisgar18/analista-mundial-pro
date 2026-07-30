@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { demoDataset } from "@/data/demo";
 import { analyzeMatch } from "@/lib/analysis/analysisEngine";
 import { MatchProviderUnavailableError } from "@/lib/services/matchService";
+import { ProductionDataUnavailableError } from "@/lib/runtime/productionPolicy";
 
 vi.mock("server-only", () => ({}));
 
@@ -64,5 +65,27 @@ describe("read-only match routes", () => {
       "application/problem+json",
     );
     expect(body.title).toMatch(/proveedor temporalmente no disponible/i);
+  });
+  it.each([
+    ["detalle", "@/app/api/match/[id]/route"],
+    ["exportación", "@/app/api/match/[id]/export/route"],
+  ])("expone un 503 seguro si no hay datos reales para %s", async (_name, modulePath) => {
+    getAnalysisMock.mockRejectedValueOnce(
+      new ProductionDataUnavailableError(
+        "DATABASE_URL=postgres://user:api-key@db.example/app",
+        "La configuración operativa no está disponible.",
+      ),
+    );
+    const route = await import(modulePath);
+    const response = await route.GET(
+      new Request("http://local/api/match/real-provider--123"),
+      { params: Promise.resolve({ id: "real-provider--123" }) },
+    );
+    const body = await response.json();
+
+    expect(response.status).toBe(503);
+    expect(body.title).toBe("Datos reales no disponibles");
+    expect(body.detail).toBe("La configuración operativa no está disponible.");
+    expect(JSON.stringify(body)).not.toMatch(/demo-col-bra|postgres:\/\/|api-key/i);
   });
 });

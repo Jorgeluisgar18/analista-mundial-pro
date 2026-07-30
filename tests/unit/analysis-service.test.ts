@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { demoDataset } from "@/data/demo";
+import { createRuntimePolicy } from "@/lib/runtime/productionPolicy";
 
 vi.mock("server-only", () => ({}));
 
@@ -28,6 +29,8 @@ describe("analysisService", () => {
     ingestFinishedDataset.mockReset();
     enrich.mockReset();
     enrich.mockImplementation(async (dataset) => dataset);
+    database.match.findUnique.mockReset();
+    database.manualOverride.findMany.mockReset();
     database.match.findUnique.mockResolvedValue(null);
     database.manualOverride.findMany.mockResolvedValue([]);
   });
@@ -73,5 +76,32 @@ describe("analysisService", () => {
     });
 
     expect(result?.analysis.id).toBe("analysis-demo-col-bra");
+  });
+
+  it("en producción falla antes de usar Prisma noop si la DB no está configurada", async () => {
+    const { createAnalysisService } = await import(
+      "@/lib/services/analysisService"
+    );
+    const service = createAnalysisService({
+      database: database as never,
+      databaseRuntimeStatus: () => ({
+        status: "unavailable" as const,
+        error: "postgres://user:secret@db.example/app",
+      }),
+      runtimePolicy: createRuntimePolicy({ NODE_ENV: "production" }),
+      matchService: {
+        async getById() {
+          return structuredClone(demoDataset);
+        },
+      },
+    });
+
+    await expect(
+      service.getAnalysis("real-provider--123", { persist: false }),
+    ).rejects.toMatchObject({
+      status: 503,
+      name: "ProductionDataUnavailableError",
+    });
+    expect(database.match.findUnique).not.toHaveBeenCalled();
   });
 });

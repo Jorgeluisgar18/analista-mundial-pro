@@ -7,7 +7,8 @@ Esta carpeta agrupa la documentación útil del proyecto sin mezclar guías acti
 - `guides/provider-setup.md`: configuración de proveedores y variables de entorno.
 - `deployment/netlify-neon-postgres.md`: notas de despliegue con Netlify y Neon.
 - `qa/manual-search-matrix.md`: matriz de pruebas manuales.
-- `qa/production-smoke.md`: verificación rápida post-deploy.
+- `qa/real-api-qa-runbook.md`: ronda local autorizada con proveedores reales, presupuesto y matriz factual.
+- `qa/production-smoke.md`: verificación rápida post-deploy; actualmente bloqueada hasta URL activa y autorización del owner.
 
 ## Producto y análisis
 

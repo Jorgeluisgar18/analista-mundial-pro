@@ -78,15 +78,20 @@ export function createMatchSnapshotCache({
 } = {}) {
   return {
     async getFreshDataset(matchId: string): Promise<MatchDataset | null> {
-      const match = await database.match.findUnique({
-        where: { externalId: matchId },
-        include: {
-          snapshots: {
-            orderBy: { fetchedAt: "desc" },
-            take: 3,
+      let match;
+      try {
+        match = await database.match.findUnique({
+          where: { externalId: matchId },
+          include: {
+            snapshots: {
+              orderBy: { fetchedAt: "desc" },
+              take: 3,
+            },
           },
-        },
-      });
+        });
+      } catch {
+        return null;
+      }
       if (!match) return null;
 
       for (const snapshot of match.snapshots) {

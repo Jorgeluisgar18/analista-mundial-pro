@@ -1,5 +1,7 @@
 import { problem } from "@/lib/http/problem";
 import { isMatchProviderUnavailableError } from "@/lib/services/matchService";
+import { isProductionDataUnavailableError } from "@/lib/runtime/productionPolicy";
+import { productionDataProblem } from "@/lib/http/productionDataProblem";
 import { getAnalysis } from "@/lib/services/analysisService";
 
 export async function GET(
@@ -11,6 +13,9 @@ export async function GET(
   try {
     result = await getAnalysis(id, { persist: false });
   } catch (error) {
+    if (isProductionDataUnavailableError(error)) {
+      return productionDataProblem(error);
+    }
     if (isMatchProviderUnavailableError(error)) {
       return problem(
         503,

@@ -1,4 +1,4 @@
-import { afterEach, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { demoDataset } from "@/data/demo";
 import { createMatchSnapshotCache } from "@/lib/cache/matchSnapshotCache";
 import { prisma } from "@/lib/db/prisma";
@@ -133,6 +133,23 @@ describeWithDatabase("matchSnapshotCache", () => {
     });
     const cache = createMatchSnapshotCache({
       now: () => new Date("2026-07-10T18:55:00.000Z"),
+    });
+
+    await expect(cache.getFreshDataset(ids.match)).resolves.toBeNull();
+  });
+
+});
+
+describe("matchSnapshotCache sin base de datos", () => {
+  it("degrada una falla al consultar snapshots a cache miss", async () => {
+    const cache = createMatchSnapshotCache({
+      database: {
+        match: {
+          findUnique: async () => {
+            throw new Error("Postgres temporalmente no disponible");
+          },
+        },
+      },
     });
 
     await expect(cache.getFreshDataset(ids.match)).resolves.toBeNull();

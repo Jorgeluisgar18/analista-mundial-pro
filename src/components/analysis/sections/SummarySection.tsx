@@ -22,7 +22,11 @@ function mainSignal(analysis: AnalysisResult) {
   const second = probabilities[1];
   const gap = leader.value - second.value;
 
-  if (leader.role === "empate" || gap < 4) {
+  if (leader.role === "empate") {
+    return `El empate es el resultado modal (${leader.value.toFixed(1)}%), pero no hay una ventaja clara entre los equipos.`;
+  }
+
+  if (gap < 4) {
     return `Partido muy parejo: la brecha principal es de solo ${gap.toFixed(1)} puntos porcentuales.`;
   }
 

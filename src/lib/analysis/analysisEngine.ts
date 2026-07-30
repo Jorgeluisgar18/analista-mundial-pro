@@ -912,7 +912,7 @@ export function analyzeMatch(
     ],
     sources: dataset.sources,
     dataQuality: {
-      coverage: dataset.players.length ? 88 : 70,
+      coverage: reliableBaseStats ? (dataset.players.length ? 88 : 70) : 35,
       freshness: Math.round(freshnessScore * 100),
       agreement: 86,
       modelStability: Math.round(modelStability * 100),

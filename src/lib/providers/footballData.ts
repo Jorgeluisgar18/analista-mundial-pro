@@ -13,6 +13,20 @@ import {
 } from "@/lib/time/colombia";
 import type { MatchDataset, NormalizedMatch } from "@/types/domain";
 
+async function errorDetail(response: Response) {
+  const body = (await response.json().catch(() => null)) as {
+    message?: unknown;
+    error?: unknown;
+  } | null;
+  const candidate =
+    typeof body?.message === "string"
+      ? body.message
+      : typeof body?.error === "string"
+        ? body.error
+        : undefined;
+  return candidate?.replace(/\s+/g, " ").trim().slice(0, 180);
+}
+
 export class FootballDataProvider implements FootballProvider {
   readonly id = "football-data";
 
@@ -46,7 +60,10 @@ export class FootballDataProvider implements FootballProvider {
       limit: 10,
     });
     if (!response.ok) {
-      throw new Error(`Football-Data.org respondió ${response.status}`);
+      const detail = await errorDetail(response);
+      throw new Error(
+        `Football-Data.org respondió ${response.status}${detail ? `: ${detail}` : ""}`,
+      );
     }
     const body = (await response.json()) as {
       matches?: Array<{

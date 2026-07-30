@@ -155,6 +155,22 @@ describe("filtros por proveedor", () => {
     expect(requestedUrl.searchParams.get("dateTo")).toBe("2026-08-16");
   });
 
+  it("Football-Data conserva un motivo saneado cuando el proveedor rechaza la consulta", async () => {
+    const fetcher = vi.fn(async () =>
+      Response.json(
+        { message: "  Plan  no incluye la temporada solicitada.  " },
+        { status: 400 },
+      ),
+    );
+    const provider = new FootballDataProvider("test", fetcher as typeof fetch);
+
+    await expect(
+      provider.listMatches("2026-08-15", "premier-league"),
+    ).rejects.toThrow(
+      "Football-Data.org respondió 400: Plan no incluye la temporada solicitada.",
+    );
+  });
+
   it("Football-Data conserva solo partidos que caen en el día Colombia solicitado", async () => {
     const fetcher = vi.fn(async () =>
       Response.json({

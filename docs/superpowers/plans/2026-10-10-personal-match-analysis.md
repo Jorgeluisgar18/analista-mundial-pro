@@ -17,7 +17,7 @@
 - Intended audience: the owner and a few trusted friends.
 - Do not add admin dashboards, per-user quotas, multi-tenancy, providers/scraping, or model complexity.
 - Never invent odds, lineups, injuries, or other match data; show unavailable/partial data honestly.
-- Real-provider QA is manual only. Keep API-Football usage to at most 10 calls for the whole QA pass; stop sooner if the usage counter or call cost is unclear.
+- Real-provider QA is manual only. The owner authorizes at most 20 API-Football HTTP requests for the whole QA pass, counting retries. Stop earlier if usage cannot be verified; do not touch Neon or production.
 - Keep `tests/e2e/core-flow.spec.ts` on mocked data; automated tests must not call real providers.
 - Source implementation and real-provider verification are separate outcomes. Do not describe local/test success as production certification.
 
@@ -45,7 +45,7 @@
 
 - [ ] Select a few upcoming matches that are actually available from configured providers; include a no-match date if practical.
 - [ ] In the local UI, inspect search → selected match → report, odds availability, lineup status (official/expected/unavailable), partial data, and source/freshness explanations.
-- [ ] Record date/time in Colombia, match, observed states, provider evidence, and API-Football call count in the matrix. Do not exceed 10 API-Football calls total; do not fabricate unavailable observations.
+- [ ] Record date/time in Colombia, match, observed states, provider evidence, and actual API-Football HTTP request count (including retries) in the matrix. Do not exceed 20 requests total; do not fabricate unavailable observations.
 
 **Acceptance:** The matrix records what was actually observed, distinguishes missing data from provider failure where evidence permits, and shows the API-call budget used.
 

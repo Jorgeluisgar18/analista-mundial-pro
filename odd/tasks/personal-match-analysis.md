@@ -14,14 +14,14 @@ The existing roadmap includes production/enterprise work that is not justified b
 - Continue implementation one approved plan task at a time; the current source-code authorization is limited to PMA-01 homepage examples and sample metrics.
 
 ## Constraints
-- For the current PMA-01 work unit, do not call real APIs, inspect secrets, access/change databases, push, create a PR, or deploy.
+- For PMA-02, owner authorizes a maximum of 20 API-Football HTTP requests for the entire QA pass, counting retries; do not inspect secret values or access/change Neon, push, create a PR, or deploy.
 - Preserve all pre-existing modified and untracked files. The existing `docs/superpowers/plans/2026-07-28-production-readiness.md` is untracked; leave it untouched and create a new dated replacement plan that clearly supersedes it for the current product goal.
 - The secure-auth worktree and its local commits remain untouched; reassess later only if private access for friends requires it.
-- For a future real-provider QA pass, keep API-Football usage below the owner's previously stated ceiling of 50 calls; prefer a much smaller budget and use no real provider calls in automated tests.
+- Use no real provider calls in automated tests. The current manual PMA-02 budget is a hard ceiling of 20 API-Football HTTP requests including retries; reserve headroom and stop if the actual counter/request count cannot be verified.
 - No commit attribution or Co-Authored-By trailers.
 
 ## Authorized scope
-The approved plan and PMA-01 homepage behavior/tests. The documentation plan and handoff update are already complete. Local work-unit commits are allowed under the repository workflow; remote operations are not authorized.
+The approved plan, PMA-01 homepage behavior/tests, and PMA-02 manual provider QA under a hard ceiling of 20 API-Football HTTP requests including retries. Local work-unit commits are allowed under the repository workflow; remote operations are not authorized.
 
 ## Acceptance criteria
 - The revised plan has no enterprise/multi-user quota work in its active scope.
@@ -47,7 +47,8 @@ The approved plan and PMA-01 homepage behavior/tests. The documentation plan and
 - Pending: Engram mirror (runtime session identity unavailable). `docs/internal/handoff.md` contains both the pre-existing July 28 addition and the new October 10 row; it remains unstaged to avoid absorbing the unrelated pre-existing edit.
 - PMA-01 completed: removed the expired preset buttons and replaced fixed numeric hero values with descriptive labels; marked the visual as decorative for assistive technology. Focused Vitest (6/6), ESLint, TypeScript (`npx tsc --noEmit`), and `git diff --check` passed. Local browser inspection confirmed the hero displays descriptive copy rather than match metrics. No real providers, E2E, production build, or deployment were used.
 - Work-unit commit: `898dd1c fix: remove stale homepage match examples`.
-- Next: proceed to the bounded real-match QA task only when provider/date inputs are selected, respecting the 10-call plan limit.
+- Owner updated PMA-02 ceiling to 20 API-Football HTTP requests including retries; no database, push, or production access is included.
+- Next: run bounded local real-match QA, record observed cases and actual call usage, and stop at 20 or sooner if usage cannot be verified.
 
 ## Relevant files
 - `src/components/home/DateMatchFinder.tsx` — currently contains the expired July 2026 World Cup and Champions example shortcuts.

@@ -40,7 +40,8 @@ Documentation-only update of this feature task, a new lightweight plan under `do
 
 ## Verification and next step
 - Completed: project CodeGraph mapping, read the task tracker, inspected the existing broad plan and handoff, preserved the pre-existing July 28 row and broad plan, created the personal-use plan, and appended the October 10 handoff row. `git diff --check` passes.
-- Pending: Engram mirror (runtime session identity unavailable), selective staging/commit, and recording the commit identity here.
+- Work-unit commit: `7e7f52a docs: scope roadmap for personal match analysis`.
+- Pending: Engram mirror (runtime session identity unavailable). `docs/internal/handoff.md` contains both the pre-existing July 28 addition and the new October 10 row; it remains unstaged to avoid absorbing the unrelated pre-existing edit.
 - Next step after this plan-only task: implement the approved personal-use backlog one small verified work unit at a time, starting with homepage examples/sample figures; do not expand into admin quotas or enterprise architecture.
 
 ## Relevant files

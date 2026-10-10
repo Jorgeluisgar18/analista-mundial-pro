@@ -30,11 +30,13 @@
 - `src/app/page.tsx`
 - `tests/unit/date-match-finder.test.tsx`
 
-- [ ] Replace expired World Cup/Champions shortcuts with useful future examples only when their dates are supportable; otherwise remove the shortcut.
-- [ ] Label or remove fixed homepage sample percentages and figures so they cannot be mistaken for the selected match's analysis.
-- [ ] Add/update focused unit coverage and manually inspect the homepage.
+- [x] Remove expired World Cup/Champions shortcuts because no current, supportable preset dates were needed.
+- [x] Replace fixed homepage sample percentages and figures with descriptive, non-match-specific labels and mark the visual as decorative.
+- [x] Add focused unit coverage and inspect the homepage in the local browser.
 
 **Acceptance:** No shortcut points to a past example date; static sample metrics are unmistakably illustrative or absent.
+
+**Verification:** Focused Vitest passed (6/6); ESLint, `npx tsc --noEmit`, and `git diff --check` passed. Local browser inspection showed descriptive hero labels without match-specific metrics. Real providers, E2E, production build, and deployment were not run because this work unit does not need them.
 
 ### PMA-02 — Run a small real-match QA pass
 

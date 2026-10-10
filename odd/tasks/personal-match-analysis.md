@@ -46,7 +46,7 @@ The approved plan and PMA-01 homepage behavior/tests. The documentation plan and
 - Work-unit commit: `7e7f52a docs: scope roadmap for personal match analysis`.
 - Pending: Engram mirror (runtime session identity unavailable). `docs/internal/handoff.md` contains both the pre-existing July 28 addition and the new October 10 row; it remains unstaged to avoid absorbing the unrelated pre-existing edit.
 - PMA-01 completed: removed the expired preset buttons and replaced fixed numeric hero values with descriptive labels; marked the visual as decorative for assistive technology. Focused Vitest (6/6), ESLint, TypeScript (`npx tsc --noEmit`), and `git diff --check` passed. Local browser inspection confirmed the hero displays descriptive copy rather than match metrics. No real providers, E2E, production build, or deployment were used.
-- Work-unit commit: pending; record its hash in the follow-up documentation commit.
+- Work-unit commit: `898dd1c fix: remove stale homepage match examples`.
 - Next: proceed to the bounded real-match QA task only when provider/date inputs are selected, respecting the 10-call plan limit.
 
 ## Relevant files

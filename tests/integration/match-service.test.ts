@@ -626,6 +626,14 @@ describe("matchService", () => {
   });
 
   it("omite The Odds API cuando la reserva mensual local está comprometida", async () => {
+    const quotaCapturedAt = new Date();
+    const quotaResetsAt = new Date(
+      Date.UTC(
+        quotaCapturedAt.getUTCFullYear(),
+        quotaCapturedAt.getUTCMonth() + 1,
+        1,
+      ),
+    );
     mockedGetApiUsageSnapshot
       .mockResolvedValueOnce([])
       .mockResolvedValueOnce([
@@ -634,9 +642,9 @@ describe("matchService", () => {
           used: 480,
           limit: 500,
           period: "month",
-          periodKey: "2026-07",
-          resetsAt: "2026-08-01T00:00:00.000Z",
-          updatedAt: "2026-07-01T12:00:00.000Z",
+          periodKey: quotaCapturedAt.toISOString().slice(0, 7),
+          resetsAt: quotaResetsAt.toISOString(),
+          updatedAt: quotaCapturedAt.toISOString(),
         },
       ]);
     const dataset = structuredClone(demoDataset);

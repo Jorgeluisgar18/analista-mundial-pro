@@ -7,6 +7,7 @@ import {
   predictionEvidenceSummary,
   predictionEvidenceTone,
 } from "@/lib/analysis/predictionEvidence";
+import { normalizeOddOutcome } from "@/lib/models/odds";
 import type { AnalysisResult, MatchDataset, Prediction } from "@/types/domain";
 
 function escapeHtml(value: unknown) {
@@ -51,6 +52,29 @@ function groupPredictionsByCategory(predictions: Prediction[]) {
 
 function evidenceCards(items: string) {
   return `<div class="sources">${items}</div>`;
+}
+
+function getArbitrageCoverage(
+  match: AnalysisResult["match"],
+  dataset?: MatchDataset,
+) {
+  const coveredOutcomes = new Set(
+    (dataset?.odds ?? [])
+      .filter(
+        (odd) =>
+          ["h2h", "1x2"].includes(odd.market.toLowerCase()) &&
+          Number.isFinite(odd.odd) &&
+          odd.odd > 1,
+      )
+      .map((odd) => normalizeOddOutcome(odd.outcome)),
+  );
+  const requiredOutcomes = [match.homeTeam.name, "Empate", match.awayTeam.name];
+  const coveredCount = requiredOutcomes.filter((outcome) =>
+    coveredOutcomes.has(outcome),
+  ).length;
+
+  if (coveredCount === requiredOutcomes.length) return "complete";
+  return coveredCount > 0 ? "incomplete" : "unverified";
 }
 
 function lineupStatusLabel(lineup: MatchDataset["lineups"][number]) {
@@ -324,6 +348,13 @@ export function renderAnalysisHtml(analysis: AnalysisResult, dataset?: MatchData
         </div>`,
     )
     .join("");
+  const arbitrageCoverage = getArbitrageCoverage(analysis.match, dataset);
+  const arbitrageEmptyState =
+    arbitrageCoverage === "complete"
+      ? '<div class="source"><strong>Revisión completa</strong><small>La cobertura 1X2 está completa y no se detectó una surebet en este snapshot.</small></div>'
+      : arbitrageCoverage === "incomplete"
+        ? '<div class="source"><strong>Revisión incompleta</strong><small>No se puede evaluar una surebet: faltan cuotas 1X2 completas en este snapshot.</small></div>'
+        : '<div class="source"><strong>Cobertura no verificada</strong><small>No se puede confirmar la cobertura 1X2 necesaria para evaluar una surebet en este snapshot.</small></div>';
 
   return `<!doctype html>
 <html lang="es">
@@ -387,7 +418,7 @@ export function renderAnalysisHtml(analysis: AnalysisResult, dataset?: MatchData
   ${groups}
   <section>
     <h2>Surebets</h2>
-    ${evidenceCards(arbitrage || '<div class="source"><strong>Sin surebet accionable</strong><small>No se detecto arbitraje deportivo con las cuotas disponibles.</small></div>')}
+    ${evidenceCards(arbitrage || arbitrageEmptyState)}
   </section>
   <section>
     <h2>Trazabilidad del modelo</h2>

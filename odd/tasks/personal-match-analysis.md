@@ -46,7 +46,7 @@ The approved plan, PMA-01 homepage behavior/tests, and PMA-02 manual provider QA
 ## Verification and next step
 - Completed: project CodeGraph mapping, read the task tracker, inspected the existing broad plan and handoff, preserved the pre-existing July 28 row and expanded local plan draft byte-for-byte (renamed to avoid collision with the upstream tracked plan), created the personal-use plan, and appended the October 10 handoff row. `git diff --check` passes.
 - Work-unit commit: `7e7f52a docs: scope roadmap for personal match analysis`.
-- Pending: Engram mirror (runtime session identity unavailable). The local handoff rows and QA evidence are staged for a dedicated documentation commit.
+- Pending: Engram mirror (runtime session identity unavailable). Local handoff and QA documentation were committed in `f09065b`.
 - PMA-01 completed: removed the expired preset buttons and replaced fixed numeric hero values with descriptive labels; marked the visual as decorative for assistive technology. Focused Vitest (6/6), ESLint, TypeScript (`npx tsc --noEmit`), and `git diff --check` passed. Local browser inspection confirmed the hero displays descriptive copy rather than match metrics. No real providers, E2E, production build, or deployment were used.
 - Work-unit commit: `898dd1c fix: remove stale homepage match examples`.
 - Owner updated PMA-02 ceiling to 20 API-Football HTTP requests including retries; no database, push, or production access is included.

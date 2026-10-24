@@ -30,6 +30,60 @@ describe("renderAnalysisHtml", () => {
     expect(html).toContain("Surebets");
   });
 
+  it("no declara verificada la cobertura 1X2 cuando no hay dataset de cuotas", () => {
+    const html = renderAnalysisHtml(analyzeMatch(demoDataset));
+
+    expect(html).toContain("Cobertura no verificada");
+  });
+
+  it("marca incompleta una cobertura 1X2 con resultados parciales", () => {
+    const dataset = structuredClone(demoDataset);
+    dataset.odds = [
+      {
+        bookmaker: "Casa de prueba",
+        market: "h2h",
+        outcome: dataset.match.homeTeam.name,
+        odd: 2.1,
+        observedAt: "2026-10-24T12:00:00.000Z",
+      },
+    ];
+
+    const html = renderAnalysisHtml(analyzeMatch(dataset), dataset);
+
+    expect(html).toContain("Revisión incompleta");
+  });
+
+  it("marca completa la cobertura cuando hay cuotas para los tres resultados 1X2", () => {
+    const dataset = structuredClone(demoDataset);
+    dataset.odds = [
+      {
+        bookmaker: "Casa de prueba",
+        market: "h2h",
+        outcome: dataset.match.homeTeam.name,
+        odd: 2.1,
+        observedAt: "2026-10-24T12:00:00.000Z",
+      },
+      {
+        bookmaker: "Casa de prueba",
+        market: "h2h",
+        outcome: "Empate",
+        odd: 3.2,
+        observedAt: "2026-10-24T12:00:00.000Z",
+      },
+      {
+        bookmaker: "Casa de prueba",
+        market: "h2h",
+        outcome: dataset.match.awayTeam.name,
+        odd: 4,
+        observedAt: "2026-10-24T12:00:00.000Z",
+      },
+    ];
+
+    const html = renderAnalysisHtml(analyzeMatch(dataset), dataset);
+
+    expect(html).toContain("Revisión completa");
+  });
+
   it("incluye trazabilidad del modelo y sus componentes", () => {
     const html = renderAnalysisHtml(analyzeMatch(demoDataset));
 

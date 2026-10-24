@@ -4,7 +4,7 @@
 
 **Goal:** Make the existing football match analysis useful and trustworthy for the owner and a few friends, without adding enterprise features.
 
-**Architecture:** Keep the current app, providers, and analysis model. First remove misleading or expired homepage examples, then do a small manual QA pass with real upcoming matches, and fix only issues that QA demonstrates. This plan supersedes `docs/superpowers/plans/2026-07-28-production-readiness.md` for the current personal-use goal; the older plan remains unchanged as historical context.
+**Architecture:** Keep the current app, providers, and analysis model. First remove misleading or expired homepage examples, then do a small manual QA pass with real upcoming matches, and fix only issues that QA demonstrates. This plan supersedes the tracked `docs/superpowers/plans/2026-07-28-production-readiness.md` for the current personal-use goal. The separate expanded local draft that previously occupied that path is preserved byte-for-byte as `docs/superpowers/plans/2026-07-28-production-readiness-expanded-draft.md` to avoid overwriting the newer upstream file.
 
 **Tech Stack:** Existing Next.js/TypeScript app, Vitest, and Playwright; existing configured football-data providers.
 

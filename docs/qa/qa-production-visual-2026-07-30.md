@@ -15,7 +15,7 @@
 
 ## Hallazgo corregido antes de publicar
 
-La etiqueta dinámica de alineación mostraba una codificación incorrecta (`AlineaciÃ³n`). Se corrigió a UTF-8 y se añadió una aserción de regresión en la prueba de alineaciones.
+La etiqueta dinámica de alineación mostraba una codificación incorrecta. Se corrigió a UTF-8 y se añadió una aserción de regresión en la prueba de alineaciones.
 
 ## Límites de la ronda
 

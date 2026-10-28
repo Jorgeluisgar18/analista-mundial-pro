@@ -408,7 +408,7 @@ describe("API routes", () => {
     }
   });
 
-  itWithDatabase("aplica una baja estructurada antes de recalcular el análisis", async () => {
+  it("aplica una baja estructurada antes de recalcular el análisis", async () => {
     const baseline = analyzeMatch(demoDataset);
     const response = await withAnalystToken(() =>
       createOverride(
@@ -428,23 +428,16 @@ describe("API routes", () => {
     );
     const body = await response.json();
 
-    try {
-      expect(response.status).toBe(201);
-      expect(body.override.teamId).toBe(demoDataset.match.homeTeam.id);
-      expect(body.override.impact).toBe("high");
-      expect(body.analysis.expected.homeGoals).toBeLessThan(
-        baseline.expected.homeGoals,
-      );
-      expect(body.analysis.mainProbabilities.home).toBeLessThan(
-        baseline.mainProbabilities.home,
-      );
-    } finally {
-      if (body.override?.id) {
-        await prisma.manualOverride.delete({
-          where: { id: body.override.id },
-        });
-      }
-    }
+    // Demo overrides operate on a cloned dataset and create no database row.
+    expect(response.status).toBe(201);
+    expect(body.override.teamId).toBe(demoDataset.match.homeTeam.id);
+    expect(body.override.impact).toBe("high");
+    expect(body.analysis.expected.homeGoals).toBeLessThan(
+      baseline.expected.homeGoals,
+    );
+    expect(body.analysis.mainProbabilities.home).toBeLessThan(
+      baseline.mainProbabilities.home,
+    );
   });
 
   itWithDatabase("mantiene el recálculo manual al volver a cargar la página", async () => {

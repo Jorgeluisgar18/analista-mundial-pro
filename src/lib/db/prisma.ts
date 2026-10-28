@@ -1,7 +1,8 @@
 import "server-only";
+import { PrismaPg } from "@prisma/adapter-pg";
+import { PrismaClient } from "../../../generated/prisma/client";
 
-let _prisma: import("../../../generated/prisma/client").PrismaClient | null =
-  null;
+let _prisma: PrismaClient | null = null;
 let _initError: unknown = null;
 
 function getDatabaseUrl() {
@@ -41,12 +42,7 @@ function createClient() {
   }
 
   try {
-    // Dynamic require so the module can be imported during builds even when
-    // the production database is not available.
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const { PrismaPg } = require("@prisma/adapter-pg");
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const { PrismaClient } = require("../../../generated/prisma/client");
+    // Keep construction lazy so imports and builds do not require a database.
     const adapter = new PrismaPg(databaseUrl);
     _prisma = new PrismaClient({ adapter });
     return _prisma;
@@ -115,7 +111,7 @@ function noopClient() {
   return new Proxy(
     {},
     handler,
-  ) as unknown as import("../../../generated/prisma/client").PrismaClient;
+  ) as unknown as PrismaClient;
 }
 
 export const prisma = new Proxy(
@@ -130,4 +126,4 @@ export const prisma = new Proxy(
       return typeof value === "function" ? value.bind(target) : value;
     },
   },
-) as import("../../../generated/prisma/client").PrismaClient;
+) as PrismaClient;

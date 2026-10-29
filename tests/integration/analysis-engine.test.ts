@@ -541,6 +541,55 @@ describe("analysisEngine", () => {
     expect(result.dataQuality.note).toMatch(/estimad/i);
   });
 
+  it("no cuenta la calibración histórica sola como estadísticas base", () => {
+    const dataset = structuredClone(demoDataset);
+    dataset.match.id = "calibration-only-base-stats";
+    dataset.match.dataOrigin = "API";
+    dataset.players = [];
+    dataset.lineups = dataset.lineups.map((lineup) => ({
+      ...lineup,
+      confirmed: false,
+      formation: {
+        ...lineup.formation,
+        status: "expected",
+      },
+    }));
+    dataset.historical = {
+      calibration: {
+        sampleSize: 120,
+        brier: 0.68,
+        logLoss: 1.18,
+        rps: 0.2,
+        empirical: { home: 0.52, draw: 0.27, away: 0.21 },
+        confidenceMultiplier: 0.9,
+      },
+    };
+    dataset.sources = [
+      {
+        id: "footballdata-io-stats",
+        label: "Footballdata.io · stats",
+        type: "provider",
+        status: "unavailable",
+        observedAt: "2026-10-26T18:00:00Z",
+        detail: "Stats no disponibles en la respuesta actual.",
+      },
+      {
+        id: "historical-engine",
+        label: "Neon · histórico y calibración",
+        type: "provider",
+        status: "inferred",
+        observedAt: "2026-10-26T18:00:00Z",
+        detail:
+          "Forma histórica: 0 partidos de Chelsea, 0 de Manchester United. Calibración: 120 predicciones.",
+      },
+    ];
+
+    const result = analyzeMatch(dataset);
+
+    expect(result.dataQuality.coverage).toBe(35);
+    expect(result.expected.confidence).toBeLessThanOrEqual(4);
+  });
+
   it("estima totales secundarios con Poisson sobre el volumen esperado", () => {
     const result = analyzeMatch(demoDataset);
     const expectedCorners = demoDataset.home.corners + demoDataset.away.corners;

@@ -23,6 +23,7 @@ function lineupLabel(lineup: Lineup) {
   if (lineup.status === "official-partial") return "Oficial parcial";
   if (lineup.status === "unavailable") return "XI no disponible";
   if (lineup.confirmed || lineup.status === "confirmed") return "XI oficial";
+  if (!lineup.starters.length) return "Formación esperada";
   return "XI esperado";
 }
 
@@ -38,6 +39,36 @@ function matchTeams(dataset: MatchDataset): TeamRef[] {
 
 function availabilityForTeam(dataset: MatchDataset, teamId: string) {
   return dataset.availability.filter((item) => item.teamId === teamId);
+}
+
+function availabilitySource(dataset: MatchDataset) {
+  return dataset.sources.find((source) => source.id.endsWith("-availability"));
+}
+
+function emptyAvailabilityMessage(
+  dataset: MatchDataset,
+  subsection: string,
+  teamName: string,
+) {
+  if (subsection === "Reemplazos") {
+    return `No hay reemplazos probables registrados para ${teamName}.`;
+  }
+
+  const source = availabilitySource(dataset);
+  if (!source) {
+    return `No hay datos de lesiones o sanciones para ${teamName}; no se puede confirmar si hay bajas.`;
+  }
+  if (source.status !== "confirmed") {
+    return `${source.label}: ${source.detail}`;
+  }
+
+  const reportType =
+    subsection === "Lesionados"
+      ? "lesiones"
+      : subsection === "Suspendidos"
+        ? "sanciones"
+        : "lesiones o sanciones";
+  return `La consulta a ${source.label} no devolvió reportes de ${reportType} para ${teamName}; esto no confirma que no existan bajas.`;
 }
 
 function availabilityTypeForSubsection(subsection: string): Availability["type"] | null {
@@ -90,7 +121,9 @@ function AvailabilityView({
                 <small>
                   {items.length
                     ? `${items.length} reporte${items.length > 1 ? "s" : ""}`
-                    : "Sin reporte confirmado"}
+                    : availabilitySource(dataset)?.status === "confirmed"
+                      ? "Consulta completada"
+                      : "Cobertura no disponible"}
                 </small>
               </div>
 
@@ -119,9 +152,7 @@ function AvailabilityView({
                 </div>
               ) : (
                 <p className="empty-state">
-                  {subsection === "Disponibilidad"
-                    ? `Sin bajas confirmadas o suspendidos reportados para ${team.name} en la fuente actual.`
-                    : `Sin ${subsection.toLowerCase()} reportados para ${team.name} en la fuente actual.`}
+                  {emptyAvailabilityMessage(dataset, subsection, team.name)}
                 </p>
               )}
             </article>

@@ -43,6 +43,6 @@ export function SectionContent({
     case "alerts":
       return <AlertsSection analysis={analysis} dataset={dataset} subsection={activeSubsection} />;
     default:
-      return <SourcesSection analysis={analysis} subsection={activeSubsection} />;
+      return <SourcesSection analysis={analysis} dataset={dataset} subsection={activeSubsection} />;
   }
 }

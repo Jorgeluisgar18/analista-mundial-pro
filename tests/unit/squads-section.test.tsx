@@ -55,28 +55,14 @@ describe("SquadsSection", () => {
     expect(within(availability).getByText("Lesionado")).toBeVisible();
   });
 
-  it("explains per team when the provider has no reported injuries or suspensions", () => {
+  it("does not imply no injuries when availability coverage is missing", () => {
     const dataset = structuredClone(demoDataset);
     dataset.availability = [];
 
     render(<SquadsSection dataset={dataset} subsection="Disponibilidad" />);
 
-    expect(
-      screen.getByText(
-        new RegExp(
-          `Sin bajas confirmadas o suspendidos reportados para ${dataset.match.homeTeam.name}`,
-          "i",
-        ),
-      ),
-    ).toBeVisible();
-    expect(
-      screen.getByText(
-        new RegExp(
-          `Sin bajas confirmadas o suspendidos reportados para ${dataset.match.awayTeam.name}`,
-          "i",
-        ),
-      ),
-    ).toBeVisible();
+    expect(screen.getAllByText(/no se puede confirmar si hay bajas/i)).toHaveLength(2);
+    expect(screen.queryByText(/sin reporte confirmado/i)).not.toBeInTheDocument();
   });
 
   it("muestra alineaciones esperadas u oficiales en campo táctico con fuente y estado", () => {
@@ -115,5 +101,30 @@ describe("SquadsSection", () => {
     expect(screen.getAllByText(/XI esperado/i)[0]).toBeVisible();
     expect(screen.getAllByText("Arquero esperado")[0]).toBeVisible();
     expect(screen.getAllByText("Delantero")[0]).toBeVisible();
+  });
+
+  it("labels an expected formation without player names as a formation, not an XI", () => {
+    const dataset = structuredClone(demoDataset);
+    dataset.lineups = [
+      {
+        ...dataset.lineups[0],
+        status: "expected",
+        confirmed: false,
+        formation: {
+          ...dataset.lineups[0].formation,
+          value: "4-2-3-1",
+          status: "expected",
+        },
+        starters: [],
+      },
+    ];
+
+    render(<SquadsSection dataset={dataset} subsection="Alineaciones" />);
+
+    expect(screen.getByText("Formación esperada")).toBeVisible();
+    expect(screen.queryByText("XI esperado")).not.toBeInTheDocument();
+    expect(
+      screen.getByText("Jugadores esperados pendientes de fuente o proyección."),
+    ).toBeVisible();
   });
 });

@@ -4,7 +4,7 @@ Este runbook se usa cuando el owner autoriza una ronda de QA con proveedores rea
 
 ## Reglas de cuota
 
-- API-Football/API-Sports: maximo 50 llamadas en una ronda QA local.
+- API-Football/API-Sports: máximo 20 intentos HTTP en toda la pasada PMA-02, incluidos reintentos y errores de red.
 - The Odds API: usar primero flujo `/events`; solo consumir odds cuando el evento fue encontrado.
 - TheSportsDB: puede usarse con mayor libertad en plan gratuito, pero registrar errores/latencia.
 - Football-Data.org y Footballdata.io: registrar si el proveedor devuelve calendario sin detalle o datos parciales.
@@ -17,10 +17,38 @@ Este runbook se usa cuando el owner autoriza una ronda de QA con proveedores rea
 npm run build
 npm test
 npm run test:e2e
-npm run dev
 ```
 
 Verifica en `/api/provider-status` que los proveedores esperados aparezcan configurados sin exponer secretos.
+
+### Presupuesto local de API-Football para PMA-02
+
+El owner confirmó un único proceso servidor, sin reinicios durante la pasada. El control es exclusivo de esta QA local: no es una cuota por usuario ni un rate limit distribuido para producción.
+
+En una terminal dedicada, configura las claves de forma privada y arranca el servidor ya compilado:
+
+```powershell
+$env:DATABASE_URL = ""
+$env:DIRECT_URL = ""
+$env:API_FOOTBALL_QA_REQUEST_LIMIT = "20"
+npm run start -- --port 3317
+```
+
+- Abre `http://localhost:3317`; no reutilices otro servidor, `next dev`, HMR o múltiples procesos.
+- La consola registra `API-Football QA` con `pid`, `attempts`, `limit` y `remaining`, sin claves, URLs ni cabeceras. Todas las entradas deben tener el mismo PID.
+- Cada llamada al fetcher reserva un intento antes de la operación, incluso si falla o es un reintento. Las llamadas concurrentes y las nuevas instancias del proveedor comparten el contador del proceso. Las redirecciones automáticas se rechazan para evitar solicitudes adicionales no contadas.
+- Al agotar el presupuesto no se ejecuta otro fetch de API-Football. Otros proveedores conservan su comportamiento y sus propias cuotas.
+- Es un conteo conservador de intentos locales, no una afirmación de llamadas facturadas: un error de red puede ocurrir antes de llegar al proveedor. Las cabeceras de cuota diaria se mantienen separadas.
+- No cambies el límite, reinicies el proceso ni abras otro servidor para continuar la misma pasada. Ante cambio de PID, reinicio o conteo no verificable, detén la QA y registra el resultado incompleto; no declares un nuevo presupuesto de 20.
+- El control permanece activo durante la vida del proceso una vez habilitado. No lo configures en Netlify. Al finalizar, cierra el servidor y la terminal dedicada.
+
+Primero verifica el control sin red ni base de datos:
+
+```powershell
+npm test -- tests/unit/api-football-qa-budget.test.ts tests/unit/provider-registry.test.ts tests/unit/provider-http.test.ts tests/unit/api-football.test.ts
+```
+
+Este mecanismo no autoriza por sí mismo una ronda real ni certifica PMA-02: conserva en la matriz el contador acumulado, PID, horario Colombia y las observaciones reales.
 
 ## Casos minimos
 

@@ -34,10 +34,10 @@ export function EditorialReading({
       <div className="signal reinforces">
         <TrendUpIcon />
         <div>
-          <strong>Señal que refuerza</strong>
+          <strong>Contexto del mercado</strong>
           <span>
-            Datos de forma, producción y mercado alineados con el snapshot
-            actual del partido.
+            La comparación con el mercado requiere cuotas disponibles para
+            este partido; la proyección del modelo no las sustituye.
           </span>
         </div>
       </div>

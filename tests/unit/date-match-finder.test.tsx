@@ -1,6 +1,7 @@
 import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import Home from "@/app/page";
 import { DateMatchFinder } from "@/components/home/DateMatchFinder";
 import { demoMatches } from "@/data/demo";
 import type { NormalizedMatch } from "@/types/domain";
@@ -31,6 +32,7 @@ describe("DateMatchFinder", () => {
   afterEach(() => {
     cleanup();
     vi.restoreAllMocks();
+    vi.unstubAllGlobals();
   });
 
   it("busca y muestra partidos normalizados", async () => {
@@ -154,43 +156,28 @@ describe("DateMatchFinder", () => {
     expect(
       screen.getByRole("link", { name: /ver guía de apis/i }),
     ).toHaveAttribute("href", "/docs/provider-setup");
+    expect(
+      screen.queryByRole("button", { name: /probar ejemplo mundial/i }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /probar ejemplo champions/i }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByLabelText("Fecha")).toBeVisible();
+    expect(screen.getByLabelText("Competición")).toBeVisible();
   });
-  it("los presets del estado vacio ejecutan una nueva busqueda util", async () => {
-    const user = userEvent.setup();
-    const fetchMock = vi
-      .fn()
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({
-          mode: "demo",
-          source: "Muestra local de respaldo",
-          warnings: [],
-          matches: [],
-        }),
-      })
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({
-          mode: "api",
-          source: "API-Football",
-          warnings: [],
-          matches: demoMatches,
-        }),
-      });
-    vi.stubGlobal("fetch", fetchMock);
 
-    render(<DateMatchFinder initialDate="2026-07-01" />);
-    await user.click(screen.getByRole("button", { name: /buscar partidos/i }));
-    await user.click(
-      await screen.findByRole("button", {
-        name: /probar ejemplo mundial/i,
+  it("presenta el gráfico de portada como ilustración, sin métricas ficticias", () => {
+    render(<Home />);
+
+    expect(
+      screen.getByRole("img", {
+        name: "Ilustración decorativa del análisis prepartido; no representa un partido específico ni muestra métricas reales.",
       }),
-    );
-
-    expect(await screen.findByText(/Colombia vs Brasil/i)).toBeVisible();
-    expect(String(fetchMock.mock.calls[1]?.[0])).toContain(
-      "competition=wc-2026",
-    );
+    ).toBeVisible();
+    expect(screen.queryByText("7.1")).not.toBeInTheDocument();
+    expect(screen.queryByText("44%")).not.toBeInTheDocument();
+    expect(screen.queryByText("2.7")).not.toBeInTheDocument();
+    expect(screen.queryByText("88%")).not.toBeInTheDocument();
   });
 
   it("limpia resultados anteriores cuando una nueva busqueda falla", async () => {

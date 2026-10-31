@@ -261,6 +261,11 @@ describe("Footballdata.io provider", () => {
       expect.arrayContaining([
         expect.objectContaining({ id: "footballdata-io-match" }),
         expect.objectContaining({
+          id: "footballdata-io-availability",
+          status: "unavailable",
+          detail: expect.stringContaining("no aporta lesiones o sanciones"),
+        }),
+        expect.objectContaining({
           id: "footballdata-io-probabilities",
           detail: expect.stringContaining("51%"),
         }),

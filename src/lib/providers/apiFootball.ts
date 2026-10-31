@@ -419,7 +419,18 @@ export class ApiFootballProvider implements FootballProvider {
       };
     }
 
-    const [lineups, injuries, homeStats, awayStats] = await Promise.all([
+    const injuryRequest = this.request<
+      Array<{
+        team: { id: number };
+        player: { id?: number; name: string };
+        type?: string;
+        reason?: string;
+      }>
+    >("injuries", { fixture: id })
+      .then((data) => ({ data, available: true as const }))
+      .catch(() => ({ data: [], available: false as const }));
+
+    const [lineups, injuryResult, homeStats, awayStats] = await Promise.all([
       this.request<
         Array<{
           team: { id: number };
@@ -427,14 +438,7 @@ export class ApiFootballProvider implements FootballProvider {
           startXI?: Array<{ player: { id?: number; name: string; pos?: string } }>;
         }>
       >("fixtures/lineups", { fixture: id }).catch(() => []),
-      this.request<
-        Array<{
-          team: { id: number };
-          player: { id?: number; name: string };
-          type?: string;
-          reason?: string;
-        }>
-      >("injuries", { fixture: id }).catch(() => []),
+      injuryRequest,
       this.request<ApiFootballTeamStatistics>("teams/statistics", {
         league: fixture.league.id,
         season: fixture.league.season ?? new Date(fixture.fixture.date).getUTCFullYear(),
@@ -446,6 +450,7 @@ export class ApiFootballProvider implements FootballProvider {
         team: fixture.teams.away.id,
       }).catch(() => ({})),
     ]);
+    const injuries = injuryResult.data;
 
     const normalizeStats = (stats: ApiFootballTeamStatistics, elo: number) => {
       const played = Math.max(1, stats.fixtures?.played?.total ?? 0);
@@ -549,6 +554,20 @@ export class ApiFootballProvider implements FootballProvider {
         detail: lineups.length
           ? "Once oficial publicado por el proveedor."
           : "Dato no disponible en la fuente actual.",
+      },
+      {
+        id: "api-football-availability",
+        label: "API-Football · lesiones y sanciones",
+        type: "provider" as const,
+        status: injuryResult.available
+          ? ("confirmed" as const)
+          : ("unavailable" as const),
+        observedAt: new Date().toISOString(),
+        detail: injuryResult.available
+          ? injuries.length
+            ? `API-Football devolvió ${injuries.length} reporte${injuries.length === 1 ? "" : "s"} de lesiones o sanciones.`
+            : "Consulta completada: API-Football no devolvió reportes de lesiones o sanciones; esto no confirma que no existan bajas."
+          : "No se pudo completar la consulta de lesiones y sanciones en API-Football; no se puede confirmar si hay bajas.",
       },
       {
         id: "api-team-stats",

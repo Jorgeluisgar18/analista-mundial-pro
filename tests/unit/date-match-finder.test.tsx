@@ -6,6 +6,10 @@ import { DateMatchFinder } from "@/components/home/DateMatchFinder";
 import { demoMatches } from "@/data/demo";
 import type { NormalizedMatch } from "@/types/domain";
 
+vi.mock("@/components/health/HealthPanel", () => ({
+  HealthPanel: () => null,
+}));
+
 function buildManyMatches(total: number): NormalizedMatch[] {
   return Array.from({ length: total }, (_, index) => {
     const matchNumber = index + 1;
@@ -166,7 +170,9 @@ describe("DateMatchFinder", () => {
     expect(screen.getByLabelText("Competición")).toBeVisible();
   });
 
-  it("presenta el gráfico de portada como ilustración, sin métricas ficticias", () => {
+  it("presenta el gráfico de portada sin solicitar datos de salud", () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
     render(<Home />);
 
     expect(
@@ -178,6 +184,7 @@ describe("DateMatchFinder", () => {
     expect(screen.queryByText("44%")).not.toBeInTheDocument();
     expect(screen.queryByText("2.7")).not.toBeInTheDocument();
     expect(screen.queryByText("88%")).not.toBeInTheDocument();
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it("limpia resultados anteriores cuando una nueva busqueda falla", async () => {

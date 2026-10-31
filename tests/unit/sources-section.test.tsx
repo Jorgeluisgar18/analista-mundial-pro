@@ -1,6 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { SourcesSection } from "@/components/analysis/sections/SourcesSection";
+import { demoDataset } from "@/data/demo";
 import type { AnalysisResult } from "@/types/domain";
 
 function analysisFixture(): AnalysisResult {
@@ -50,7 +51,13 @@ function analysisFixture(): AnalysisResult {
 
 describe("SourcesSection", () => {
   it("explica version y componentes del modelo en calidad de fuentes", () => {
-    render(<SourcesSection analysis={analysisFixture()} subsection="Calidad" />);
+    render(
+      <SourcesSection
+        analysis={analysisFixture()}
+        dataset={structuredClone(demoDataset)}
+        subsection="Calidad"
+      />,
+    );
 
     expect(screen.getByText(/versión del modelo/i)).toBeVisible();
     expect(
@@ -60,4 +67,49 @@ describe("SourcesSection", () => {
     expect(screen.getByText(/Monte Carlo/i)).toBeVisible();
     expect(screen.getByText(/Regresión logística/i)).toBeVisible();
   });
+
+  it("separa las señales del 1X2 de cuotas, alineaciones y datos ausentes", () => {
+    const dataset = structuredClone(demoDataset);
+    dataset.odds = [];
+    dataset.historical = undefined;
+    dataset.sources = [
+      {
+        id: "footballdata-io-stats",
+        label: "Footballdata.io · estadísticas",
+        type: "provider",
+        status: "unavailable",
+        observedAt: "2026-10-26T12:00:00.000Z",
+        detail: "Sin métricas de temporada para esta competición.",
+      },
+      {
+        id: "footballdata-io-availability",
+        label: "Footballdata.io · disponibilidad",
+        type: "provider",
+        status: "unavailable",
+        observedAt: "2026-10-26T12:00:00.000Z",
+        detail: "No aporta lesiones o sanciones en este flujo.",
+      },
+    ];
+
+    render(
+      <SourcesSection
+        analysis={analysisFixture()}
+        dataset={dataset}
+        subsection="Calidad"
+      />,
+    );
+
+    expect(
+      screen.getAllByText(/cuotas y alineaciones no alimentan las probabilidades principales/i),
+    ).toHaveLength(2);
+    expect(screen.getByText(/sin cuotas disponibles/i)).toBeVisible();
+    expect(screen.getAllByText(/alineaciones se presentan como contexto/i)).toHaveLength(2);
+    expect(screen.getAllByText(/aplicada con 817 partidos/i)).toHaveLength(2);
+    expect(screen.getByText(/no aporta lesiones o sanciones/i)).toBeVisible();
+    expect(
+      screen.getAllByText(/estadísticas del proveedor no confirmadas/i),
+    ).toHaveLength(2);
+    expect(screen.getAllByText(/no son observaciones verificadas/i)).toHaveLength(2);
+  });
+
 });

@@ -1,6 +1,6 @@
 import { AnalysisSection } from "@/components/analysis/AnalysisSection";
 import { SourceLedger } from "@/components/analysis/SourceLedger";
-import type { AnalysisResult } from "@/types/domain";
+import type { AnalysisResult, MatchDataset } from "@/types/domain";
 
 function QualityBar({ label, value }: { label: string; value: number }) {
   return (
@@ -16,16 +16,47 @@ function QualityBar({ label, value }: { label: string; value: number }) {
 
 export function SourcesSection({
   analysis,
+  dataset,
   subsection,
 }: {
   analysis: AnalysisResult;
+  dataset: MatchDataset;
   subsection: string;
 }) {
   if (subsection === "Calidad") {
+    const confirmedLineups = dataset.lineups.filter(
+      (lineup) => lineup.confirmed,
+    ).length;
+    const lineupSummary = dataset.lineups.length
+      ? `${confirmedLineups} de ${dataset.lineups.length} alineaciones confirmadas.`
+      : "Alineaciones no disponibles.";
+    const availabilitySource = dataset.sources.find((source) =>
+      source.id.endsWith("-availability"),
+    );
+    const availabilitySummary = availabilitySource
+      ? availabilitySource.detail
+      : "No hay evidencia de una consulta de lesiones o sanciones.";
+    const statsSources = dataset.sources.filter((source) =>
+      /stats|statistics|estad/i.test(`${source.id} ${source.label}`),
+    );
+    const confirmedStatsSources = statsSources.filter(
+      (source) => source.status === "confirmed" || source.status === "inferred",
+    );
+    const statsSummary = confirmedStatsSources.length
+      ? `${confirmedStatsSources.length} fuente(s) con estadísticas confirmadas o inferidas.`
+      : "Estadísticas del proveedor no confirmadas.";
+    const statsDetail = statsSources.length
+      ? statsSources.map((source) => `${source.label}: ${source.detail}`).join(" ")
+      : "No hay una fuente estadística registrada para este análisis.";
+    const statsCaveat =
+      confirmedStatsSources.length > 0
+        ? null
+        : "Las cifras base normalizadas no son observaciones verificadas del proveedor.";
+
     return (
       <AnalysisSection
         title="Fuentes · Calidad"
-        intro="Cobertura, frescura, acuerdo entre fuentes y estado de alineaciones para medir confiabilidad."
+        intro="Cobertura, frescura, acuerdo entre fuentes y trazabilidad de las señales de esta cabina."
       >
         <div className="quality-strip">
           <QualityBar label="Cobertura" value={analysis.dataQuality.coverage} />
@@ -47,8 +78,11 @@ export function SourcesSection({
             <span>Versión del modelo</span>
             <strong>{analysis.modelVersion}</strong>
             <p>
-              Esta lectura combina forma reciente, fuerza histórica, cuotas,
-              alineaciones disponibles y calibración contra resultados reales.
+              El modelo contempla Elo, puntos por partido, goles/xG y
+              disponibilidad. Las tarjetas siguientes muestran qué cobertura
+              entregaron las fuentes en esta cabina. Cuotas y alineaciones no
+              alimentan las probabilidades principales; se evalúan como mercado
+              y contexto.
             </p>
           </article>
           <ul>
@@ -62,9 +96,59 @@ export function SourcesSection({
             </li>
             <li>
               <strong>Regresión logística</strong>
-              <span>Forma, fuerza contextual y señal de mercado.</span>
+              <span>
+                Diferencias de Elo, puntos por partido y ataque/defensa; sin
+                señal de mercado.
+              </span>
             </li>
           </ul>
+        </div>
+
+        <div
+          className="detail-list"
+          aria-label="Señales disponibles en este análisis"
+        >
+          <article>
+            <span>Estadísticas base</span>
+            <strong>{statsSummary}</strong>
+            <p>
+              {statsDetail} {statsCaveat}
+            </p>
+          </article>
+          <article>
+            <span>Cuotas</span>
+            <strong>
+              {dataset.odds.length
+                ? `${dataset.odds.length} precios cargados`
+                : "Sin cuotas disponibles"}
+            </strong>
+            <p>
+              {dataset.odds.length
+                ? "Se usan para comparar el mercado y evaluar valor, no para calcular la probabilidad principal 1X2."
+                : "No se puede evaluar valor de mercado sin cuotas; el modelo 1X2 sigue siendo independiente de ellas."}
+            </p>
+          </article>
+          <article>
+            <span>Alineaciones y disponibilidad</span>
+            <strong>{lineupSummary}</strong>
+            <p>
+              {availabilitySummary} Las alineaciones se presentan como contexto y
+              no modifican las probabilidades principales de este modelo.
+            </p>
+          </article>
+          <article>
+            <span>Calibración histórica</span>
+            <strong>
+              {analysis.calibration.applied
+                ? `Aplicada con ${analysis.calibration.sampleSize} partidos`
+                : "No aplicada"}
+            </strong>
+            <p>
+              {analysis.calibration.applied
+                ? "El ajuste histórico sí intervino en las probabilidades de esta cabina."
+                : analysis.calibration.note}
+            </p>
+          </article>
         </div>
 
         <div
@@ -113,38 +197,36 @@ export function SourcesSection({
     return (
       <AnalysisSection
         title="Fuentes · Metodología"
-        intro="Métodos estadísticos usados para convertir datos de forma, cuotas, alineaciones y contexto en probabilidades."
+        intro="El 1X2 combina Elo, puntos por partido y métricas de ataque/defensa. Cuotas y alineaciones se presentan por separado, no como variables de la probabilidad principal."
       >
         <div className="methodology">
           <article>
             <span>Marcadores</span>
             <strong>Poisson + Dixon-Coles</strong>
             <p>
-              Corrige dependencia de resultados bajos con rho calibrado y genera
-              la matriz completa.
+              Construye la matriz de goles con intensidades de ataque y defensa;
+              Dixon-Coles ajusta la dependencia de marcadores bajos.
             </p>
           </article>
           <article>
             <span>Fuerza</span>
-            <strong>Elo historico + forma contextual</strong>
+            <strong>Elo + forma reciente</strong>
             <p>
-              Calcula ratings Elo desde resultados históricos cronológicos y los
-              combina con sede, recencia, forma ponderada y producción ofensiva
-              disponible.
+              La regresión logística compara Elo, puntos por partido y métricas
+              de goles/xG de ataque y defensa disponibles.
             </p>
           </article>
           <article>
             <span>Incertidumbre</span>
             <strong>Monte Carlo</strong>
-            <p>Propaga variación de intensidades y escenarios de alineación.</p>
+            <p>Simula resultados de gol a partir de las intensidades del modelo.</p>
           </article>
           <article>
-            <span>Validacion</span>
-            <strong>Calibracion continua</strong>
+            <span>Validación</span>
+            <strong>Calibración histórica condicionada</strong>
             <p>
-              Las probabilidades se evalúan contra resultados reales con Brier,
-              Log Loss y RPS. Acertar el nivel de certeza importa más que
-              acertar un resultado aislado.
+              Solo se aplica el ajuste cuando hay al menos 30 observaciones; de
+              lo contrario, las probabilidades se muestran sin calibración.
             </p>
           </article>
         </div>

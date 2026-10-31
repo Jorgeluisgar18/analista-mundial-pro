@@ -4,10 +4,12 @@ import { FootballdataIoProvider } from "@/lib/providers/footballdataIo";
 import { OpenMeteoProvider } from "@/lib/providers/openMeteo";
 import { TheOddsApiProvider } from "@/lib/providers/oddsApi";
 import { TheSportsDbEnrichmentProvider } from "@/lib/providers/theSportsDb";
+import { apiFootballQaFetcher } from "@/lib/providers/qaRequestBudget";
 import type { ProviderUsageEvent } from "@/lib/providers/types";
 
 export interface ProviderEnvironment {
   FOOTBALL_API_KEY?: string;
+  API_FOOTBALL_QA_REQUEST_LIMIT?: string;
   FOOTBALL_DATA_API_KEY?: string;
   FOOTBALLDATA_IO_API_KEY?: string;
   FOOTBALLDATA_IO_BASE_URL?: string;
@@ -33,6 +35,7 @@ export function createProviderRegistry(
 ) {
   const resolvedEnv: ProviderEnvironment = env ?? {
     FOOTBALL_API_KEY: process.env.FOOTBALL_API_KEY,
+    API_FOOTBALL_QA_REQUEST_LIMIT: process.env.API_FOOTBALL_QA_REQUEST_LIMIT,
     FOOTBALL_DATA_API_KEY: process.env.FOOTBALL_DATA_API_KEY,
     FOOTBALLDATA_IO_API_KEY: process.env.FOOTBALLDATA_IO_API_KEY,
     FOOTBALLDATA_IO_BASE_URL: process.env.FOOTBALLDATA_IO_BASE_URL,
@@ -55,7 +58,11 @@ export function createProviderRegistry(
   return {
     football: [
       ...(resolvedEnv.FOOTBALL_API_KEY
-        ? [new ApiFootballProvider(resolvedEnv.FOOTBALL_API_KEY, fetch, usageReporter)]
+        ? [new ApiFootballProvider(
+            resolvedEnv.FOOTBALL_API_KEY,
+            apiFootballQaFetcher(fetch, resolvedEnv.API_FOOTBALL_QA_REQUEST_LIMIT),
+            usageReporter,
+          )]
         : []),
       ...(resolvedEnv.FOOTBALL_DATA_API_KEY
         ? [

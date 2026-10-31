@@ -45,4 +45,31 @@ describe("PlayersSection", () => {
     expect(within(awayCard!).getByText(/Brasil/i)).toBeVisible();
     expect(within(awayCard!).getByText(/Titular confirmado/i)).toBeVisible();
   });
+
+  it("explains that missing player names are a snapshot limitation, not proof of absent players", () => {
+    const dataset = structuredClone(demoDataset);
+    dataset.players = [];
+    dataset.sources = [
+      ...dataset.sources.filter((source) => source.id !== "api-lineups"),
+      {
+        id: "api-lineups",
+        label: "API-Football · alineaciones",
+        type: "provider",
+        status: "unavailable",
+        observedAt: "2026-10-23T12:00:00.000Z",
+        detail: "No fue posible consultar alineaciones oficiales en el proveedor.",
+      },
+    ];
+
+    render(<PlayersSection dataset={dataset} subsection="Goleadores" />);
+
+    expect(
+      screen.getByText(
+        /este análisis no contiene nombres de jugadores verificables.*consulta la sección fuentes/i,
+      ),
+    ).toBeVisible();
+    expect(
+      screen.queryByText(/las fuentes consultadas no incluyen datos de jugadores/i),
+    ).not.toBeInTheDocument();
+  });
 });

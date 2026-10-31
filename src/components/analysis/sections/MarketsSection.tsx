@@ -29,6 +29,9 @@ export function MarketsSection({
   const rows = analysis.predictions.filter(
     (p) => p.category === category,
   );
+  const bothTeamsProbability = analysis.predictions.find(
+    (p) => p.market === "Ambos equipos marcan",
+  )?.probability;
   return (
     <AnalysisSection
       title={`Mercado de ${subsection.toLowerCase()}`}
@@ -43,10 +46,8 @@ export function MarketsSection({
             [`xG ${analysis.match.awayTeam.name}`, analysis.expected.awayGoals],
             [
               "Ambos marcan",
-              analysis.predictions.find(
-                (p) => p.market === "Ambos equipos marcan",
-              )?.probability ?? "No disponible",
-              "%",
+              bothTeamsProbability ?? "No disponible",
+              bothTeamsProbability === undefined ? undefined : "%",
             ],
           ]}
         />

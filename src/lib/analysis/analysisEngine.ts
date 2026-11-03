@@ -85,9 +85,14 @@ function hasReliableBaseStats(dataset: MatchDataset) {
 
   if (!numericStatsPresent) return false;
 
+  const hasHistoricalFormForBothTeams = Boolean(
+    dataset.historical?.homeForm && dataset.historical?.awayForm,
+  );
+
   return dataset.sources.some(
     (source) =>
       isBaseStatsSource(source) &&
+      (source.id !== "historical-engine" || hasHistoricalFormForBothTeams) &&
       (source.status === "confirmed" || source.status === "inferred"),
   );
 }

@@ -143,6 +143,36 @@ describe("AnalysisCabin", () => {
     ).not.toBeInTheDocument();
   });
 
+  it("presenta alertas del snapshot sin simular monitoreo en vivo", async () => {
+    const analysis = analyzeMatch(demoDataset);
+    render(<AnalysisCabin initialAnalysis={analysis} dataset={demoDataset} />);
+
+    await userEvent.click(
+      screen.getByRole("button", {
+        name: (name) => name.startsWith("09") && /alertas/i.test(name),
+      }),
+    );
+    expect(screen.getByText(/no hay monitoreo en vivo/i)).toBeVisible();
+    expect(
+      screen.getByText(/alineaciones (confirmadas|por confirmar)/i),
+    ).toBeVisible();
+    expect(
+      screen.queryByText(/monitoreo bajo demanda/i),
+    ).not.toBeInTheDocument();
+
+    await userEvent.click(
+      screen.getByRole("button", { name: /^movimiento de cuotas$/i }),
+    );
+    expect(
+      screen.getByText(
+        /no hay alertas registradas en este análisis para «movimiento de cuotas»/i,
+      ),
+    ).toBeVisible();
+    expect(
+      screen.queryByText(/movimiento brusco de cuotas/i),
+    ).not.toBeInTheDocument();
+  });
+
   it("muestra contenido diferenciado para plantillas, jugadores, valor y fuentes", async () => {
     const dataset = structuredClone(demoDataset);
     dataset.availability = [

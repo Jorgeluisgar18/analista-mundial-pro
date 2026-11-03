@@ -208,6 +208,10 @@ test("modifica manualmente un partido cuando Postgres está configurado", async 
 });
 
 test("exporta un HTML autónomo", async ({ page }) => {
+  // Compile the development export route before opening the interactive page.
+  const exportResponse = await page.request.get("/api/match/demo-col-bra/export");
+  expect(exportResponse.status()).toBe(200);
+  expect(exportResponse.headers()["content-disposition"]).toContain("attachment");
   await page.goto("/match/demo-col-bra");
   const downloadPromise = page.waitForEvent("download");
   await page.getByRole("button", { name: /Descargar informe/i }).first().click();

@@ -391,6 +391,15 @@ export class FootballdataIoProvider implements FootballProvider {
           detail: "Identidad, sede, equipos, torneo y estado del partido.",
         },
         {
+          id: "footballdata-io-availability",
+          label: "Footballdata.io · disponibilidad",
+          type: "provider",
+          status: "unavailable",
+          observedAt: fetchedAt,
+          detail:
+            "Footballdata.io no aporta lesiones o sanciones en este flujo; no se puede confirmar si hay bajas.",
+        },
+        {
           id: "footballdata-io-stats",
           label: "Footballdata.io · stats",
           type: "provider",

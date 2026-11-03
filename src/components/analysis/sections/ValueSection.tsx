@@ -60,8 +60,16 @@ export function ValueSection({
                 </p>
               </article>
             ))
-          ) : (
+          ) : analysis.arbitrageCoverage === "complete" ? (
             <strong>No hay oportunidad aritmética en el snapshot actual.</strong>
+          ) : analysis.arbitrageCoverage === "incomplete" ? (
+            <strong>
+              No se puede evaluar: faltan cuotas para uno o más resultados 1X2.
+            </strong>
+          ) : (
+            <strong>
+              Cobertura de cuotas 1X2 no verificada en este análisis.
+            </strong>
           )}
           <p>La latencia, límites, comisiones, reglas y anulaciones pueden eliminar el margen observado.</p>
         </div>

@@ -2,6 +2,7 @@ import { cleanup, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { AnalysisCabin } from "@/components/analysis/AnalysisCabin";
+import { ValueSection } from "@/components/analysis/sections/ValueSection";
 import { analyzeMatch } from "@/lib/analysis/analysisEngine";
 import { demoDataset } from "@/data/demo";
 
@@ -9,6 +10,32 @@ afterEach(cleanup);
 afterEach(() => {
   vi.restoreAllMocks();
 });
+
+function createSurebetDataset(prices: number[]) {
+  const dataset = structuredClone(demoDataset);
+  const outcomes = [
+    dataset.match.homeTeam.name,
+    "Empate",
+    dataset.match.awayTeam.name,
+  ];
+
+  dataset.odds = outcomes.flatMap((outcome, index) => {
+    const odd = prices[index];
+    if (odd === undefined) return [];
+
+    return [
+      {
+        bookmaker: `Casa ${index + 1}`,
+        market: "h2h" as const,
+        outcome,
+        odd,
+        observedAt: "2026-06-25T18:00:00Z",
+      },
+    ];
+  });
+
+  return dataset;
+}
 
 describe("AnalysisCabin", () => {
   it("abre Mercados y selecciona Goles", async () => {
@@ -317,6 +344,56 @@ describe("AnalysisCabin", () => {
     expect(screen.getByText(/Casa A/i)).toBeVisible();
     expect(screen.getByText(/Casa B/i)).toBeVisible();
     expect(screen.getByText(/Casa C/i)).toBeVisible();
+  });
+
+  it("reports complete odds coverage when there is no arbitrage", () => {
+    const analysis = analyzeMatch(createSurebetDataset([1.5, 3, 4]));
+
+    expect(
+      (analysis as typeof analysis & { arbitrageCoverage?: string })
+        .arbitrageCoverage,
+    ).toBe("complete");
+    expect(analysis.arbitrage).toHaveLength(0);
+
+    render(<ValueSection analysis={analysis} subsection="Surebets" />);
+
+    expect(
+      screen.getByText("No hay oportunidad aritmética en el snapshot actual."),
+    ).toBeVisible();
+  });
+
+  it("does not claim there is no arbitrage when 1X2 odds are incomplete", () => {
+    const analysis = analyzeMatch(createSurebetDataset([2.2, 3.6]));
+
+    expect(
+      (analysis as typeof analysis & { arbitrageCoverage?: string })
+        .arbitrageCoverage,
+    ).toBe("incomplete");
+    expect(analysis.arbitrage).toHaveLength(0);
+
+    render(<ValueSection analysis={analysis} subsection="Surebets" />);
+
+    expect(
+      screen.getByText(
+        /no se puede evaluar.*faltan cuotas.*1x2/i,
+      ),
+    ).toBeVisible();
+  });
+
+  it("marks legacy surebet analyses without coverage metadata as unverified", () => {
+    const analysis = analyzeMatch(createSurebetDataset([])) as ReturnType<
+      typeof analyzeMatch
+    > & { arbitrageCoverage?: string };
+    delete analysis.arbitrageCoverage;
+
+    render(<ValueSection analysis={analysis} subsection="Surebets" />);
+
+    expect(
+      screen.getByText(/cobertura de cuotas 1x2 no verificada/i),
+    ).toBeVisible();
+    expect(
+      screen.queryByText("No hay oportunidad aritmética en el snapshot actual."),
+    ).not.toBeInTheDocument();
   });
 
   it("expone semanticamente la seccion y subseccion activas en los rails moviles", async () => {

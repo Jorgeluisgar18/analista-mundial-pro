@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { prisma } from "@/lib/db/prisma";
 import { FootballDataProvider } from "@/lib/providers/footballData";
 import { describeWithDatabase } from "../helpers/database";
@@ -12,6 +12,15 @@ afterEach(async () => {
 });
 
 describeWithDatabase("API usage telemetry", () => {
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-06-25T16:00:00Z"));
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it("incrementa llamadas y respeta el consumo informado por el proveedor", async () => {
     const usageModule = await import("@/lib/services/apiUsageService");
     const recordApiUsage = Reflect.get(

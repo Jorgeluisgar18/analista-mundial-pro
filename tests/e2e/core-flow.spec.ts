@@ -2,6 +2,16 @@ import { expect, test } from "@playwright/test";
 import { readFile } from "node:fs/promises";
 import pg from "pg";
 
+test.beforeEach(async ({ page }) => {
+  // Keep fixture image requests local, including Next's server-side optimizer.
+  await page.route(/(?:\/_next\/image\?|https:\/\/flagcdn\.com\/)/, (route) =>
+    route.fulfill({
+      contentType: "image/svg+xml",
+      body: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="12"><path fill="#dce5ec" d="M0 0h16v12H0z"/></svg>',
+    }),
+  );
+});
+
 function hasPostgresDatabaseUrl() {
   const databaseUrl = process.env.DATABASE_URL?.trim();
   return Boolean(

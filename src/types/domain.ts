@@ -277,6 +277,7 @@ export interface AnalysisResult {
   };
   predictions: Prediction[];
   arbitrage: ArbitrageOpportunity[];
+  arbitrageCoverage?: "complete" | "incomplete";
   scenarios: Array<{
     title: string;
     probability: number;

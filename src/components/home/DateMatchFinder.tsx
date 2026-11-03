@@ -63,12 +63,6 @@ export function DateMatchFinder({ initialDate }: { initialDate: string }) {
     }
   }
 
-  function applyPreset(nextDate: string, nextCompetition: string) {
-    setDate(nextDate);
-    setCompetition(nextCompetition);
-    void searchMatches(nextDate, nextCompetition);
-  }
-
   const visibleMatches = result?.matches.slice(0, visibleCount) ?? [];
   const hiddenMatchCount = result
     ? Math.max(0, result.matches.length - visibleMatches.length)
@@ -274,22 +268,6 @@ export function DateMatchFinder({ initialDate }: { initialDate: string }) {
                 <Link className="secondary-button" href="/docs/provider-setup">
                   Ver guía de APIs
                 </Link>
-                <button
-                  className="ghost-button"
-                  type="button"
-                  onClick={() => applyPreset("2026-07-01", "wc-2026")}
-                >
-                  Probar ejemplo Mundial
-                </button>
-                <button
-                  className="ghost-button"
-                  type="button"
-                  onClick={() =>
-                    applyPreset("2026-07-08", "champions-league")
-                  }
-                >
-                  Probar ejemplo Champions
-                </button>
               </div>
             </div>
           )}

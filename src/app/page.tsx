@@ -49,28 +49,32 @@ export default function Home() {
               </div>
             </div>
           </div>
-          <div className="hero-visual" aria-label="Vista del modelo">
+          <div
+            className="hero-visual"
+            role="img"
+            aria-label="Ilustración decorativa del análisis prepartido; no representa un partido específico ni muestra métricas reales."
+          >
             <div className="radar-orbit orbit-one" />
             <div className="radar-orbit orbit-two" />
             <div className="radar-center">
-              <span>Confianza</span>
-              <strong>7.1</strong>
-              <small>/ 10</small>
+              <span>Análisis</span>
+              <strong>AMP</strong>
+              <small>Prepartido</small>
             </div>
             <div className="radar-label label-one">
-              <span>Probabilidad</span>
-              <strong>44%</strong>
-              <small>Brasil</small>
+              <span>Contexto</span>
+              <strong>Equipos</strong>
+              <small>Forma y datos</small>
             </div>
             <div className="radar-label label-two">
-              <span>Goles</span>
-              <strong>2.7</strong>
-              <small>esperados</small>
+              <span>Modelo</span>
+              <strong>Escenarios</strong>
+              <small>Probabilísticos</small>
             </div>
             <div className="radar-label label-three">
-              <span>Datos</span>
-              <strong>88%</strong>
-              <small>cobertura</small>
+              <span>Fuentes</span>
+              <strong>Evidencia</strong>
+              <small>Disponible</small>
             </div>
           </div>
         </section>

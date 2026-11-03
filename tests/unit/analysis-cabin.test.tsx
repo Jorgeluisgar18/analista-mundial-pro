@@ -26,6 +26,29 @@ describe("AnalysisCabin", () => {
       screen.getByRole("heading", { name: /mercado de goles/i }),
     ).toBeVisible();
     expect(screen.getByText(/2026-06-15 · 17:00 COT/i)).toBeVisible();
+    const bothTeamsMetric = screen.getByText("Ambos marcan").parentElement;
+    expect(bothTeamsMetric?.querySelector("strong")).toHaveTextContent(
+      /^\d+(?:\.\d+)?%$/,
+    );
+  });
+
+  it("shows an unavailable both-teams-to-score probability without a percent suffix", async () => {
+    const analysis = analyzeMatch(demoDataset);
+    analysis.predictions = analysis.predictions.filter(
+      (prediction) => prediction.market !== "Ambos equipos marcan",
+    );
+
+    render(<AnalysisCabin initialAnalysis={analysis} dataset={demoDataset} />);
+    await userEvent.click(
+      screen.getByRole("button", { name: /05 · mercados/i }),
+    );
+    await userEvent.click(screen.getByRole("button", { name: /^goles$/i }));
+
+    const bothTeamsMetric = screen.getByText("Ambos marcan").parentElement;
+    expect(
+      within(bothTeamsMetric!).getByText("No disponible", { exact: true }),
+    ).toBeVisible();
+    expect(bothTeamsMetric).not.toHaveTextContent("No disponible%");
   });
 
   it("muestra contenido diferenciado para subsecciones de resumen y contexto", async () => {

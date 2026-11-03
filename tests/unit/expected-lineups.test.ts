@@ -139,6 +139,7 @@ describe("expected lineups", () => {
     expect(homeLineup?.formation.status).toBe("expected");
     expect(homeLineup?.formation.value).toBe("4-2-3-1");
     expect(homeLineup?.starters).toHaveLength(11);
+    expect(homeLineup?.starters[0]).toBe("Arquero titular");
     expect(homeLineup?.starters).toContain("Arquero titular");
     expect(homeLineup?.starters).not.toContain("Delantero lesionado");
     expect(enriched.sources).toEqual(
@@ -149,6 +150,27 @@ describe("expected lineups", () => {
         }),
       ]),
     );
+  });
+
+  it("does not place an unverified outfield player in the goalkeeper slot", () => {
+    const dataset = structuredClone(demoDataset);
+    dataset.match.homeTeam.id = "home";
+    dataset.match.awayTeam.id = "away";
+    dataset.lineups = [];
+    dataset.players = Array.from({ length: 11 }, (_, index) => ({
+      id: `outfield-${index}`,
+      teamId: "home",
+      name: `Jugador ${index + 1}`,
+      position: "MF",
+      starterStatus: "expected" as const,
+    }));
+
+    const enriched = withExpectedLineups(dataset);
+    const homeLineup = enriched.lineups.find(
+      (lineup) => lineup.teamId === "home",
+    );
+
+    expect(homeLineup?.starters).toEqual([]);
   });
 
   it("keeps incomplete official lineups as official-partial and fills missing slots safely", () => {
@@ -188,6 +210,13 @@ describe("expected lineups", () => {
       "Arquero oficial",
       "Lateral oficial",
     ]);
+    const finished = structuredClone(enriched);
+    finished.match.status = "finished";
+    const finishedHome = withExpectedLineups(finished).lineups.find(
+      (candidate) => candidate.teamId === "home",
+    );
+    expect(finishedHome?.status).toBe("official-partial");
+    expect(finishedHome?.confirmed).toBe(false);
     expect(enriched.sources).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
@@ -196,5 +225,85 @@ describe("expected lineups", () => {
         }),
       ]),
     );
+  });
+
+  it("keeps a provider-confirmed formation partial when its XI has no names", () => {
+    const dataset = structuredClone(demoDataset);
+    dataset.match.homeTeam.id = "home";
+    dataset.match.awayTeam.id = "away";
+    dataset.lineups = [
+      {
+        teamId: "home",
+        formation: {
+          value: "4-3-3",
+          status: "confirmed",
+          sourceType: "provider",
+          source: "API-Football",
+          observedAt: "2026-07-02T12:00:00.000Z",
+        },
+        confirmed: true,
+        starters: [],
+      },
+    ];
+    dataset.players = [];
+
+    const enriched = withExpectedLineups(dataset);
+    const homeLineup = enriched.lineups.find(
+      (lineup) => lineup.teamId === "home",
+    );
+
+    expect(homeLineup?.status).toBe("official-partial");
+    expect(homeLineup?.confirmed).toBe(false);
+    expect(homeLineup?.formation.value).toBe("4-3-3");
+    expect(homeLineup?.formation.status).toBe("confirmed");
+    expect(homeLineup?.starters).toEqual([]);
+    expect(
+      enriched.sources.find((source) => source.id === "expected-lineups")?.detail,
+    ).toContain("solo proyecta nombres con datos de plantilla y posición");
+    expect(
+      enriched.sources.find((source) => source.id === "partial-official-lineups")
+        ?.detail,
+    ).toContain("solo se completa con nombres y posiciones respaldados");
+    expect(enriched.sources).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: "partial-official-lineups" }),
+        expect.objectContaining({ id: "expected-lineups" }),
+      ]),
+    );
+  });
+
+  it("removes stale expected-lineup evidence when official XIs arrive", () => {
+    const dataset = structuredClone(demoDataset);
+    dataset.lineups = [];
+    dataset.players = [];
+    const expected = withExpectedLineups(dataset);
+    const nowOfficial = structuredClone(expected);
+    nowOfficial.lineups = [
+      dataset.match.homeTeam.id,
+      dataset.match.awayTeam.id,
+    ].map((teamId) => ({
+      teamId,
+      formation: {
+        value: "4-3-3",
+        status: "confirmed" as const,
+        sourceType: "provider" as const,
+        source: "API-Football",
+        observedAt: "2026-07-02T12:00:00.000Z",
+      },
+      status: "confirmed" as const,
+      confirmed: true,
+      starters: Array.from({ length: 11 }, (_, index) => `${teamId}-${index}`),
+    }));
+
+    const resolved = withExpectedLineups(nowOfficial);
+
+    expect(
+      resolved.lineups.every((lineup) => lineup.status === "confirmed"),
+    ).toBe(true);
+    expect(
+      resolved.sources.some((source) =>
+        ["expected-lineups", "partial-official-lineups"].includes(source.id),
+      ),
+    ).toBe(false);
   });
 });

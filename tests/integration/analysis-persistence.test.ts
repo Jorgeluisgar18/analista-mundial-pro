@@ -44,7 +44,7 @@ describeWithDatabase("analysis persistence", () => {
         }) => {
           getAnalysis: (
             id: string,
-          ) => Promise<{ analysis: unknown; dataset: unknown } | null>;
+          ) => Promise<{ analysis: unknown; dataset: typeof demoDataset } | null>;
         })
       | undefined;
 
@@ -105,9 +105,11 @@ describeWithDatabase("analysis persistence", () => {
     expect(persisted?.homeTeam.externalId).toBe(externalIds.homeTeam);
     expect(persisted?.awayTeam.externalId).toBe(externalIds.awayTeam);
     expect(persisted?.snapshots).toHaveLength(1);
-    expect(persisted?.snapshots[0].evidence).toHaveLength(
-      dataset.sources.length,
-    );
+    const expectedSources = result?.dataset.sources ?? [];
+    expect(persisted?.snapshots[0].evidence).toHaveLength(expectedSources.length);
+    expect(
+      persisted?.snapshots[0].evidence.map((record) => record.field).sort(),
+    ).toEqual(expectedSources.map((source) => source.id).sort());
     expect(persisted?.odds).toHaveLength(dataset.odds.length);
     expect(persisted?.analyses).toHaveLength(1);
     expect(persisted?.analyses[0].predictions.length).toBeGreaterThan(20);

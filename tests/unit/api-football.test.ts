@@ -75,6 +75,13 @@ describe("ApiFootballProvider", () => {
     expect(result.data?.match.time).toBe("17:00");
     expect(result.data?.match.timezone).toBe("America/Bogota");
     expect(result.data?.lineups[0]?.formation.value).toBe("4-2-3-1");
+    expect(result.data?.sources).toContainEqual(
+      expect.objectContaining({
+        id: "api-football-availability",
+        status: "confirmed",
+        detail: expect.stringContaining("no devolvió reportes"),
+      }),
+    );
     expect(result.data?.home.goalsFor).toBeCloseTo(1.75);
     expect(result.data?.home.shots).toBeCloseTo(12);
     expect(result.data?.home.shotsOnTarget).toBeCloseTo(5);
@@ -88,6 +95,44 @@ describe("ApiFootballProvider", () => {
     expect(result.data?.away.cards).toBeCloseTo(1.25);
     expect(result.data?.away.fouls).toBeCloseTo(9);
     expect(result.data?.away.offsides).toBeCloseTo(1);
+  });
+
+  it("marca disponibilidad no consultable cuando falla el endpoint de lesiones", async () => {
+    const fixture = {
+      fixture: {
+        id: 101,
+        date: "2026-06-15T22:00:00Z",
+        status: { short: "NS" },
+        venue: { name: "Estadio", city: "Ciudad" },
+      },
+      league: { id: 39, name: "Premier League", season: 2026 },
+      teams: {
+        home: { id: 10, name: "Chelsea" },
+        away: { id: 20, name: "Manchester United" },
+      },
+    };
+    const fetcher = vi.fn(async (input: URL | RequestInfo) => {
+      const url = String(input);
+      if (url.includes("injuries")) {
+        return new Response("provider unavailable", { status: 503 });
+      }
+      if (url.includes("fixtures?")) {
+        return Response.json({ response: [fixture] });
+      }
+      return Response.json({ response: [] });
+    });
+    const provider = new ApiFootballProvider("test", fetcher as typeof fetch);
+
+    const result = await provider.getMatch("101");
+
+    expect(result.data?.availability).toEqual([]);
+    expect(result.data?.sources).toContainEqual(
+      expect.objectContaining({
+        id: "api-football-availability",
+        status: "unavailable",
+        detail: expect.stringContaining("No se pudo completar"),
+      }),
+    );
   });
 
   it("normaliza partidos nocturnos al día calendario de Colombia", async () => {

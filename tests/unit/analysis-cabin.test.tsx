@@ -2,6 +2,7 @@ import { cleanup, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { AnalysisCabin } from "@/components/analysis/AnalysisCabin";
+import { ValueSection } from "@/components/analysis/sections/ValueSection";
 import { analyzeMatch } from "@/lib/analysis/analysisEngine";
 import { demoDataset } from "@/data/demo";
 
@@ -9,6 +10,32 @@ afterEach(cleanup);
 afterEach(() => {
   vi.restoreAllMocks();
 });
+
+function createSurebetDataset(prices: number[]) {
+  const dataset = structuredClone(demoDataset);
+  const outcomes = [
+    dataset.match.homeTeam.name,
+    "Empate",
+    dataset.match.awayTeam.name,
+  ];
+
+  dataset.odds = outcomes.flatMap((outcome, index) => {
+    const odd = prices[index];
+    if (odd === undefined) return [];
+
+    return [
+      {
+        bookmaker: `Casa ${index + 1}`,
+        market: "h2h" as const,
+        outcome,
+        odd,
+        observedAt: "2026-06-25T18:00:00Z",
+      },
+    ];
+  });
+
+  return dataset;
+}
 
 describe("AnalysisCabin", () => {
   it("abre Mercados y selecciona Goles", async () => {
@@ -26,6 +53,29 @@ describe("AnalysisCabin", () => {
       screen.getByRole("heading", { name: /mercado de goles/i }),
     ).toBeVisible();
     expect(screen.getByText(/2026-06-15 · 17:00 COT/i)).toBeVisible();
+    const bothTeamsMetric = screen.getByText("Ambos marcan").parentElement;
+    expect(bothTeamsMetric?.querySelector("strong")).toHaveTextContent(
+      /^\d+(?:\.\d+)?%$/,
+    );
+  });
+
+  it("shows an unavailable both-teams-to-score probability without a percent suffix", async () => {
+    const analysis = analyzeMatch(demoDataset);
+    analysis.predictions = analysis.predictions.filter(
+      (prediction) => prediction.market !== "Ambos equipos marcan",
+    );
+
+    render(<AnalysisCabin initialAnalysis={analysis} dataset={demoDataset} />);
+    await userEvent.click(
+      screen.getByRole("button", { name: /05 · mercados/i }),
+    );
+    await userEvent.click(screen.getByRole("button", { name: /^goles$/i }));
+
+    const bothTeamsMetric = screen.getByText("Ambos marcan").parentElement;
+    expect(
+      within(bothTeamsMetric!).getByText("No disponible", { exact: true }),
+    ).toBeVisible();
+    expect(bothTeamsMetric).not.toHaveTextContent("No disponible%");
   });
 
   it("muestra contenido diferenciado para subsecciones de resumen y contexto", async () => {
@@ -117,6 +167,36 @@ describe("AnalysisCabin", () => {
       within(main).queryByText(/cambio de arquero/i, {
         selector: "p,strong,span,h2",
       }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("presenta alertas del snapshot sin simular monitoreo en vivo", async () => {
+    const analysis = analyzeMatch(demoDataset);
+    render(<AnalysisCabin initialAnalysis={analysis} dataset={demoDataset} />);
+
+    await userEvent.click(
+      screen.getByRole("button", {
+        name: (name) => name.startsWith("09") && /alertas/i.test(name),
+      }),
+    );
+    expect(screen.getByText(/no hay monitoreo en vivo/i)).toBeVisible();
+    expect(
+      screen.getByText(/alineaciones (confirmadas|por confirmar)/i),
+    ).toBeVisible();
+    expect(
+      screen.queryByText(/monitoreo bajo demanda/i),
+    ).not.toBeInTheDocument();
+
+    await userEvent.click(
+      screen.getByRole("button", { name: /^movimiento de cuotas$/i }),
+    );
+    expect(
+      screen.getByText(
+        /no hay alertas registradas en este análisis para «movimiento de cuotas»/i,
+      ),
+    ).toBeVisible();
+    expect(
+      screen.queryByText(/movimiento brusco de cuotas/i),
     ).not.toBeInTheDocument();
   });
 
@@ -264,6 +344,56 @@ describe("AnalysisCabin", () => {
     expect(screen.getByText(/Casa A/i)).toBeVisible();
     expect(screen.getByText(/Casa B/i)).toBeVisible();
     expect(screen.getByText(/Casa C/i)).toBeVisible();
+  });
+
+  it("reports complete odds coverage when there is no arbitrage", () => {
+    const analysis = analyzeMatch(createSurebetDataset([1.5, 3, 4]));
+
+    expect(
+      (analysis as typeof analysis & { arbitrageCoverage?: string })
+        .arbitrageCoverage,
+    ).toBe("complete");
+    expect(analysis.arbitrage).toHaveLength(0);
+
+    render(<ValueSection analysis={analysis} subsection="Surebets" />);
+
+    expect(
+      screen.getByText("No hay oportunidad aritmética en el snapshot actual."),
+    ).toBeVisible();
+  });
+
+  it("does not claim there is no arbitrage when 1X2 odds are incomplete", () => {
+    const analysis = analyzeMatch(createSurebetDataset([2.2, 3.6]));
+
+    expect(
+      (analysis as typeof analysis & { arbitrageCoverage?: string })
+        .arbitrageCoverage,
+    ).toBe("incomplete");
+    expect(analysis.arbitrage).toHaveLength(0);
+
+    render(<ValueSection analysis={analysis} subsection="Surebets" />);
+
+    expect(
+      screen.getByText(
+        /no se puede evaluar.*faltan cuotas.*1x2/i,
+      ),
+    ).toBeVisible();
+  });
+
+  it("marks legacy surebet analyses without coverage metadata as unverified", () => {
+    const analysis = analyzeMatch(createSurebetDataset([])) as ReturnType<
+      typeof analyzeMatch
+    > & { arbitrageCoverage?: string };
+    delete analysis.arbitrageCoverage;
+
+    render(<ValueSection analysis={analysis} subsection="Surebets" />);
+
+    expect(
+      screen.getByText(/cobertura de cuotas 1x2 no verificada/i),
+    ).toBeVisible();
+    expect(
+      screen.queryByText("No hay oportunidad aritmética en el snapshot actual."),
+    ).not.toBeInTheDocument();
   });
 
   it("expone semanticamente la seccion y subseccion activas en los rails moviles", async () => {

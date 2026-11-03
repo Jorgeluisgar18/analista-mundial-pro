@@ -117,8 +117,8 @@ export function PlayersSection({
         intro="Proyecciones condicionadas a titularidad, rol y minutos esperados. Si cambia el once, deben recalcularse."
       >
         <div className="empty-state">
-          No hay proyecciones individuales disponibles para este partido. Las
-          fuentes consultadas no incluyen datos de jugadores.
+          Este análisis no contiene nombres de jugadores verificables. Consulta
+          la sección Fuentes para revisar el estado de la consulta de alineaciones.
         </div>
       </AnalysisSection>
     );

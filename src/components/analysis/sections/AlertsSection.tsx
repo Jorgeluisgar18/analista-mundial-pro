@@ -2,18 +2,6 @@ import { AnalysisSection } from "@/components/analysis/AnalysisSection";
 import { AlertIcon, ClockIcon } from "@/components/analysis/Icons";
 import type { AnalysisResult, MatchDataset } from "@/types/domain";
 
-function monitoringItems(subsection: string) {
-  if (subsection === "Alineaciones") {
-    return ["Baja de último momento", "Cambio de arquero", "Cambio de formación"];
-  }
-
-  if (subsection === "Movimiento de cuotas") {
-    return ["Movimiento brusco de cuotas", "Diferencia entre casas", "Caída de cuota favorita"];
-  }
-
-  return ["Baja de último momento", "Cambio de arquero", "Cambio de formación", "Clima fuerte", "Movimiento brusco de cuotas", "Partido suspendido"];
-}
-
 function filteredAlerts(analysis: AnalysisResult, subsection: string) {
   const needle = subsection.toLowerCase();
 
@@ -89,7 +77,7 @@ export function AlertsSection({
   return (
     <AnalysisSection
       title={`Alertas · ${subsection}`}
-      intro="Eventos que obligan a revisar el modelo antes del inicio."
+      intro="Señales registradas en este análisis. No hay monitoreo en vivo; actualiza el informe manualmente para revisar novedades."
     >
       <div className="alerts-list">
         {alerts.length ? (
@@ -103,17 +91,12 @@ export function AlertsSection({
             </article>
           ))
         ) : (
-          <p className="empty-state">No hay alertas activas para esta subsección.</p>
+          <p className="empty-state">
+            No hay alertas registradas en este análisis para «{subsection}». La
+            aplicación no monitorea cambios en vivo; actualiza el análisis
+            manualmente para revisar novedades.
+          </p>
         )}
-        {monitoringItems(subsection).map((title) => (
-          <article className="alert-monitoring" key={title}>
-            <ClockIcon />
-            <div>
-              <strong>{title}</strong>
-              <p>Sin señal confirmada · monitoreo bajo demanda.</p>
-            </div>
-          </article>
-        ))}
       </div>
     </AnalysisSection>
   );

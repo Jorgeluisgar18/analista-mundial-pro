@@ -261,6 +261,11 @@ describe("Footballdata.io provider", () => {
       expect.arrayContaining([
         expect.objectContaining({ id: "footballdata-io-match" }),
         expect.objectContaining({
+          id: "footballdata-io-availability",
+          status: "unavailable",
+          detail: expect.stringContaining("no aporta lesiones o sanciones"),
+        }),
+        expect.objectContaining({
           id: "footballdata-io-probabilities",
           detail: expect.stringContaining("51%"),
         }),
@@ -299,6 +304,46 @@ describe("Footballdata.io provider", () => {
       expect.objectContaining({
         name: "International World Cup",
         kind: "NATIONAL",
+      }),
+    );
+  });
+
+  it("lee el nombre público de competición dentro del objeto de liga", async () => {
+    const fetcher = vi.fn(async (input: URL | Request | string) => {
+      const url = new URL(String(input));
+      if (url.pathname.endsWith("/matches/912")) {
+        return Response.json({
+          success: true,
+          data: {
+            match_id: 912,
+            match_date: "2026-10-31T17:30:00Z",
+            status: "scheduled",
+            league: {
+              league_id: 39,
+              name: "England Premier League",
+              competition_name: "Premier League",
+              country: "England",
+            },
+            home_team: { team_id: 1, team_name: "Chelsea" },
+            away_team: { team_id: 2, team_name: "Manchester United" },
+          },
+          meta: {},
+        });
+      }
+      return Response.json({ success: true, data: null, meta: {} });
+    });
+    const provider = new FootballdataIoProvider(
+      "test-token",
+      fetcher as typeof fetch,
+    );
+
+    const result = await provider.getMatch("912");
+
+    expect(result.data?.match.competition).toEqual(
+      expect.objectContaining({
+        id: "39",
+        name: "Premier League",
+        kind: "CLUB",
       }),
     );
   });

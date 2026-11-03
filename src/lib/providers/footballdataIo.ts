@@ -391,6 +391,15 @@ export class FootballdataIoProvider implements FootballProvider {
           detail: "Identidad, sede, equipos, torneo y estado del partido.",
         },
         {
+          id: "footballdata-io-availability",
+          label: "Footballdata.io · disponibilidad",
+          type: "provider",
+          status: "unavailable",
+          observedAt: fetchedAt,
+          detail:
+            "Footballdata.io no aporta lesiones o sanciones en este flujo; no se puede confirmar si hay bajas.",
+        },
+        {
           id: "footballdata-io-stats",
           label: "Footballdata.io · stats",
           type: "provider",
@@ -470,7 +479,8 @@ export class FootballdataIoProvider implements FootballProvider {
     if (!kickoffRaw) return null;
 
     const kickoff = normalizeKickoffForAppTimeZone(kickoffRaw);
-    const league = asRecord(match.league ?? match.competition);
+    const leagueValue = match.league ?? match.competition;
+    const league = asRecord(leagueValue);
     const venue = asRecord(match.venue);
     const homeTeam = teamFromProvider(
       asRecord(match.home_team ?? match.homeTeam ?? match.home),
@@ -485,8 +495,14 @@ export class FootballdataIoProvider implements FootballProvider {
       ["#74a8ff", "#18314a"],
     );
     const rawCompetitionName =
-      stringValue(league.name, match.league_name, match.competition_name) ??
-      "Competicion";
+      stringValue(
+        league.competition_name,
+        league.name,
+        league.league_name,
+        match.league_name,
+        match.competition_name,
+        typeof leagueValue === "string" ? leagueValue : undefined,
+      ) ?? "Competicion";
     const country =
       stringValue(league.country, match.country, venue.country) ??
       "Dato no disponible";
@@ -510,6 +526,7 @@ export class FootballdataIoProvider implements FootballProvider {
         id:
           stringValue(
             league.id,
+            league.league_id,
             match.league_id,
             match.competition_id,
             competitionName,

@@ -7,6 +7,13 @@ import type {
 
 const DEFAULT_FORMATION = "4-2-3-1";
 const DEFAULT_ALTERNATIVE = "4-3-3";
+const GENERATED_LINEUP_SOURCE_IDS = new Set([
+  "expected-lineups",
+  "partial-official-lineups",
+]);
+
+type PlayerPositionGroup =
+  "goalkeeper" | "defender" | "midfielder" | "forward" | "unknown";
 
 function isUnavailableFormation(lineup: LineupProjection) {
   const value = String(lineup.formation.value ?? "").toLowerCase();
@@ -56,16 +63,110 @@ function playerScore(player: PlayerProjection) {
   );
 }
 
-function expectedStarters(dataset: MatchDataset, teamId: string) {
+function playerPositionGroup(position: string): PlayerPositionGroup {
+  const normalized = normalizedName(position);
+  if (/^(g|gk|goalkeeper|goalie|keeper|portero|arquero)$/.test(normalized)) {
+    return "goalkeeper";
+  }
+  if (
+    /^(d|df|def|defender|defense|defence|defensa|cb|rb|lb|lwb|rwb|lateral|central)$/.test(
+      normalized,
+    )
+  ) {
+    return "defender";
+  }
+  if (
+    /^(m|mf|mid|midfielder|midfield|medio|mediocampista|volante|cm|dm|am|cam|cdm|mc|mco)$/.test(
+      normalized,
+    )
+  ) {
+    return "midfielder";
+  }
+  if (
+    /^(f|fw|forward|striker|attacker|delantero|winger|extremo|st|cf|lw|rw|ed|ei)$/.test(
+      normalized,
+    )
+  ) {
+    return "forward";
+  }
+  return "unknown";
+}
+
+function formationLineCounts(value: string) {
+  const lines = value.match(/\d+/g)?.map(Number);
+  return lines?.length &&
+    lines.every((line) => line > 0) &&
+    lines.reduce((total, line) => total + line, 0) === 10
+    ? lines
+    : [4, 2, 3, 1];
+}
+
+function expectedStarters(
+  dataset: MatchDataset,
+  teamId: string,
+  formation: string,
+  canRelyOnExistingOfficialStarter = false,
+) {
   const unavailable = unavailablePlayers(dataset, teamId);
-  const candidates = dataset.players
+  const ranked = dataset.players
     .filter((player) => player.teamId === teamId)
     .filter((player) => !unavailable.has(normalizedName(player.name)))
-    .sort((left, right) => playerScore(right) - playerScore(left))
-    .map((player) => player.name);
+    .sort((left, right) => playerScore(right) - playerScore(left));
+  const seenNames = new Set<string>();
+  const candidates = ranked.filter((player) => {
+    const name = normalizedName(player.name);
+    if (!name || seenNames.has(name)) return false;
+    seenNames.add(name);
+    return true;
+  });
+  const goalkeepers = candidates.filter(
+    (player) => playerPositionGroup(player.position) === "goalkeeper",
+  );
+  if (!goalkeepers.length && !canRelyOnExistingOfficialStarter) return [];
 
-  const starters = [...new Set(candidates)].slice(0, 11);
-  return starters;
+  const lines = formationLineCounts(formation);
+  const starters: PlayerProjection[] = goalkeepers.length
+    ? [goalkeepers[0]]
+    : [];
+  const selectedNames = new Set(
+    goalkeepers.length ? [normalizedName(goalkeepers[0].name)] : [],
+  );
+  const addPositionGroup = (group: PlayerPositionGroup, count: number) => {
+    for (const player of candidates) {
+      if (starters.length >= 11 || count <= 0) break;
+      if (
+        playerPositionGroup(player.position) !== group ||
+        selectedNames.has(normalizedName(player.name))
+      ) {
+        continue;
+      }
+      starters.push(player);
+      selectedNames.add(normalizedName(player.name));
+      count -= 1;
+    }
+  };
+
+  addPositionGroup("defender", lines[0] ?? 4);
+  addPositionGroup(
+    "midfielder",
+    lines.slice(1, -1).reduce((total, line) => total + line, 0),
+  );
+  addPositionGroup("forward", lines.at(-1) ?? 1);
+
+  for (const player of candidates) {
+    if (starters.length >= 11) break;
+    const name = normalizedName(player.name);
+    if (
+      selectedNames.has(name) ||
+      playerPositionGroup(player.position) === "goalkeeper"
+    ) {
+      continue;
+    }
+    starters.push(player);
+    selectedNames.add(name);
+  }
+
+  return starters.map((player) => player.name);
 }
 
 function expectedFormationEvidence(observedAt = new Date().toISOString()) {
@@ -121,7 +222,7 @@ function expectedLineupSource(): SourceRecord {
     status: "expected",
     observedAt: new Date().toISOString(),
     detail:
-      "XI probable generado cuando no hay alineación oficial: prioriza jugadores proyectados y excluye bajas lesionadas o suspendidas.",
+      "Sin XI oficial: usa una formación de referencia y solo proyecta nombres con datos de plantilla y posición disponibles; excluye bajas registradas como lesionadas o suspendidas.",
   };
 }
 
@@ -133,12 +234,15 @@ function partialOfficialLineupSource(): SourceRecord {
     status: "expected",
     observedAt: new Date().toISOString(),
     detail:
-      "El proveedor publicó una alineación oficial incompleta; se conservaron los nombres oficiales y se completaron posiciones faltantes como esperadas.",
+      "El proveedor publicó una alineación oficial incompleta; se conserva la información oficial y solo se completa con nombres y posiciones respaldados por datos de plantilla.",
   };
 }
 
 export function withExpectedLineups(dataset: MatchDataset): MatchDataset {
   const next = structuredClone(dataset);
+  next.sources = next.sources.filter(
+    (source) => !GENERATED_LINEUP_SOURCE_IDS.has(source.id),
+  );
   let changed = false;
   let hasExpectedLineups = false;
   let hasPartialOfficialLineups = false;
@@ -154,16 +258,22 @@ export function withExpectedLineups(dataset: MatchDataset): MatchDataset {
     );
     next.lineups = requiredTeamIds.map((teamId) => {
       const lineup = existingLineups.get(teamId);
-      if (!lineup?.confirmed) return unavailableLineup(teamId);
+      if (
+        !lineup ||
+        (!lineup.confirmed &&
+          lineup.status !== "confirmed" &&
+          lineup.status !== "official-partial")
+      ) {
+        return unavailableLineup(teamId);
+      }
+      const confirmed =
+        lineup.status !== "official-partial" && lineup.starters.length >= 11;
       return {
         ...lineup,
-        status: lineup.starters.length >= 11 ? "confirmed" : "official-partial",
+        confirmed,
+        status: confirmed ? "confirmed" : "official-partial",
       };
     });
-    next.sources = next.sources.filter(
-      (source) =>
-        !["expected-lineups", "partial-official-lineups"].includes(source.id),
-    );
     return next;
   }
 
@@ -179,17 +289,8 @@ export function withExpectedLineups(dataset: MatchDataset): MatchDataset {
     if (lineup.confirmed && lineup.starters.length >= 11) {
       return { ...lineup, status: "confirmed" };
     }
-    const officialPartial = lineup.confirmed && lineup.starters.length > 0;
-    const generatedStarters = expectedStarters(next, lineup.teamId);
-    const starters =
-      lineup.starters.length >= 11
-        ? lineup.starters
-        : [
-            ...lineup.starters,
-            ...generatedStarters.filter(
-              (player) => !lineup.starters.includes(player),
-            ),
-          ].slice(0, 11);
+    const officialPartial =
+      lineup.confirmed || lineup.status === "official-partial";
     const formation = isUnavailableFormation(lineup)
       ? {
           value: DEFAULT_FORMATION,
@@ -207,6 +308,21 @@ export function withExpectedLineups(dataset: MatchDataset): MatchDataset {
               ? lineup.formation.status
               : ("expected" as const),
         };
+    const generatedStarters = expectedStarters(
+      next,
+      lineup.teamId,
+      String(formation.value),
+      officialPartial && lineup.starters.length > 0,
+    );
+    const starters =
+      lineup.starters.length >= 11
+        ? lineup.starters
+        : [
+            ...lineup.starters,
+            ...generatedStarters.filter(
+              (player) => !lineup.starters.includes(player),
+            ),
+          ].slice(0, 11);
 
     changed = true;
     hasExpectedLineups ||= !officialPartial;
@@ -223,10 +339,7 @@ export function withExpectedLineups(dataset: MatchDataset): MatchDataset {
 
   if (changed) {
     next.sources = [
-      ...next.sources.filter(
-        (source) =>
-          !["expected-lineups", "partial-official-lineups"].includes(source.id),
-      ),
+      ...next.sources,
       ...(hasExpectedLineups ? [expectedLineupSource()] : []),
       ...(hasPartialOfficialLineups ? [partialOfficialLineupSource()] : []),
     ];

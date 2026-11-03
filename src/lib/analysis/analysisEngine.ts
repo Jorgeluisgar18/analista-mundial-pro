@@ -85,9 +85,14 @@ function hasReliableBaseStats(dataset: MatchDataset) {
 
   if (!numericStatsPresent) return false;
 
+  const hasHistoricalFormForBothTeams = Boolean(
+    dataset.historical?.homeForm && dataset.historical?.awayForm,
+  );
+
   return dataset.sources.some(
     (source) =>
       isBaseStatsSource(source) &&
+      (source.id !== "historical-engine" || hasHistoricalFormForBothTeams) &&
       (source.status === "confirmed" || source.status === "inferred"),
   );
 }
@@ -250,14 +255,19 @@ function fairH2HProbabilities(
 function findArbitrage(
   odds: MatchDataset["odds"],
   match: MatchDataset["match"],
-): ArbitrageOpportunity[] {
+): {
+  coverage: "complete" | "incomplete";
+  opportunities: ArbitrageOpportunity[];
+} {
   const outcomes = [
     match.homeTeam.name,
     "Empate",
     match.awayTeam.name,
   ] as const;
   const best = outcomes.map((outcome) => bestOddFor(odds, outcome, "h2h"));
-  if (best.some((odd) => odd === undefined)) return [];
+  if (best.some((odd) => odd === undefined)) {
+    return { coverage: "incomplete", opportunities: [] };
+  }
 
   const complete = best as [
     NonNullable<(typeof best)[number]>,
@@ -269,26 +279,31 @@ function findArbitrage(
     complete.map((odd) => odd.odd),
     bankroll,
   );
-  if (!calculation.isOpportunity) return [];
+  if (!calculation.isOpportunity) {
+    return { coverage: "complete", opportunities: [] };
+  }
 
-  return [
-    {
-      id: "arbitrage-1x2",
-      market: "1X2",
-      isOpportunity: true,
-      inverseSum: calculation.inverseSum,
-      margin: calculation.margin,
-      returnAmount: calculation.returnAmount,
-      theoreticalProfit: calculation.theoreticalProfit,
-      bankroll,
-      outcomes: complete.map((odd, index) => ({
-        outcome: outcomes[index],
-        bookmaker: odd.bookmaker,
-        odd: odd.odd,
-        stake: calculation.stakes[index],
-      })),
-    },
-  ];
+  return {
+    coverage: "complete",
+    opportunities: [
+      {
+        id: "arbitrage-1x2",
+        market: "1X2",
+        isOpportunity: true,
+        inverseSum: calculation.inverseSum,
+        margin: calculation.margin,
+        returnAmount: calculation.returnAmount,
+        theoreticalProfit: calculation.theoreticalProfit,
+        bankroll,
+        outcomes: complete.map((odd, index) => ({
+          outcome: outcomes[index],
+          bookmaker: odd.bookmaker,
+          odd: odd.odd,
+          stake: calculation.stakes[index],
+        })),
+      },
+    ],
+  };
 }
 
 function topScores(matrix: number[][]) {
@@ -869,6 +884,7 @@ export function analyzeMatch(
     blended,
     totalGoals,
   );
+  const arbitrage = findArbitrage(normalizedOdds, dataset.match);
 
   return {
     id: `analysis-${dataset.match.id}`,
@@ -889,7 +905,8 @@ export function analyzeMatch(
       confidence,
     },
     predictions,
-    arbitrage: findArbitrage(normalizedOdds, dataset.match),
+    arbitrage: arbitrage.opportunities,
+    arbitrageCoverage: arbitrage.coverage,
     scenarios: buildScenarios(dataset, { home, draw, away }, features),
     alerts: [
       {

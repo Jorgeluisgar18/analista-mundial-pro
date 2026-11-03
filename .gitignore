@@ -20,5 +20,8 @@ playwright-report/
 deploy-*.zip
 .vercel/
 .netlify/
+.atl/
+.codegraph/
+.playwright-cli/
 .DS_Store
 *.pem

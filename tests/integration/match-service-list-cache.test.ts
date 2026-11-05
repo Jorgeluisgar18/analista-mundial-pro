@@ -66,8 +66,8 @@ describe("matchService listByDate cache enrichment", () => {
     expect(detailCall).not.toHaveBeenCalled();
     expect(result.matches[0]).toMatchObject({
       id: "provider-test--cached-list-match",
-      dataOrigin: "CACHE",
-      venue: "Estadio enriquecido desde cache",
+      dataOrigin: "API",
+      venue: "Estadio listado por proveedor",
       homeTeam: expect.objectContaining({
         logoUrl: "https://img.example/cache-home.png",
       }),

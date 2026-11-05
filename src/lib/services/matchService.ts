@@ -110,18 +110,27 @@ export function createMatchService({
     let hits = 0;
     const enriched = await Promise.all(
       matches.map(async (match) => {
-          const id = scopedId(providerId, match.id);
+        const id = scopedId(providerId, match.id);
         try {
           const cached = await cache.getFreshDataset(id);
           if (
             cached &&
-            (runtimePolicy.allowsDemoData || cached.match.dataOrigin !== "DEMO")
+            scopedId(providerId, cached.match.id) === id &&
+            cached.match.homeTeam.id === match.homeTeam.id &&
+            cached.match.awayTeam.id === match.awayTeam.id &&
+            cached.match.dataOrigin !== "DEMO"
           ) {
-            hits += 1;
-            return {
-              ...cached.match,
-              id,
-            };
+            const homeLogo = match.homeTeam.logoUrl || cached.match.homeTeam.logoUrl;
+            const awayLogo = match.awayTeam.logoUrl || cached.match.awayTeam.logoUrl;
+            if (homeLogo !== match.homeTeam.logoUrl || awayLogo !== match.awayTeam.logoUrl) {
+              hits += 1;
+              return {
+                ...match,
+                id,
+                homeTeam: { ...match.homeTeam, logoUrl: homeLogo },
+                awayTeam: { ...match.awayTeam, logoUrl: awayLogo },
+              };
+            }
           }
         } catch {
           // La lista no debe fallar si el cache persistente no esta disponible.

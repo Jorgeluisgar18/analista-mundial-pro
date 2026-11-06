@@ -12,6 +12,47 @@ vi.mock("server-only", () => ({}));
 const mockedGetApiUsageSnapshot = vi.mocked(getApiUsageSnapshot);
 
 describe("matchService", () => {
+  it.each(["compatible", "wrong-fixture", "wrong-provider", "wrong-home", "wrong-away", "demo"] as const)(
+    "preserves fresh metadata and only reuses compatible missing badges (%s)",
+    async (identity) => {
+      const fresh = structuredClone(demoDataset.match);
+      Object.assign(fresh, { id: "fixture", dataOrigin: "API", fetchedAt: "2026-10-18T12:00:00Z" });
+      fresh.homeTeam.logoUrl = undefined;
+      fresh.awayTeam.logoUrl = "https://example.test/fresh.png";
+      const cached = structuredClone(demoDataset);
+      cached.match = {
+        ...structuredClone(fresh), id: "football-test--fixture",
+        date: "2026-10-17", time: "00:00", kickoff: "2026-10-17T05:00:00Z",
+        status: "finished", dataOrigin: "CACHE", fetchedAt: "2026-10-01T00:00:00Z",
+        competition: { id: "old-league", name: "Old competition", kind: "CLUB" },
+      };
+      cached.match.homeTeam.logoUrl = "https://example.test/cached.png";
+      cached.match.awayTeam.logoUrl = "https://example.test/stale.png";
+      if (identity === "wrong-fixture") cached.match.id = "football-test--other";
+      if (identity === "wrong-provider") cached.match.id = "other-provider--fixture";
+      if (identity === "wrong-home") cached.match.homeTeam.id = "other-home";
+      if (identity === "wrong-away") cached.match.awayTeam.id = "other-away";
+      if (identity === "demo") cached.match.dataOrigin = "DEMO";
+      const before = structuredClone(cached);
+      const meta = { source: "football-test", fetchedAt: fresh.fetchedAt, isStale: false, warnings: [] };
+      const service = createMatchService({
+        snapshotCache: { async getFreshDataset() { return cached; } },
+        providers: { football: [{
+          id: "football-test",
+          async listMatches() { return { data: [fresh], meta }; },
+          async getMatch() { return { data: null, meta }; },
+        }] },
+      });
+      const result = await service.listByDate(fresh.date);
+      expect(result.matches).toEqual([{
+        ...fresh, id: "football-test--fixture",
+        homeTeam: { ...fresh.homeTeam, logoUrl: identity === "compatible" ? "https://example.test/cached.png" : undefined },
+      }]);
+      expect(cached).toEqual(before);
+      expect(result.matches[0].fetchedAt).toBe(fresh.fetchedAt);
+    },
+  );
+
   it("usa demo claramente etiquetado cuando no hay claves", async () => {
     const service = createMatchService({ env: {} });
     const result = await service.listByDate("2026-06-15");

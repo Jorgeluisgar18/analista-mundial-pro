@@ -46,6 +46,7 @@ async function withoutAnalystToken<T>(callback: () => Promise<T>): Promise<T> {
 function analystHeaders(extra?: HeadersInit) {
   return {
     "content-type": "application/json",
+    origin: "http://local",
     "x-analyst-token": ANALYST_TOKEN,
     ...extra,
   };
@@ -220,7 +221,7 @@ describe("API routes", () => {
       createOverride(
         new Request("http://local/api/match/demo-col-bra/overrides", {
           method: "POST",
-          headers: { "content-type": "application/json" },
+          headers: { "content-type": "application/json", origin: "http://local" },
           body: JSON.stringify({
             type: "absence",
             description: "Intento sin credencial de analista",
@@ -245,6 +246,7 @@ describe("API routes", () => {
           method: "POST",
           headers: {
             "content-type": "application/json",
+            origin: "http://local",
             "x-analyst-token": "wrong-token",
           },
           body: JSON.stringify({
@@ -271,6 +273,7 @@ describe("API routes", () => {
           method: "POST",
           headers: {
             "content-type": "application/json",
+            origin: "http://local",
             authorization: `Bearer ${ANALYST_TOKEN}`,
           },
           body: JSON.stringify({
@@ -317,11 +320,11 @@ describe("API routes", () => {
     const requests = [
       new Request("http://local/api/match/demo-col-bra/analyze", {
         method: "POST",
-        headers: { "user-agent": "" },
+        headers: { origin: "http://local", "user-agent": "" },
       }),
       new Request("http://local/api/match/demo-col-bra/analyze", {
         method: "POST",
-        headers: { "user-agent": `qa-agent/${"x".repeat(4096)}` },
+        headers: { origin: "http://local", "user-agent": `qa-agent/${"x".repeat(4096)}` },
       }),
     ];
 
@@ -350,6 +353,7 @@ describe("API routes", () => {
         analyzeMatchRoute(
           new Request("http://local/api/match/demo-col-bra/analyze", {
             method: "POST",
+            headers: { origin: "http://local" },
           }),
           { params: Promise.resolve({ id: "demo-col-bra" }) },
         ),
@@ -366,6 +370,7 @@ describe("API routes", () => {
         refreshMatchRoute(
           new Request("http://local/api/match/demo-col-bra/refresh", {
             method: "POST",
+            headers: { origin: "http://local" },
           }),
           { params: Promise.resolve({ id: "demo-col-bra" }) },
         ),

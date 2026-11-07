@@ -2,8 +2,6 @@ import { problem } from "@/lib/http/problem";
 
 export function requireSameOrigin(request: Request) {
   const origin = request.headers.get("origin");
-  if (!origin) return null;
-
   const expectedOrigin = new URL(request.url).origin;
   if (origin === expectedOrigin) return null;
 

@@ -66,6 +66,21 @@ npm run test:e2e  # pruebas end-to-end
 
 ## Documentación útil
 
+### Origen de las solicitudes que cambian estado
+
+Los POST de `/api/match/[id]/analyze`, `/api/match/[id]/refresh` y
+`/api/match/[id]/overrides` requieren un encabezado `Origin` idéntico al origen
+de la URL de la aplicación. Por ejemplo,
+para una aplicación en `https://app.example`, el valor es `https://app.example`,
+sin ruta ni barra final. Los clientes de scripts también deben enviarlo.
+
+Un origen ausente, vacío, `null` o diferente devuelve 403 antes de consultar
+servicios, consumir límites de solicitudes o leer el cuerpo. Este control no
+autentica a clientes externos ni reemplaza los límites de solicitudes o la
+credencial de analista requerida para cambios manuales.
+
+### Guías
+
 - `docs/data-sources/provider-onboarding.md`: guía para agregar ligas, proveedores, escudos/importadores y QA local.
 - `docs/qa/manual-search-matrix.md`: matriz manual para validar búsquedas, cabina y estados vacíos.
 - `docs/guides/provider-setup.md`: configuración técnica y comportamiento de proveedores por entorno.

@@ -22,6 +22,7 @@ export default function Home() {
           <a href="#metodologia">Metodología</a>
           <a href="#fuentes">Transparencia</a>
           <a href="#salud">Estado</a>
+          <Link href="/auth/sign-in">Administración</Link>
         </nav>
       </header>
       <main>

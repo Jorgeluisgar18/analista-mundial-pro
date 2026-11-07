@@ -107,3 +107,9 @@ El proyecto está en evolución activa. Actualmente se está fortaleciendo el mo
 ## Aviso responsable
 
 Analista Mundial Pro es una herramienta de apoyo analítico. No garantiza resultados ni ganancias. Las apuestas deportivas implican riesgo financiero.
+
+### Acceso privado de administrador
+
+`/auth/sign-in` permite iniciar y cerrar sesión con una cuenta administradora de Neon Auth. La cuenta debe existir y tener su correo verificado; configura `NEON_AUTH_BASE_URL` (HTTPS), `NEON_AUTH_COOKIE_SECRET` (secreto aleatorio de al menos 32 caracteres) y `ANALYST_ADMIN_EMAIL` como variables privadas. No publiques correo, contraseña ni secretos en Git.
+
+Este primer cambio incorpora el acceso privado sin registro público ni proxy general de autenticación. La autorización por token de los cambios manuales se conserva hasta la siguiente unidad, que activa la sesión administradora. El resto de la aplicación mantiene su acceso actual. Las pruebas offline no certifican el servicio administrado ni el login/logout desplegado.

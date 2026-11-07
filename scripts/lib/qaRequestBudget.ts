@@ -19,7 +19,7 @@ export function createQaRequestBudget(
     if (attempts >= limit) throw new Error("QA request budget exhausted.");
     // Reserve before dispatch, with no await between the check and increment.
     attempts += 1;
-    return fetcher(input, init);
+    return fetcher(input, { ...init, redirect: "error" });
   };
 
   return {

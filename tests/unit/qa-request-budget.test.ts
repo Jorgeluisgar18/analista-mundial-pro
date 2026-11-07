@@ -4,6 +4,14 @@ import { createQaRequestBudget } from "../../scripts/lib/qaRequestBudget";
 import { parseQaOptions, qaExitCode, runQaRound } from "../../scripts/qa-real-api-football";
 
 describe("QA request budget", () => {
+  it("blocks automatic redirects even when the caller requests follow mode", async () => {
+    const underlying = vi.fn<typeof fetch>().mockResolvedValue(Response.json({}));
+    const budget = createQaRequestBudget(underlying);
+    await budget.fetcher("https://example.test", { redirect: "follow" });
+    expect(underlying).toHaveBeenCalledWith("https://example.test", { redirect: "error" });
+    expect(budget.snapshot().attempts).toBe(1);
+  });
+
   it("counts a successful HTTP attempt before dispatch", async () => {
     const underlying = vi.fn<typeof fetch>().mockImplementation(async () => {
       expect(budget.snapshot().attempts).toBe(1);

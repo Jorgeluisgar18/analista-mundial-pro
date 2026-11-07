@@ -37,6 +37,8 @@ Each underlying HTTP attempt is reserved synchronously before dispatch. HTTP
 errors, network failures, and retries consume allowance. Once exhausted, later
 attempts are refused locally without calling the underlying transport. Lists,
 details, and their internal parallel requests share the same budget.
+Automatic redirects are rejected so they cannot issue uncounted requests or
+forward the credential to another destination.
 
 The cap covers **one runner process**, not the provider account or other
 processes. Restarting the command starts a new round: do not rerun under the same

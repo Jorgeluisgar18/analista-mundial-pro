@@ -186,17 +186,19 @@ test("modifica manualmente un partido cuando Postgres está configurado", async 
     "Requiere DATABASE_URL con Neon/Postgres para persistir overrides.",
   );
   test.skip(
-    !process.env.ANALYST_OVERRIDE_TOKEN,
-    "Requiere ANALYST_OVERRIDE_TOKEN para probar overrides protegidos.",
+    process.env.NEON_ADMIN_E2E !== "1" || !process.env.NEON_ADMIN_E2E_EMAIL || !process.env.NEON_ADMIN_E2E_PASSWORD,
+    "Requiere opt-in NEON_ADMIN_E2E y credenciales de una cuenta de prueba verificada.",
   );
 
+  await page.goto("/auth/sign-in");
+  await page.getByLabel("Correo electrónico").fill(process.env.NEON_ADMIN_E2E_EMAIL ?? "");
+  await page.getByLabel("Contraseña").fill(process.env.NEON_ADMIN_E2E_PASSWORD ?? "");
+  await page.getByRole("button", { name: "Iniciar sesión" }).click();
+  await expect(page).toHaveURL("/");
   const description = `Baja E2E temporal ${Date.now()}`;
   try {
     await page.goto("/match/demo-col-bra");
     await page.getByRole("button", { name: /Cambios manuales/i }).click();
-    await page
-      .getByLabel("Token de analista")
-      .fill(process.env.ANALYST_OVERRIDE_TOKEN ?? "");
     await page.getByLabel("Descripción del cambio").fill(description);
     await page.getByRole("button", { name: /Guardar y recalcular/i }).click();
     await expect(

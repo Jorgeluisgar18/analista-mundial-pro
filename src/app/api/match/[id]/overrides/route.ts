@@ -65,7 +65,7 @@ export async function POST(
 ) {
   const originProblem = requireSameOrigin(request);
   if (originProblem) return originProblem;
-  const analystProblem = requireAnalyst(request);
+  const analystProblem = await requireAnalyst(request);
   if (analystProblem) return analystProblem;
   const limitProblem = await checkPersistentRateLimit(
     request,

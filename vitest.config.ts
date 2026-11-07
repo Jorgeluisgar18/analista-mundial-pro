@@ -8,6 +8,7 @@ export default defineConfig({
     },
   },
   test: {
+    server: { deps: { inline: [/@neon\/auth/] } },
     environment: "jsdom",
     setupFiles: ["./tests/setup.ts"],
     include: ["tests/**/*.test.{ts,tsx}"],

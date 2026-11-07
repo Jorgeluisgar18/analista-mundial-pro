@@ -29,6 +29,7 @@
     "db:cleanup": "tsx scripts/cleanup-operational-data.ts"
   },
   "dependencies": {
+    "@neon/auth": "0.8.2",
     "@netlify/database": "^1.1.0",
     "@prisma/adapter-pg": "^7.8.0",
     "@prisma/client": "^7.8.0",

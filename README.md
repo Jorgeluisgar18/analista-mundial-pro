@@ -66,6 +66,20 @@ npm run test:e2e  # pruebas end-to-end
 
 ## Documentación útil
 
+### Concurrencia del límite persistente
+
+El workflow `PostgreSQL rate limit` comprueba solicitudes simultáneas sobre una
+base PostgreSQL efímera de CI. Crea y elimina únicamente un esquema de prueba
+con nombre único; no ejecuta migraciones ni utiliza `DATABASE_URL` o Neon.
+El test requiere `RATE_LIMIT_TEST_POSTGRES=1`, un puerto local explícito y
+`RATE_LIMIT_TEST_PASSWORD`. El workflow proporciona los valores de su servicio
+temporal; sin activación, la prueba queda omitida al ejecutar `npm test`.
+
+El consumo del bucket se realiza en una sola operación atómica, conservando
+la clave por cliente y el reinicio al vencer la ventana. Si Postgres falla,
+se mantiene el fallback de memoria existente; ese fallback no es un contador
+distribuido entre instancias.
+
 ### Origen de las solicitudes que cambian estado
 
 Los POST de `/api/match/[id]/analyze`, `/api/match/[id]/refresh` y

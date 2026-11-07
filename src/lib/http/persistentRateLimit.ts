@@ -8,13 +8,8 @@ interface RateLimitRow {
   resetsAt: Date;
 }
 
-interface RateLimitTransaction {
-  $queryRawUnsafe<T = unknown>(query: string, ...values: unknown[]): Promise<T>;
-  $executeRawUnsafe(query: string, ...values: unknown[]): Promise<number>;
-}
-
 interface RateLimitDatabase {
-  $transaction<T>(callback: (transaction: RateLimitTransaction) => Promise<T>): Promise<T>;
+  $queryRawUnsafe<T = unknown>(query: string, ...values: unknown[]): Promise<T>;
 }
 
 interface RateLimitOptions {
@@ -52,55 +47,35 @@ async function consumeBucket(
   limit: number,
   windowMs: number,
 ) {
-  return database.$transaction(async (transaction) => {
-    const now = new Date();
-    const nextReset = new Date(now.getTime() + windowMs);
-    const rows = await transaction.$queryRawUnsafe<RateLimitRow[]>(
-      'SELECT "count", "resetsAt" FROM "RateLimitBucket" WHERE "scope" = $1 AND "clientKey" = $2 FOR UPDATE',
-      scope,
-      key,
-    );
-    const current = rows[0];
-
-    if (!current) {
-      await transaction.$executeRawUnsafe(
-        'INSERT INTO "RateLimitBucket" ("id", "scope", "clientKey", "count", "resetsAt", "updatedAt") VALUES ($1, $2, $3, 1, $4, $5)',
-        randomUUID(),
-        scope,
-        key,
-        nextReset,
-        now,
-      );
-      return { allowed: true, remaining: limit - 1, resetsAt: nextReset };
-    }
-
-    if (current.resetsAt.getTime() <= now.getTime()) {
-      await transaction.$executeRawUnsafe(
-        'UPDATE "RateLimitBucket" SET "count" = 1, "resetsAt" = $3, "updatedAt" = $4 WHERE "scope" = $1 AND "clientKey" = $2',
-        scope,
-        key,
-        nextReset,
-        now,
-      );
-      return { allowed: true, remaining: limit - 1, resetsAt: nextReset };
-    }
-
-    if (current.count >= limit) {
-      return { allowed: false, remaining: 0, resetsAt: current.resetsAt };
-    }
-
-    await transaction.$executeRawUnsafe(
-      'UPDATE "RateLimitBucket" SET "count" = "count" + 1, "updatedAt" = $3 WHERE "scope" = $1 AND "clientKey" = $2',
-      scope,
-      key,
-      now,
-    );
-    return {
-      allowed: true,
-      remaining: Math.max(0, limit - current.count - 1),
-      resetsAt: current.resetsAt,
-    };
-  });
+  const now = new Date();
+  const nextReset = new Date(now.getTime() + windowMs);
+  const rows = await database.$queryRawUnsafe<RateLimitRow[]>(
+    `INSERT INTO "RateLimitBucket" ("id", "scope", "clientKey", "count", "resetsAt", "updatedAt")
+     VALUES ($1, $2, $3, 1, $4, $5)
+     ON CONFLICT ("scope", "clientKey") DO UPDATE
+     SET "count" = CASE
+       WHEN "RateLimitBucket"."resetsAt" <= $5 THEN 1
+       WHEN "RateLimitBucket"."count" < $6 + 1 THEN "RateLimitBucket"."count" + 1
+       ELSE "RateLimitBucket"."count"
+     END,
+     "resetsAt" = CASE
+       WHEN "RateLimitBucket"."resetsAt" <= $5 THEN $4
+       ELSE "RateLimitBucket"."resetsAt"
+     END,
+     "updatedAt" = CASE
+       WHEN "RateLimitBucket"."resetsAt" <= $5 OR "RateLimitBucket"."count" < $6 + 1 THEN $5
+       ELSE "RateLimitBucket"."updatedAt"
+     END
+     RETURNING "count", "resetsAt"`,
+    randomUUID(), scope, key, nextReset, now, limit,
+  );
+  const bucket = rows[0];
+  if (!bucket) throw new Error("RateLimitBucket upsert did not return a bucket");
+  return {
+    allowed: bucket.count <= limit,
+    remaining: Math.max(0, limit - bucket.count),
+    resetsAt: bucket.resetsAt,
+  };
 }
 
 export async function checkPersistentRateLimit(

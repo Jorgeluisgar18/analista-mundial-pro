@@ -4,50 +4,16 @@ import { checkPersistentRateLimit } from "@/lib/http/persistentRateLimit";
 vi.mock("server-only", () => ({}));
 
 function createFakeRateLimitDatabase() {
-  const buckets = new Map<string, { count: number; resetsAt: Date }>();
+  const resetsAt = new Date(Date.now() + 60_000);
   return {
-    buckets,
     database: {
-      async $transaction<T>(callback: (transaction: {
-        $queryRawUnsafe<TQuery = unknown>(
-          query: string,
-          ...values: unknown[]
-        ): Promise<TQuery>;
-        $executeRawUnsafe(query: string, ...values: unknown[]): Promise<number>;
-      }) => Promise<T>) {
-        return callback({
-          async $queryRawUnsafe<TQuery = unknown>(_query: string, ...values: unknown[]) {
-            const key = `${values[0]}:${values[1]}`;
-            const bucket = buckets.get(key);
-            return (bucket ? [bucket] : []) as TQuery;
-          },
-          async $executeRawUnsafe(query: string, ...values: unknown[]) {
-            if (query.startsWith("INSERT")) {
-              const [, scope, clientKey, resetsAt] = values;
-              buckets.set(`${scope}:${clientKey}`, {
-                count: 1,
-                resetsAt: resetsAt as Date,
-              });
-              return 1;
-            }
-            const [scope, clientKey] = values;
-            const key = `${scope}:${clientKey}`;
-            const current = buckets.get(key);
-            if (!current) return 0;
-            if (query.includes('"count" = 1')) {
-              current.count = 1;
-              current.resetsAt = values[2] as Date;
-              return 1;
-            }
-            current.count += 1;
-            return 1;
-          },
-        });
-      },
+      $queryRawUnsafe: vi.fn()
+        .mockResolvedValueOnce([{ count: 1, resetsAt }])
+        .mockResolvedValueOnce([{ count: 2, resetsAt }])
+        .mockResolvedValueOnce([{ count: 3, resetsAt }]),
     },
   };
 }
-
 describe("persistent rate limit", () => {
   it("bloquea solicitudes usando el bucket persistente compartido", async () => {
     const { database } = createFakeRateLimitDatabase();
@@ -85,7 +51,7 @@ describe("persistent rate limit", () => {
       headers: { "x-forwarded-for": "203.0.113.9" },
     });
     const database = {
-      async $transaction() {
+      async $queryRawUnsafe() {
         throw new Error("RateLimitBucket no disponible");
       },
     };

@@ -15,10 +15,12 @@ const postgresTest = process.env.RATE_LIMIT_TEST_POSTGRES === "1" ? it : it.skip
 postgresTest("enforces the shared cap during concurrent first inserts on PostgreSQL", async () => {
   const port = Number(process.env.PGPORT ?? "5432");
   if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error("Invalid test port");
+  const password = process.env.RATE_LIMIT_TEST_PASSWORD;
+  if (!password) throw new Error("Explicit disposable-test password required");
   // Fixed loopback/test database; never consume application connection URLs.
   const config = {
     host: "127.0.0.1", port, database: "rate_limit_ci", user: "postgres",
-    password: "ci-only", ssl: false as const, connectionTimeoutMillis: 5000,
+    password, ssl: false as const, connectionTimeoutMillis: 5000,
   };
   const schema = `rate_limit_${randomUUID().replaceAll("-", "")}`;
   const admin = new pg.Pool({ ...config, max: 1 });

@@ -27,10 +27,7 @@ describe("UpdatePanel", () => {
       />,
     );
 
-    await userEvent.type(
-      screen.getByLabelText(/Token de analista/i),
-      "token-local",
-    );
+
     await userEvent.selectOptions(
       screen.getByLabelText(/Tipo de cambio/i),
       "formation",
@@ -54,8 +51,10 @@ describe("UpdatePanel", () => {
     const body = JSON.parse(String(requestInit?.body));
 
     expect(requestInit?.headers).toMatchObject({
-      "x-analyst-token": "token-local",
+      "content-type": "application/json",
     });
+    expect(requestInit?.headers).not.toHaveProperty("x-analyst-token");
+    expect(screen.queryByLabelText(/Token de analista/i)).not.toBeInTheDocument();
     expect(body).toMatchObject({
       type: "formation",
       teamId: demoDataset.match.awayTeam.id,

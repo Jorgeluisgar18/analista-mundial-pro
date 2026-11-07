@@ -565,7 +565,6 @@ describe("AnalysisCabin", () => {
     await user.click(
       screen.getByRole("button", { name: (name) => name === "Cambios manuales" }),
     );
-    await user.type(screen.getByLabelText(/token de analista/i), "token-local");
     await user.type(
       screen.getByLabelText(/descripci/i),
       "Baja confirmada por reporte oficial",
@@ -577,7 +576,7 @@ describe("AnalysisCabin", () => {
       expect.objectContaining({
         method: "POST",
         headers: expect.objectContaining({
-          "x-analyst-token": "token-local",
+          "content-type": "application/json",
         }),
       }),
     );

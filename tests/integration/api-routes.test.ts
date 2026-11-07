@@ -15,39 +15,25 @@ import { itWithDatabase } from "../helpers/database";
 
 vi.mock("server-only", () => ({}));
 
-const ANALYST_TOKEN = "test-analyst-token";
+const { authorization } = vi.hoisted(() => ({ authorization: vi.fn() }));
+vi.mock("@/lib/auth/server", () => ({ getAdminAuthorization: authorization }));
 
-async function withAnalystToken<T>(callback: () => Promise<T>): Promise<T> {
-  const previous = process.env.ANALYST_OVERRIDE_TOKEN;
-  process.env.ANALYST_OVERRIDE_TOKEN = ANALYST_TOKEN;
-  try {
-    return await callback();
-  } finally {
-    if (previous === undefined) {
-      delete process.env.ANALYST_OVERRIDE_TOKEN;
-    } else {
-      process.env.ANALYST_OVERRIDE_TOKEN = previous;
-    }
-  }
+async function withAdminSession<T>(callback: () => Promise<T>): Promise<T> {
+  authorization.mockResolvedValue("authorized");
+  return callback();
 }
-
-async function withoutAnalystToken<T>(callback: () => Promise<T>): Promise<T> {
-  const previous = process.env.ANALYST_OVERRIDE_TOKEN;
-  delete process.env.ANALYST_OVERRIDE_TOKEN;
-  try {
-    return await callback();
-  } finally {
-    if (previous !== undefined) {
-      process.env.ANALYST_OVERRIDE_TOKEN = previous;
-    }
-  }
+async function withoutAuthConfiguration<T>(callback: () => Promise<T>): Promise<T> {
+  authorization.mockResolvedValue("unavailable");
+  return callback();
 }
-
+async function withoutAdminSession<T>(callback: () => Promise<T>): Promise<T> {
+  authorization.mockResolvedValue("unauthenticated");
+  return callback();
+}
 function analystHeaders(extra?: HeadersInit) {
   return {
     "content-type": "application/json",
     origin: "http://local",
-    "x-analyst-token": ANALYST_TOKEN,
     ...extra,
   };
 }
@@ -144,7 +130,7 @@ describe("API routes", () => {
   it("rechaza JSON malformado en cambios manuales", async () => {
     let response: Response | undefined;
     try {
-      response = await withAnalystToken(() =>
+      response = await withAdminSession(() =>
         createOverride(
           new Request("http://local/api/match/demo-col-bra/overrides", {
             method: "POST",
@@ -172,7 +158,7 @@ describe("API routes", () => {
       impact: "high",
       area: "attack",
     });
-    const response = await withAnalystToken(() =>
+    const response = await withAdminSession(() =>
       createOverride(
         new Request("http://local/api/match/demo-col-bra/overrides", {
           method: "POST",
@@ -200,7 +186,7 @@ describe("API routes", () => {
       impact: "high",
       area: "attack",
     });
-    const response = await withAnalystToken(() =>
+    const response = await withAdminSession(() =>
       createOverride(
         new Request("http://local/api/match/demo-col-bra/overrides", {
           method: "POST",
@@ -216,8 +202,8 @@ describe("API routes", () => {
     expect(body.title).toMatch(/solicitud demasiado grande/i);
   });
 
-  it("rechaza cambios manuales sin token de analista", async () => {
-    const response = await withAnalystToken(() =>
+  it("rechaza cambios manuales sin sesión", async () => {
+    const response = await withoutAdminSession(() =>
       createOverride(
         new Request("http://local/api/match/demo-col-bra/overrides", {
           method: "POST",
@@ -236,11 +222,11 @@ describe("API routes", () => {
     const body = await response.json();
 
     expect(response.status).toBe(401);
-    expect(body.title).toMatch(/credencial de analista requerida/i);
+    expect(body.title).toMatch(/sesión de administrador requerida/i);
   });
 
-  it("rechaza cambios manuales con token de analista incorrecto", async () => {
-    const response = await withAnalystToken(() =>
+  it("rechaza un token antiguo sin sesión", async () => {
+    const response = await withoutAdminSession(() =>
       createOverride(
         new Request("http://local/api/match/demo-col-bra/overrides", {
           method: "POST",
@@ -263,22 +249,22 @@ describe("API routes", () => {
     const body = await response.json();
 
     expect(response.status).toBe(401);
-    expect(body.title).toMatch(/credencial de analista requerida/i);
+    expect(body.title).toMatch(/sesión de administrador requerida/i);
   });
 
-  it("acepta credencial de analista mediante Authorization Bearer", async () => {
-    const response = await withAnalystToken(() =>
+  it("acepta una sesión administradora verificada", async () => {
+    const response = await withAdminSession(() =>
       createOverride(
         new Request("http://local/api/match/demo-col-bra/overrides", {
           method: "POST",
           headers: {
             "content-type": "application/json",
             origin: "http://local",
-            authorization: `Bearer ${ANALYST_TOKEN}`,
+            authorization: "Bearer obsolete-token",
           },
           body: JSON.stringify({
             type: "absence",
-            description: "Baja confirmada con bearer token",
+            description: "Baja confirmada con sesión administradora",
             teamId: demoDataset.match.homeTeam.id,
             impact: "high",
             area: "attack",
@@ -293,8 +279,8 @@ describe("API routes", () => {
     expect(body.override.id).toMatch(/^demo-manual-/);
   });
 
-  it("falla cerrado si el token de analista no está configurado", async () => {
-    const response = await withoutAnalystToken(() =>
+  it("falla cerrado si autenticación no está configurada", async () => {
+    const response = await withoutAuthConfiguration(() =>
       createOverride(
         new Request("http://local/api/match/demo-col-bra/overrides", {
           method: "POST",
@@ -313,7 +299,7 @@ describe("API routes", () => {
     const body = await response.json();
 
     expect(response.status).toBe(503);
-    expect(body.title).toMatch(/edición manual no configurada/i);
+    expect(body.title).toMatch(/edición manual no disponible/i);
   });
 
   it("no se bloquea con user-agent vacío o extenso", async () => {
@@ -415,7 +401,7 @@ describe("API routes", () => {
 
   it("aplica una baja estructurada antes de recalcular el análisis", async () => {
     const baseline = analyzeMatch(demoDataset);
-    const response = await withAnalystToken(() =>
+    const response = await withAdminSession(() =>
       createOverride(
         new Request("http://local/api/match/demo-col-bra/overrides", {
           method: "POST",
@@ -488,7 +474,7 @@ describe("API routes", () => {
   });
 
   it("permite recalcular manualmente un partido demo sin persistencia", async () => {
-    const response = await withAnalystToken(() =>
+    const response = await withAdminSession(() =>
       createOverride(
         new Request("http://local/api/match/demo-col-bra/overrides", {
           method: "POST",

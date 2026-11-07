@@ -1,52 +1,27 @@
-import { timingSafeEqual } from "node:crypto";
 import { problem } from "@/lib/http/problem";
+import { getAdminAuthorization } from "@/lib/auth/server";
 
-const ANALYST_HEADER = "x-analyst-token";
-
-function configuredToken() {
-  return process.env.ANALYST_OVERRIDE_TOKEN?.trim();
-}
-
-function submittedToken(request: Request) {
-  const headerToken = request.headers.get(ANALYST_HEADER)?.trim();
-  if (headerToken) return headerToken;
-
-  const authorization = request.headers.get("authorization")?.trim();
-  const [scheme, token] = authorization?.split(/\s+/, 2) ?? [];
-  if (scheme?.toLowerCase() === "bearer" && token?.trim()) {
-    return token.trim();
-  }
-
-  return undefined;
-}
-
-function safeEquals(left: string, right: string) {
-  const leftBuffer = Buffer.from(left);
-  const rightBuffer = Buffer.from(right);
-  return (
-    leftBuffer.length === rightBuffer.length &&
-    timingSafeEqual(leftBuffer, rightBuffer)
-  );
-}
-
-export function requireAnalyst(request: Request) {
-  const expected = configuredToken();
-  if (!expected) {
+export async function requireAnalyst(_request: Request) {
+  void _request; // Authorization uses the SDK session, never request token headers.
+  const authorization = await getAdminAuthorization();
+  if (authorization === "authorized") return null;
+  if (authorization === "unavailable") {
     return problem(
       503,
-      "Edición manual no configurada",
-      "Configura ANALYST_OVERRIDE_TOKEN en el entorno seguro antes de permitir cambios manuales.",
+      "Edición manual no disponible",
+      "El acceso de administrador no está disponible en este momento.",
     );
   }
-
-  const received = submittedToken(request);
-  if (!received || !safeEquals(received, expected)) {
+  if (authorization === "forbidden") {
     return problem(
-      401,
-      "Credencial de analista requerida",
-      "Los cambios manuales requieren un token de analista válido.",
+      403,
+      "Acceso no autorizado",
+      "Solo la cuenta administradora verificada puede guardar cambios manuales.",
     );
   }
-
-  return null;
+  return problem(
+    401,
+    "Sesión de administrador requerida",
+    "Inicia sesión con la cuenta administradora para guardar cambios manuales.",
+  );
 }

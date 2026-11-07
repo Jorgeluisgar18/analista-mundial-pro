@@ -108,8 +108,10 @@ El proyecto está en evolución activa. Actualmente se está fortaleciendo el mo
 
 Analista Mundial Pro es una herramienta de apoyo analítico. No garantiza resultados ni ganancias. Las apuestas deportivas implican riesgo financiero.
 
-### Acceso privado de administrador
+### Acceso privado para cambios manuales
 
-`/auth/sign-in` permite iniciar y cerrar sesión con una cuenta administradora de Neon Auth. La cuenta debe existir y tener su correo verificado; configura `NEON_AUTH_BASE_URL` (HTTPS), `NEON_AUTH_COOKIE_SECRET` (secreto aleatorio de al menos 32 caracteres) y `ANALYST_ADMIN_EMAIL` como variables privadas. No publiques correo, contraseña ni secretos en Git.
+`/auth/sign-in` permite iniciar y cerrar sesión con la cuenta administradora de Neon Auth. Solo una sesión activa con correo verificado coincidente con `ANALYST_ADMIN_EMAIL` puede guardar cambios manuales. Las búsquedas, consultas, análisis y actualizaciones conservan su acceso actual. El token antiguo de edición deja de autorizar solicitudes y ya no se guarda en el navegador.
 
-Este primer cambio incorpora el acceso privado sin registro público ni proxy general de autenticación. La autorización por token de los cambios manuales se conserva hasta la siguiente unidad, que activa la sesión administradora. El resto de la aplicación mantiene su acceso actual. Las pruebas offline no certifican el servicio administrado ni el login/logout desplegado.
+Configura `NEON_AUTH_BASE_URL` (HTTPS), `NEON_AUTH_COOKIE_SECRET` (secreto aleatorio de al menos 32 caracteres) y `ANALYST_ADMIN_EMAIL` como variables privadas. La cuenta debe existir y estar verificada previamente en Neon Auth. No publiques correo, contraseña ni secretos en Git. La aplicación no expone registro público ni un proxy general de autenticación; deshabilita también el registro público en la configuración administrada de Neon antes del lanzamiento. El guard de edición consulta la sesión sin reutilizar la caché de cookie y responde cerrado ante errores.
+
+Las pruebas unitarias e integración usan dobles del SDK y no llaman al servicio real. El E2E con escritura y login real queda omitido salvo opt-in `NEON_ADMIN_E2E=1`, `NEON_ADMIN_E2E_EMAIL`, `NEON_ADMIN_E2E_PASSWORD` y una base de prueba aislada. No uses producción para esa prueba. La configuración del servicio, las cookies reales y el login/logout desplegado requieren validación aparte; las pruebas offline no los certifican.
